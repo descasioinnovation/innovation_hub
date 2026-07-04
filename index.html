@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5KTSDYSV96"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+        gtag('config', 'G-5KTSDYSV96');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DESCASIO | Innovation Hub</title>
+
+    <!-- Favicon (SVG Zap Icon) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231d4ed8' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='13 2 3 14 12 14 11 22 21 10 12 10 13 2'></polygon></svg>">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Firebase SDKs (Compatibility Version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #e2e8f0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-4 {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .custom-card {
+            background: linear-gradient(145deg, #0f172a, #020617);
+            border: 1px solid #1e293b;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 50%, #020617 100%);
+        }
+
+        .btn-shiny {
+            background: linear-gradient(-45deg, #4f46e5, #7c3aed, #2563eb, #4f46e5);
+            background-size: 400% 400%;
+            animation: gradient-flow 3s ease infinite, pulse-glow 2s infinite;
+        }
+
+        @keyframes gradient-flow {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(124, 58, 237, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+            }
+        }
+
+        .highlight-text {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .rank-badge-1 {
+            background: linear-gradient(to bottom, #fde047, #ca8a04);
+            color: #422006;
+        }
+
+        .rank-badge-2 {
+            background: linear-gradient(to bottom, #e2e8f0, #94a3b8);
+            color: #0f172a;
+        }
+
+        .rank-badge-3 {
+            background: linear-gradient(to bottom, #fb923c, #c2410c);
+            color: #431407;
+        }
+
+        .floating-avatar {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+    </style>
+</head>
+
+<body class="selection:bg-blue-500/30">
+    <div id="app">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="animate-pulse text-slate-500 font-bold tracking-widest uppercase italic">Initializing Cloud Hub...</div>
+        </div>
+    </div>
+    <script>
+        // --- EmailJS Initialization ---
+        emailjs.init("LF76ppQ83bSQ3ggtK");
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBrRmGnPm3WcK2GKQqN_lAEvJJZPgXVdxw",
+            authDomain: "ai-innovation-hub-submissions.firebaseapp.com",
+            projectId: "ai-innovation-hub-submissions",
+            storageBucket: "ai-innovation-hub-submissions.firebasestorage.app",
+            messagingSenderId: "965178905775",
+            appId: "1:965178905775:web:d4741ca8f16bd242b5705a"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const STABLE_APP_ID = "descasio-innovation-hub-perpetual";
+
+        // --- Data & State ---
+        const DEPARTMENTS = ["Finance", "Sales", "Customer Success", "HR/Admin", "Marketing", "Strategy", "Product", "Software Engineering", "Technology Services"];
+        const HUB_AVATAR = "https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/Mesca_png.jpeg";
+
+        let ADMIN_HASH = "e28f7db64cfc2056566ea88b8100b9969be70080f868590301d4f0005c536d30";
+        const MONTHLY_RECORDS = [{
+                month: "March",
+                winner: "Michael Oredunni",
+                solution: "Round 1 Top Scorer",
+                status: "completed",
+                image: "https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/March_png.jpeg"
+            },
+            {
+                month: "April",
+                winner: "Ifeloluwa Ajibola",
+                solution: "Round 2 Efficiency Lead",
+                status: "completed",
+                image: "https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/April.jpg"
+            },
+            {
+                month: "May",
+                winner: "Ifeloluwa Ajibola",
+                solution: "Round 3 Web Design Winner",
+                status: "completed",
+                image: "https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/May_png.jpeg"
+            },
+            {
+                month: "June",
+                winner: "Tomi Adejorooluwa",
+                solution: "Round 4 Operational Optimizer Winner",
+                status: "completed",
+                image: "https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/June_png.jpeg"
+            },
+            {
+                month: "July",
+                winner: null,
+                solution: null,
+                status: "upcoming"
+            },
+            {
+                month: "August",
+                winner: null,
+                solution: null,
+                status: "upcoming"
+            },
+            {
+                month: "September",
+                winner: null,
+                solution: null,
+                status: "upcoming"
+            },
+            {
+                month: "October",
+                winner: null,
+                solution: null,
+                status: "upcoming"
+            },
+            {
+                month: "November",
+                winner: null,
+                solution: null,
+                status: "upcoming"
+            },
+            {
+                month: "December",
+                winner: null,
+                solution: null,
+                status: "upcoming"
+            },
+        ];
+
+        // Corrected scores updated and fully aligned with official spreadsheet results.
+        const FINAL_STANDINGS = [
+            {
+                name: "Ifeloluwa Ajibola",
+                email: "ifeloluwa.ajibola@descasio.io",
+                r1: 0.5,
+                r2: 3,
+                r3: 3,
+                r4: 2.0,
+                cumulativeScore: 8.5,
+                rank: 1
+            },
+            {
+                name: "Michael Oredunni",
+                email: "michael.oredunni@descasio.io",
+                r1: 3,
+                r2: 0.5,
+                r3: 2,
+                r4: 0.0,
+                cumulativeScore: 5.5,
+                rank: 2
+            },
+            {
+                name: "Tomi Adejorooluwa",
+                email: "tomi.adejorooluwa@descasio.io",
+                r1: 0.5,
+                r2: 0,
+                r3: 0.5,
+                r4: 3.0,
+                cumulativeScore: 4.0,
+                rank: 3
+            },
+            {
+                name: "Kehinde Ridwan Onifade",
+                email: "kehinde.onifade@descasio.io",
+                r1: 1,
+                r2: 2,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 3.0,
+                rank: 4
+            },
+            {
+                name: "Solomon Ojeigbo",
+                email: "solomon.ojeigbo@descasio.io",
+                r1: 0.5,
+                r2: 2,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 2.5,
+                rank: 5
+            },
+            {
+                name: "Mohammed Gberejaye",
+                email: "mohammed.gberejaye@descasio.io",
+                r1: 0.5,
+                r2: 1,
+                r3: 0.5,
+                r4: 0.5,
+                cumulativeScore: 2.5,
+                rank: 5
+            },
+            {
+                name: "Aishat Lawal",
+                email: "",
+                r1: 0,
+                r2: 0,
+                r3: 0.5,
+                r4: 2,
+                cumulativeScore: 2.5,
+                rank: 5
+            },
+            {
+                name: "Anthony Olise",
+                email: "anthony.olise@descasio.io",
+                r1: 2,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 2.0,
+                rank: 6
+            },
+            {
+                name: "Chioma Igweonu",
+                email: "chioma.igweonu@descasio.io",
+                r1: 0.5,
+                r2: 0,
+                r3: 0.5,
+                r4: 0.0,
+                cumulativeScore: 1.0,
+                rank: 7
+            },
+            {
+                name: "Olaotan Leigh",
+                email: "olaotan.leigh@descasio.io",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.5,
+                cumulativeScore: 1.0,
+                rank: 7
+            },
+            {
+                name: "MaryBlessing Umeh",
+                email: "maryblessing.umeh@descasio.io",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.5,
+                cumulativeScore: 1.0,
+                rank: 7
+            },
+            {
+                name: "Nehita Fashe",
+                email: "",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "ANIYEYE ONOME MIRACLE",
+                email: "",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "Hannah Oyetunji",
+                email: "hannah.oyetunji@descasio.io",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "Eshomomoh Irosowe",
+                email: "",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "KEHINDE SHOGANMU",
+                email: "",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "Ikechukwu Luis-Bruce",
+                email: "",
+                r1: 0,
+                r2: 0,
+                r3: 0.5,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "Jafar Alabi",
+                email: "",
+                r1: 0.5,
+                r2: 0,
+                r3: 0,
+                r4: 0.0,
+                cumulativeScore: 0.5,
+                rank: 8
+            },
+            {
+                name: "Excel Oluwatobi",
+                email: "",
+                r1: 0,
+                r2: 0,
+                r3: 0,
+                r4: 0.5,
+                cumulativeScore: 0.5,
+                rank: 8
+            }
+        ];
+
+        // --- Safe persistedAuth evaluation to avoid execution halt ReferenceErrors ---
+        const persistedAuth = (() => {
+            try {
+                const data = localStorage.getItem('descasio_hub_auth');
+                return data ? JSON.parse(data) : null;
+            } catch (e) {
+                return null;
+            }
+        })();
+
+        let state = {
+            user: null,
+            isAuthenticated: !!persistedAuth,
+            gatewayView: 'email',
+            authEmail: persistedAuth ? persistedAuth.email : '',
+            generatedOtp: null,
+            otpExpiry: null,
+            activeTab: 'dashboard',
+            submissionType: 'individual',
+            submissions: [],
+            ideas: [],
+            leaderboard: [...FINAL_STANDINGS],
+            selectedInnovation: null,
+            selectedIdea: null,
+            isAdmin: false,
+            showAdminLogin: false,
+            timeLeft: {
+                days: 0,
+                hours: 0,
+                mins: 0,
+                label: "HUNT ENDS"
+            },
+            formData: {},
+            ideaData: {},
+            loading: false
+        };
+
+        const EXTERNAL_VOTING_URL = "https://surveymars.com";
+
+        async function hashString(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function requestOtp() {
+            const email = document.getElementById('gatewayEmail').value.trim().toLowerCase();
+            if (!email.endsWith('@descasio.io')) {
+                showGatewayError("Access restricted to @descasio.io email addresses.");
+                return;
+            }
+            state.loading = true;
+            updateUI();
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiry = Date.now() + (60 * 60 * 1000);
+            try {
+                await emailjs.send("service_v9ysmxt", "template_20x7ujf", {
+                    to_email: email,
+                    otp_code: otp
+                });
+                state.authEmail = email;
+                state.generatedOtp = otp;
+                state.otpExpiry = expiry;
+                state.gatewayView = 'otp';
+                state.loading = false;
+                updateUI();
+            } catch (err) {
+                console.error(err);
+                showGatewayError("Failed to send code. Please check your connection.");
+                state.loading = false;
+                updateUI();
+            }
+        }
+
+        async function verifyOtp() {
+            const entered = document.getElementById('gatewayOtp').value.trim();
+            if (Date.now() > state.otpExpiry) {
+                showGatewayError("Code has expired. Please request a new one.");
+                return;
+            }
+            if (entered === state.generatedOtp) {
+                state.isAuthenticated = true;
+                try {
+                    localStorage.setItem('descasio_hub_auth', JSON.stringify({
+                        email: state.authEmail,
+                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000)
+                    }));
+                } catch (e) {}
+                updateUI();
+                if (state.user) {
+                    try {
+                        await db.collection('artifacts').doc(STABLE_APP_ID)
+                            .collection('users').doc(state.user.uid)
+                            .collection('profile').doc('session').set({
+                                email: state.authEmail,
+                                authenticated: true,
+                                timestamp: new Date().getTime()
+                            });
+                    } catch (e) {
+                        console.error("Firestore persistence failed", e);
+                    }
+                }
+            } else {
+                showGatewayError("Invalid access code.");
+            }
+        }
+
+        function showGatewayError(msg) {
+            const errEl = document.getElementById('gatewayError');
+            if (errEl) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+            // Updated target date strictly to: 23rd July 2026 11:59PM (Month is 0-indexed, so July is 6)
+            const targetDate = new Date(2026, 6, 22, 23, 59, 0);
+            const diff = targetDate - now;
+
+            if (diff <= 0) {
+                state.timeLeft = {
+                    days: 0,
+                    hours: 0,
+                    mins: 0,
+                    label: "CHALLENGE ENDED"
+                };
+            } else {
+                state.timeLeft = {
+                    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+                    mins: Math.floor((diff / 1000 / 60) % 60),
+                    label: "ENDS IN"
+                };
+            }
+
+            const labelEl = document.getElementById('countdown-label');
+            const timerEl = document.getElementById('countdown-timer');
+            if (labelEl) labelEl.innerText = state.timeLeft.label;
+            if (timerEl) timerEl.innerText = `${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m`;
+        }
+
+        function updateUI() {
+            if (document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
+
+            const app = document.getElementById('app');
+            if (!state.user) return;
+            if (!state.isAuthenticated) {
+                app.innerHTML = renderLoginGateway();
+                lucide.createIcons();
+                return;
+            }
+            app.innerHTML = `
+                <nav class="sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800 px-6 py-4">
+                    <div class="max-w-7xl mx-auto flex justify-between items-center">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-900/40"><i data-lucide="zap" class="text-white w-5 h-5"></i></div>
+                            <div class="hidden sm:block">
+                                <h1 class="text-xl font-black tracking-tighter text-white uppercase italic leading-none">DESCASIO</h1>
+                                <p class="text-[8px] text-slate-500 font-bold tracking-[0.2em] uppercase mt-1">Innovation Hub</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto no-scrollbar">
+                            <button onclick="navigate('dashboard')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Dashboard</button>
+                            <button onclick="navigate('challenge')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'challenge' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Challenge</button>
+                            <button onclick="navigate('gallery')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'gallery' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Submissions</button>
+                            <button onclick="navigate('ideahub')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'ideahub' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Idea Hub</button>
+                            <button onclick="navigate('winners')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'winners' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Winners</button>
+                            <button onclick="navigate('leaderboard')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'leaderboard' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Leaderboard</button>
+                            ${state.isAdmin ? `<button onclick="navigate('admin')" class="flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase transition whitespace-nowrap ${state.activeTab === 'admin' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-white'}">Admin</button>` : ''}
+                        </div>
+                        <div onclick="toggleAdminLogin()" class="w-10 h-10 bg-slate-800 rounded-full border border-slate-700 flex items-center justify-center font-bold text-xs text-white cursor-pointer hover:bg-slate-700 transition">
+                            ${state.isAdmin ? '<i data-lucide="shield-check" class="text-emerald-400 w-4 h-4"></i>' : 'Admin'}
+                        </div>
+                    </div>
+                </nav>
+                <main class="max-w-7xl mx-auto p-6 md:p-8 min-h-[70vh]">
+                    ${renderTabContent()}
+                </main>
+                ${state.selectedInnovation ? renderModal() : ''}
+                ${state.selectedIdea ? renderIdeaModal() : ''}
+                ${state.showAdminLogin ? renderAdminLogin() : ''}
+                <footer class="max-w-7xl mx-auto p-8 border-t border-slate-900 flex flex-col items-center gap-2 mt-20 text-center">
+                    <p class="text-blue-400 text-sm font-black uppercase tracking-[0.15em] mb-4">
+                        For Support and Feedback, email ai-innovation-hub@descasio.io
+                    </p>
+                    <div class="text-slate-600 text-[10px] font-bold uppercase tracking-[0.2em] italic underline decoration-blue-500/30 underline-offset-4">
+                        <p>© 2025 Organization AI Innovation Program</p>
+                        <p class="opacity-40 tracking-widest mt-1">Descasio Proprietary Direct Cloud Engine</p>
+                    </div>
+                </footer>
+            `;
+            lucide.createIcons();
+            updateCountdown();
+        }
+
+        function renderLoginGateway() {
+            return `
+                <div class="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
+                    <div class="absolute -top-20 -left-20 w-96 h-96 bg-blue-900/20 blur-[120px] rounded-full"></div>
+                    <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-900/20 blur-[120px] rounded-full"></div>
+                    <div class="w-full max-w-md bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-12 shadow-2xl relative z-10 text-center">
+                        <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-lg shadow-blue-500/20">
+                            <i data-lucide="zap" class="text-white w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-white text-4xl font-black italic tracking-tighter uppercase mb-2">DESCASIO</h2>
+                        <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mb-12">Innovation Hub Gateway</p>
+                        ${state.gatewayView === 'email' ? `
+                            <p class="text-slate-400 text-sm italic mb-10 px-4 leading-relaxed">Enter your @descasio.io email to receive an access code.</p>
+                            <input id="gatewayEmail" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:ring-2 ring-blue-600 font-bold mb-6" placeholder="name@descasio.io" value="${state.authEmail}">
+                            <div id="gatewayError" class="hidden text-red-500 text-[10px] font-bold uppercase mb-6"></div>
+                            <button onclick="requestOtp()" class="w-full bg-white text-black font-black py-5 rounded-2xl uppercase tracking-widest text-[11px] hover:bg-blue-50 transition shadow-xl active:scale-[0.98] flex items-center justify-center gap-3">
+                                ${state.loading ? '<div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>' : 'REQUEST ACCESS CODE'}
+                            </button>
+                        ` : `
+                            <p class="text-slate-400 text-sm italic mb-10 px-4 leading-relaxed">Enter the 6-digit code sent to <br><b class="text-blue-400">${state.authEmail}</b></p>
+                            <input id="gatewayOtp" type="text" maxlength="6" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:ring-2 ring-blue-600 font-mono tracking-[0.5em] text-2xl font-bold mb-6" placeholder="000000">
+                            <div id="gatewayError" class="hidden text-red-500 text-[10px] font-bold uppercase mb-6"></div>
+                            <button onclick="verifyOtp()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-[11px] hover:bg-blue-500 transition shadow-xl active:scale-[0.98] mb-4">VERIFY & ENTER</button>
+                            <button onclick="state.gatewayView = 'email'; updateUI();" class="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition">Back to Email</button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTabContent() {
+            if (state.activeTab === 'dashboard') {
+                const round5Count = state.submissions.filter(s => s.round === 5).length;
+                return `
+                    <div class="space-y-12 animate-in fade-in">
+                        <div class="relative p-10 md:p-14 rounded-[3.5rem] hero-gradient overflow-hidden shadow-[0_0_100px_rgba(30,58,138,0.3)] border border-white/10 group">
+                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+                            <div class="grid lg:grid-cols-12 gap-12 items-center relative z-10">
+                                <div class="lg:col-span-7 space-y-8">
+                                    <div>
+                                        <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em]">
+                                            <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> Round 5 Mission: ONGOING
+                                        </span>
+                                        <h2 class="text-5xl md:text-7xl font-black mt-8 mb-6 text-white leading-[0.9] italic tracking-tighter uppercase">July AI Challenge: The Optimizer 2.0</h2>
+                                        <p class="text-blue-100/80 text-xl leading-relaxed max-w-xl font-medium italic">
+                                            Every department has that one task that takes too long, creates friction, or slows down delivery. Your mission this month is to identify a specific operational bottleneck within your department and use AI to architect a solution. This is about saving time, reducing errors, and optimizing how your team works.
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-6 items-center">
+                                        <button onclick="navigate('challenge')" class="bg-white text-blue-900 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:scale-105 hover:bg-blue-50 transition-all shadow-2xl active:scale-95">The Brief <i data-lucide="arrow-right" class="inline w-4 h-4 ml-2"></i></button>
+                                        <div class="bg-black/40 backdrop-blur-xl px-8 py-5 rounded-[2rem] border border-white/10 flex items-center gap-6 text-white">
+                                            <div class="text-center">
+                                                <span id="countdown-label" class="block text-[9px] opacity-60 font-black uppercase tracking-widest">${state.timeLeft.label}</span>
+                                                <span id="countdown-timer" class="font-mono text-2xl font-black">${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-5 flex justify-center">
+                                    <div class="relative w-72 h-72 md:w-96 md:h-96 floating-avatar">
+                                        <div class="absolute inset-0 bg-blue-600/30 blur-[80px] rounded-full scale-75"></div>
+                                        <div class="relative w-full h-full bg-slate-900/60 backdrop-blur-3xl rounded-[4rem] border border-white/20 p-4 shadow-2xl overflow-hidden ring-8 ring-blue-500/10">
+                                            <img src="${HUB_AVATAR}" class="w-full h-full object-cover rounded-[3rem]" alt="Hub Avatar Mesca">
+                                            <div class="absolute bottom-6 left-6 right-6 bg-blue-600/80 backdrop-blur-md p-4 rounded-3xl border border-white/20 text-center">
+                                                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white">Hub Official Identity</p>
+                                                <h4 class="text-xl font-black text-white italic tracking-tighter">MESCA</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <!-- Round 4 Winner Box -->
+                            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-emerald-500 transition-transform hover:-translate-y-1">
+                                <div class="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
+                                    <i data-lucide="award" class="text-emerald-500 w-12 h-12"></i>
+                                </div>
+                                <div class="space-y-2">
+                                    <h3 class="text-emerald-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 4 Winner</h3>
+                                    <p class="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">Tomi Adejorooluwa</p>
+                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Market Intelligence Solution</p>
+                                </div>
+                            </div>
+
+                            <!-- Round 5 Activity Box -->
+                            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-blue-600 transition-transform hover:-translate-y-1">
+                                <div class="w-24 h-24 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center shrink-0 border border-blue-500/20 shadow-inner">
+                                    <i data-lucide="activity" class="text-blue-500 w-12 h-12"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <h3 class="text-blue-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 5 Activity</h3>
+                                    <p class="text-6xl font-black text-white italic tracking-tighter leading-none">${round5Count}</p>
+                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Solutions Recorded</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'ideahub') {
+                return `
+                    <div class="max-w-5xl mx-auto space-y-12">
+                        <div class="text-center"><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter">Idea Crowdsourcing</h2><p class="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">What solutions should we build next?</p></div>
+                        <div class="bg-slate-900 border border-blue-500/10 rounded-[2.5rem] p-10 max-w-2xl mx-auto shadow-2xl custom-card">
+                            <h3 class="text-2xl font-black text-white mb-8 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="lightbulb" class="text-yellow-400"></i> Pitch a Concept</h3>
+                            <form onsubmit="handleIdeaSubmit(event)" class="space-y-6">
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <input required oninput="handleFormInput('ideaData', 'name', this.value)" value="${state.ideaData.name || ''}" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Full Name">
+                                    <input required oninput="handleFormInput('ideaData', 'email', this.value)" value="${state.ideaData.email || ''}" type="email" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Work Email (@descasio.io)">
+                                    <select onchange="handleFormInput('ideaData', 'dept', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm">
+                                        <option value="">Select Dept</option>
+                                        ${DEPARTMENTS.map(d => `<option value="${d}" ${state.ideaData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                    </select>
+                                    <input required oninput="handleFormInput('ideaData', 'title', this.value)" value="${state.ideaData.title || ''}" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Idea Title">
+                                </div>
+                                <textarea required oninput="handleFormInput('ideaData', 'description', this.value)" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm" placeholder="Description...">${state.ideaData.description || ''}</textarea>
+                                <div id="ideaStatus"></div>
+                                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-600 text-white font-black p-5 rounded-2xl uppercase tracking-widest text-xs">Share Concept</button>
+                            </form>
+                        </div>
+                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${state.ideas.map(idea => `
+                                <div onclick="showIdeaDetails('${idea.id}')" class="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 hover:border-blue-500/40 transition-all group overflow-hidden cursor-pointer shadow-lg hover:shadow-blue-900/10 flex flex-col h-full">
+                                    <div class="flex items-center gap-2 text-blue-500 mb-6"><i data-lucide="lightbulb" class="w-4 h-4"></i> <span class="text-[10px] font-black uppercase tracking-widest">Concept</span></div>
+                                    <h4 class="text-white font-black text-xl mb-4 uppercase leading-tight italic tracking-tighter break-words group-hover:text-blue-400 transition-colors">${idea.title}</h4>
+                                    <p class="text-slate-400 text-sm italic line-clamp-4 break-words leading-relaxed mb-8">"${idea.description}"</p>
+                                    <div class="mt-auto space-y-4">
+                                        <div class="pt-4 border-t border-slate-800/50 flex items-center justify-between">
+                                            <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[150px]">BY ${idea.name || 'Anonymous'}</div>
+                                            <div class="text-blue-500 group-hover:translate-x-1 transition-transform"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'challenge') {
+                return `
+                    <div class="max-w-4xl mx-auto space-y-12 animate-in slide-in-from-bottom duration-500">
+                        <div class="border-b border-slate-800 pb-8 text-center">
+                            <h2 class="text-4xl font-black mb-4 text-white uppercase italic tracking-tighter">July AI Challenge: The Optimizer 2.0</h2>
+                            <p class="text-slate-400 text-lg opacity-70">Every department has that one task that takes too long, creates friction, or slows down delivery. Your mission this month is to identify a specific operational bottleneck within your department and use AI to architect a solution. This is about saving time, reducing errors, and optimizing how your team works.</p>
+                        </div>
+                                                                        
+                        <div class="bg-blue-600/10 border-2 border-blue-500/20 p-8 rounded-[3rem] shadow-xl">
+                            <h3 class="text-2xl font-black text-white mb-6 uppercase flex items-center gap-3 italic"><i data-lucide="library" class="text-blue-400"></i> Challenge Resources</h3>
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <a href="https://drive.google.com/file/d/1GPjEMWjYHT7ZEqc_t2COsQ5pWeDa46xQ/view?usp=sharing" target="_blank" class="flex items-center gap-4 bg-slate-900 hover:bg-blue-600 border border-slate-800 p-5 rounded-2xl transition-all group">
+                                    <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:bg-white/20"><i data-lucide="video" class="text-blue-400 group-hover:text-white"></i></div>
+                                    <div><p class="text-xs font-black uppercase text-white tracking-widest">Video Walkthrough</p><p class="text-[10px] text-slate-500 group-hover:text-blue-100">Watch the tutorial guide</p></div>
+                                </a>
+                                <a href="https://docs.google.com/document/d/12P2u1YaQK1C8b7hUrQCvxdRQrFPpJfH6KWVZylt2q6Q/edit?usp=sharing" target="_blank" class="flex items-center gap-4 bg-slate-900 hover:bg-emerald-600 border border-slate-800 p-5 rounded-2xl transition-all group">
+                                    <div class="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:bg-white/20"><i data-lucide="file-text" class="text-emerald-400 group-hover:text-white"></i></div>
+                                    <div><p class="text-xs font-black uppercase text-white tracking-widest">Step-by-Step Guide</p><p class="text-[10px] text-slate-500 group-hover:text-emerald-100">Read the documentation</p></div>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] text-center shadow-xl border-l-4 border-l-blue-500">
+                                <p class="text-blue-400 font-black text-[9px] uppercase tracking-widest mb-2">Problem Definition</p>
+                                <p class="text-3xl font-black text-white italic tracking-tighter">5 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] text-center shadow-xl border-l-4 border-l-purple-500">
+                                <p class="text-purple-400 font-black text-[9px] uppercase tracking-widest mb-2">PReliability and Repeatability</p>
+                                <p class="text-3xl font-black text-white italic tracking-tighter">5 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] text-center shadow-xl border-l-4 border-l-emerald-500">
+                                <p class="text-emerald-400 font-black text-[9px] uppercase tracking-widest mb-2">Operational Impact</p>
+                                <p class="text-3xl font-black text-white italic tracking-tighter">5 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] text-center shadow-xl border-l-4 border-l-amber-500">
+                                <p class="text-amber-400 font-black text-[9px] uppercase tracking-widest mb-2">Presentation</p>
+                                <p class="text-3xl font-black text-white italic tracking-tighter">5 Pts</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl">
+                            <h3 class="text-2xl font-black text-white mb-8 uppercase flex items-center gap-3 italic"><i data-lucide="award" class="text-blue-500"></i> Scoring Criteria (20 Points Total)</h3>
+                            <p class="text-slate-400 text-sm mb-8">Our evaluation panel will judge submissions based on practicality and measurable business value, broken down into four core pillars:</p>
+                            <ul class="space-y-12">
+                                <li class="flex items-start gap-5 group">
+                                    <div class="mt-1 bg-blue-500/10 text-blue-400 p-2 rounded-lg border border-blue-500/20 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300">
+                                        <i data-lucide="alert-circle" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h3 class="text-white font-bold text-xl uppercase tracking-tight">Problem Definition</h3>
+                                            <span class="text-blue-500 font-black text-xs uppercase tracking-widest">5 Points</span>
+                                        </div>
+                                        <p class="text-slate-400 leading-relaxed text-sm"><strong class="highlight-text">The "Why":</strong> Did you clearly identify a genuine, real-world departmental bottleneck?</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-start gap-5 group">
+                                    <div class="mt-1 bg-purple-500/10 text-purple-400 p-2 rounded-lg border border-purple-500/20 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300">
+                                        <i data-lucide="terminal" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h3 class="text-white font-bold text-xl uppercase tracking-tight">Reliability and Repeatability</h3>
+                                            <span class="text-purple-500 font-black text-xs uppercase tracking-widest">5 Points</span>
+                                        </div>
+                                        <p class="text-slate-400 leading-relaxed text-sm"><strong class="highlight-text">The "How":</strong> Is the solution’s output highly reliable and repeatable?</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-start gap-5 group">
+                                    <div class="mt-1 bg-emerald-500/10 text-emerald-400 p-2 rounded-lg border border-emerald-500/20 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h3 class="text-white font-bold text-xl uppercase tracking-tight">Operational Impact & Feasibility</h3>
+                                            <span class="text-emerald-500 font-black text-xs uppercase tracking-widest">5 Points</span>
+                                        </div>
+                                        <p class="text-slate-400 leading-relaxed text-sm"><strong class="highlight-text">The "Value":</strong> Can this solution actually be deployed in daily operations? Does it offer measurable time savings, error reduction, or speed for the team?</p>
+                                    </div>
+                                </li>
+                                <li class="flex items-start gap-5 group">
+                                    <div class="mt-1 bg-amber-500/10 text-amber-400 p-2 rounded-lg border border-amber-500/20 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+                                        <i data-lucide="award" class="w-6 h-6"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <h3 class="text-white font-bold text-xl uppercase tracking-tight">Presentation & Professionalism</h3>
+                                            <span class="text-amber-500 font-black text-xs uppercase tracking-widest">5 Points</span>
+                                        </div>
+                                        <p class="text-slate-400 leading-relaxed text-sm"><strong class="highlight-text">The "Delivery":</strong> Is the solution documented clearly so that another team member can replicate it without confusion?</p>
+                                    </div>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-slate-900 border-2 border-blue-500/20 rounded-[3rem] p-12 shadow-2xl">
+                            <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round 5 Submission</h3>
+                            <div class="flex gap-4 mb-10 bg-slate-950 p-2 rounded-2xl border border-slate-800 max-w-md">
+                                <button onclick="setSubmissionType('individual')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'individual' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Individual</button>
+                                <button onclick="setSubmissionType('group')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'group' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Group (Team of 2)</button>
+                            </div>
+                            <form onsubmit="handleFormSubmit(event)" class="space-y-8">
+                                ${state.submissionType === 'individual' ? `
+                                    <div class="grid md:grid-cols-2 gap-6 animate-in fade-in">
+                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Full Name</label><input required oninput="handleFormInput('formData', 'name', this.value)" value="${state.formData.name || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
+                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Email (@descasio.io)</label><input required oninput="handleFormInput('formData', 'email', this.value)" value="${state.formData.email || ''}" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
+                                        <div class="space-y-2 col-span-full"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Department</label><select onchange="handleFormInput('formData', 'dept', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"><option value="">Select Dept</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                                    </div>
+                                ` : `
+                                    <div class="space-y-8 animate-in slide-in-from-top-2">
+                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Team Name</label><input required oninput="handleFormInput('formData', 'teamName', this.value)" value="${state.formData.teamName || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-black uppercase italic" placeholder="THE OPTIMIZERS"></div>
+                                        <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
+                                            <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 01</span></div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
+                                                <input required oninput="handleFormInput('formData', 'member1Name', this.value)" value="${state.formData.member1Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
+                                                <input required oninput="handleFormInput('formData', 'member1Email', this.value)" value="${state.formData.member1Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="col-span-full space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
+                                                <select onchange="handleFormInput('formData', 'member1Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
+                                                    <option value="">Select Dept</option>
+                                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
+                                            <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 02</span></div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
+                                                <input required oninput="handleFormInput('formData', 'member2Name', this.value)" value="${state.formData.member2Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
+                                                <input required oninput="handleFormInput('formData', 'member2Email', this.value)" value="${state.formData.member2Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="col-span-full space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
+                                                <select onchange="handleFormInput('formData', 'member2Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
+                                                    <option value="">Select Dept</option>
+                                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `}
+                                <div class="pt-10 border-t border-slate-800 space-y-8">
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Problem Definition</label>
+                                        <textarea required oninput="handleFormInput('formData', 'problemDefinition', this.value)" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="Identify and describe the genuine, real-world operational bottleneck within your department...">${state.formData.problemDefinition || ''}</textarea>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Tools Used</label>
+                                        <input required oninput="handleFormInput('formData', 'toolsUsed', this.value)" value="${state.formData.toolsUsed || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="e.g. Gemini Canvas, Make.com, Python script, ChatGPT, Google Apps Script">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Operational Impact</label>
+                                        <textarea required oninput="handleFormInput('formData', 'operationalimpact', this.value)" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="How does this solution address the identified problem, what is the measurable impact...">${state.formData.operationalimpact || ''}</textarea>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Solution Link (App, PDF, or Video)</label>
+                                        <input required oninput="handleFormInput('formData', 'solutionLink', this.value)" value="${state.formData.solutionLink || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="https://drive.google.com/... or https://gemini.google.com/share/...">
+                                        <p class="text-[9px] text-slate-600 italic px-1">Provide the link to either an app, PDF documentation, or a video walkthrough detailing your solution.</p>
+                                    </div>
+                                </div>
+                                <div id="formStatus"></div>
+                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">Submit Round 5 Entry</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (state.activeTab === 'gallery') {
+                const shortlisted = state.submissions.filter(s => s.shortlisted);
+                const round5Submissions = state.submissions.filter(s => s.round === 5);
+                const round4Submissions = state.submissions.filter(s => s.round === 4);
+                const round3Submissions = state.submissions.filter(s => s.round === 3);
+                const round2Submissions = state.submissions.filter(s => s.round === 2);
+                const round1Submissions = state.submissions.filter(s => s.round === 1 || !s.round);
+
+                return `
+                    <div class="space-y-20 animate-in fade-in">
+                        <section class="space-y-8">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase underline decoration-blue-500 decoration-8 underline-offset-8">Shortlisted for Voting</h2>
+                                </div>
+                                <a href="${EXTERNAL_VOTING_URL}" target="_blank" class="btn-shiny text-white px-12 py-6 rounded-[2rem] font-black uppercase text-sm tracking-[0.1em] shadow-2xl transition hover:scale-110 flex items-center justify-center gap-4">
+                                    <i data-lucide="vote" class="w-6 h-6"></i> CAST OFFICIAL VOTE
+                                </a>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-8">
+                                ${shortlisted.map(item => renderSubmissionCard(item)).join('')}
+                                ${shortlisted.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">Admin verification in progress...</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8">
+                            <div class="flex items-center gap-4 border-b border-blue-500/20 pb-10">
+                                <i data-lucide="users" class="text-blue-500 w-8 h-8"></i>
+                                <div>
+                                    <h2 class="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Submission Feed</h2>
+                                    <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Current: Round 5 entries</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round5Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round5Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">Awaiting final synced entries...</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 4 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: The Optimizer 1.0</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round4Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 3 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Build a Website with AI</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round3Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-50 grayscale transition-all duration-500">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 2 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Efficiency at Descasio</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round2Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-40 grayscale transition-all duration-500">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 1 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Descasio Avatar Challenge</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round1Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'winners') {
+                return `
+                    <div class="max-w-6xl mx-auto space-y-12 animate-in zoom-in-95 duration-500">
+                        <div class="text-center">
+                            <h2 class="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Hall of Fame</h2>
+                            <p class="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-4 italic underline underline-offset-8 decoration-blue-500/50">Celebrating the AI Transformation Journey</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            ${MONTHLY_RECORDS.map(item => `
+                                <div class="bg-slate-900 rounded-[2.5rem] p-10 border-2 ${item.status === 'active' ? 'border-blue-500 shadow-blue-900/40 shadow-2xl' : 'border-slate-800'} relative overflow-hidden">
+                                    <div class="flex justify-between items-start mb-8"><span class="text-slate-500 font-black text-xs uppercase tracking-[0.2em]">${item.month}</span>${item.status === 'completed' ? '<i data-lucide="medal" class="text-yellow-500 w-8 h-8"></i>' : item.status === 'active' ? '<div class="w-3 h-3 rounded-full bg-blue-500 animate-ping"></div>' : ''}</div>
+                                    <div class="flex flex-col items-center text-center">
+                                        ${item.winner ? `
+                                            <div class="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-white font-black text-2xl mb-6 shadow-xl overflow-hidden border-2 border-white/10">
+                                                ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover">` : item.winner.charAt(0)}
+                                            </div>
+                                            <h4 class="text-white font-black uppercase italic tracking-tighter text-2xl mb-1">${item.winner}</h4>
+                                            <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest text-center">${item.solution}</p>
+                                        ` : `
+                                            <div class="py-16 flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-[2.5rem] w-full">
+                                                <p class="text-slate-700 font-black text-[10px] uppercase tracking-widest italic">${item.status === 'active' ? 'CHALLENGE IN PROGRESS' : 'UPCOMING'}</p>
+                                            </div>
+                                        `}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'leaderboard') {
+                return `
+                    <div class="space-y-10 animate-in fade-in">
+                        <div class="text-center mb-12">
+                            <h2 class="text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">Innovation Leaderboard</h2>
+                            <p class="text-blue-500 font-black uppercase tracking-[0.3em] text-[10px]">Real-time Performance Standings (Verified)</p>
+                        </div>
+                        <div class="overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 shadow-2xl">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800 text-[10px] tracking-widest">
+                                    <tr>
+                                        <th class="p-8 text-center w-24">Rank</th>
+                                        <th class="p-8">Participant Detail</th>
+                                        <th class="p-8 text-center">Round 1</th>
+                                        <th class="p-8 text-center">Round 2</th>
+                                        <th class="p-8 text-center">Round 3</th>
+                                        <th class="p-8 text-center text-purple-400">Round 4</th>
+                                        <th class="p-8 text-right">Cumulative</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    ${state.leaderboard.map((entry, index) => `
+                                        <tr class="hover:bg-white/5 transition group">
+                                            <td class="p-8 text-center">
+                                                <div class="w-10 h-10 rounded-full mx-auto flex items-center justify-center font-black text-xs ${entry.rank < 4 ? 'rank-badge-' + entry.rank : 'bg-slate-800 text-slate-400'}">
+                                                    ${entry.rank}
+                                                </div>
+                                            </td>
+                                            <td class="p-8">
+                                                <div class="flex flex-col">
+                                                    <span class="text-white font-black uppercase text-sm tracking-tight group-hover:text-blue-400 transition-colors">${entry.name}</span>
+                                                    <span class="text-slate-500 text-[10px] font-medium tracking-tight mt-1 opacity-60">${entry.email || 'descasio.io'}</span>
+                                                </div>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-slate-400 font-bold">${entry.r1 !== undefined ? entry.r1 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-blue-400 font-bold">${entry.r2 !== undefined ? entry.r2 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-indigo-400 font-bold">${entry.r3 !== undefined ? entry.r3 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-purple-400 font-black">${entry.r4 !== undefined ? entry.r4 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-right">
+                                                <div class="flex flex-col items-end">
+                                                    <span class="text-3xl font-black text-white italic tracking-tighter leading-none">${entry.cumulativeScore.toFixed(1)}</span>
+                                                    <span class="text-blue-500 text-[8px] font-black uppercase tracking-[0.2em] mt-2">TOTAL POINTS</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'admin') {
+                return `
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-end border-b border-slate-800 pb-10"><div><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Admin Control</h2></div><button onclick="logoutAdmin()" class="bg-red-600/10 text-red-500 text-[10px] font-black uppercase px-6 py-3 rounded-xl border border-red-500/20 hover:bg-red-600 hover:text-white transition-all">Sign Out</button></div>
+                        <div class="overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 shadow-2xl">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800"><tr><th class="p-6">Origin / Team</th><th class="p-6">Submission Detail</th><th class="p-6">Round</th><th class="p-6">Preview</th><th class="p-6 text-center">Shortlist</th></tr></thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    ${state.submissions.map(sub => `
+                                        <tr class="hover:bg-white/5 transition">
+                                            <td class="p-6"><b class="text-white uppercase tracking-tight">${sub.type === 'group' ? sub.teamName : sub.name}</b><br><span class="opacity-50 italic text-[10px] uppercase tracking-widest font-black text-blue-400">${sub.type === 'group' ? 'Group' : (sub.dept || 'Indiv')}</span></td>
+                                            <td class="p-6 font-black uppercase text-blue-100 italic">${sub.round === 4 ? 'The Optimizer App' : (sub.round === 3 ? (sub.canvasLink ? 'Shared Link' : 'Website') : (sub.innovationName || 'Entry'))}</td>
+                                            <td class="p-6 font-black text-blue-500">R${sub.round || 1}</td>
+                                            <td class="p-6">${sub.docLink ? `<img src="${sub.docLink}" class="w-10 h-10 rounded-lg object-cover">` : sub.round === 4 ? (sub.solutionLink ? `<a href="${sub.solutionLink}" target="_blank" class="text-blue-500 underline text-[10px]">View Link</a>` : '-') : (sub.canvasLink ? `<a href="${sub.canvasLink}" target="_blank" class="text-blue-500 underline text-[10px]">View Link</a>` : '-')}</td>
+                                            <td class="p-6 text-center"><button onclick="toggleShortlist('${sub.id}', ${sub.shortlisted})" class="p-4 rounded-2xl ${sub.shortlisted ? 'bg-yellow-500 text-black' : 'bg-slate-800 text-slate-500'} hover:scale-110 transition-all"><i data-lucide="star" class="w-6 h-6 ${sub.shortlisted ? 'fill-black' : ''}"></i></button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderSubmissionCard(item) {
+            const isRound3 = item.round === 3;
+            const isRound4 = item.round === 4;
+            let title = item.innovationName || 'Submission';
+            if (isRound4) {
+                title = item.problemDefinition ? 'Department Optimizer' : 'AI Optimization';
+            } else if (isRound3) {
+                title = item.canvasLink ? 'Gemini Canvas Entry' : 'AI Website Entry';
+            }
+            return `
+                <div class="bg-slate-900/30 border border-slate-800/50 rounded-[2rem] p-6 flex flex-col h-full hover:border-blue-500/30 transition-all overflow-hidden group shadow-xl">
+                    <div class="aspect-square bg-slate-950 rounded-2xl mb-6 overflow-hidden border border-slate-800 flex items-center justify-center">
+                        ${item.docLink ? `<img src="${item.docLink}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">` : `<div class="w-full h-full flex items-center justify-center text-slate-800"><i data-lucide="zap" class="w-12 h-12"></i></div>`}
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-[9px] font-black uppercase text-blue-500 tracking-widest">${item.type === 'group' ? 'TEAM' : (item.dept || 'CORE')}</span>
+                        <span class="text-[8px] font-black uppercase px-2 py-1 rounded bg-slate-800 text-slate-400">Round ${item.round || 1}</span>
+                    </div>
+                    <h3 class="text-xl font-black text-white mb-2 uppercase italic tracking-tighter truncate break-words">${title}</h3>
+                    <p class="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-black mb-8 truncate">
+                        BY ${item.type === 'group' ? item.teamName : `${item.name}`}
+                    </p>
+                    <button onclick="showDetails('${item.id}')" class="mt-auto w-full bg-slate-950 p-4 rounded-xl border border-white/5 text-[9px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition">Details & Impact</button>
+                </div>
+            `;
+        }
+
+        function renderModal() {
+            const item = state.selectedInnovation;
+            const isR5 = item.round === 5;
+            const titleText = isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission'));
+            return `
+                <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div class="bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
+                        <button onclick="closeModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
+                        <span class="bg-blue-600/20 text-blue-400 border border-blue-400/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic">ROUND ${item.round || 1} ENTRY DETAIL</span>
+                        <h3 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-tight mt-8 mb-6 break-words">${titleText}</h3>
+                        ${item.docLink ? `<img src="${item.docLink}" class="w-full aspect-square object-cover rounded-[2rem] border-2 border-blue-500/20 mb-10 shadow-2xl">` : ''}
+                        <div class="space-y-4 mb-12">
+                            ${item.type === 'group' ? `
+                                <div class="flex items-center gap-3 text-slate-200 text-xs font-black uppercase tracking-widest truncate"><i data-lucide="shield" class="text-blue-500 w-4 h-4"></i> ${item.teamName}</div>
+                                <div class="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-3">
+                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member1Name} • ${item.member1Dept}</div>
+                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member2Name} • ${item.member2Dept}</div>
+                                </div>
+                            ` : `
+                                <div class="flex items-center gap-3 text-slate-300 text-sm font-black uppercase tracking-widest truncate"><i data-lucide="user" class="text-blue-500 w-4 h-4"></i> ${item.name} • ${item.email}</div>
+                                <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest px-1"><i data-lucide="briefcase" class="w-3 h-3"></i> ${item.dept || 'CORE'}</div>
+                            `}
+                        </div>
+                        ${isR4 ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="alert-circle" class="w-4 h-4"></i> Problem Definition</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.problemDefinition || 'None reported.'}</p>
+                            </div>
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed || 'None suggested.'}</p>
+                            </div>
+                            ${item.solutionLink ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Solution Link</h4>
+                                    <a href="${item.solutionLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.solutionLink}</a>
+                                </div>
+                            ` : ''}
+                        ` : `
+                            ${item.canvasLink ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Shared Website Link</h4>
+                                    <a href="${item.canvasLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.canvasLink}</a>
+                                </div>
+                            ` : ''}
+                            ${item.round === 2 ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="bug" class="w-4 h-4"></i> Bugs Identified</h4>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.bugsIdentified || 'None reported.'}</p>
+                                </div>
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="zap" class="w-4 h-4"></i> Recommendations</h4>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.productRecommendations || 'None suggested.'}</p>
+                                </div>
+                            ` : item.round === 1 ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-8"><i data-lucide="zap" class="w-4 h-4 fill-blue-400"></i> Prompt Used</h4>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">"${item.achievements}"</p>
+                                </div>
+                            ` : ''}
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderIdeaModal() {
+            const idea = state.selectedIdea;
+            return `
+                <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div class="bg-slate-900 max-w-3xl w-full p-12 rounded-[4rem] border-2 border-yellow-500/30 shadow-[0_0_100px_rgba(234,179,8,0.1)] relative max-h-[90vh] overflow-y-auto custom-card">
+                        <button onclick="closeIdeaModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
+                        <div class="flex items-center gap-3 text-yellow-500 mb-8"><i data-lucide="lightbulb" class="w-6 h-6"></i> <span class="text-xs font-black uppercase tracking-[0.3em] italic">Concept Detail</span></div>
+                        <h3 class="text-5xl font-black text-white italic tracking-tighter uppercase leading-none mb-10 break-words">${idea.title}</h3>
+                        <div class="bg-black/60 rounded-[3rem] p-12 border border-white/5 shadow-inner">
+                            <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mb-10 flex items-center gap-3"><i data-lucide="align-left" class="w-4 h-4"></i> Detailed Description</h4>
+                            <p class="text-slate-100 text-xl leading-[1.8] italic font-medium break-words whitespace-pre-wrap">"${idea.description}"</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminLogin() {
+            return `
+                <div class="fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in duration-300">
+                    <div class="bg-slate-900 max-md w-full p-12 rounded-[3rem] border-2 border-slate-800 shadow-2xl text-center custom-card">
+                        <div class="w-24 h-24 bg-blue-600/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-blue-500/20 shadow-inner"><i data-lucide="lock" class="text-blue-500 w-12 h-12"></i></div>
+                        <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-10">Admin Access Restricted</h3>
+                        <input type="password" id="adminCode" class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:border-blue-600 transition-all font-mono tracking-[1em] mb-10" placeholder="••••">
+                        <div class="flex gap-4">
+                            <button onclick="toggleAdminLogin()" class="flex-1 p-5 rounded-2xl border border-slate-800 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition">ABORT</button>
+                            <button onclick="authorizeAdmin()" class="flex-1 p-5 rounded-2xl bg-blue-600 text-white font-black text-[11px] uppercase tracking-[0.2em] hover:bg-blue-500 shadow-2xl transition">VERIFY</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function navigate(tab) {
+            state.activeTab = tab;
+            updateUI();
+        }
+
+        function toggleAdminLogin() {
+            state.showAdminLogin = !state.showAdminLogin;
+            updateUI();
+        }
+        async function authorizeAdmin() {
+            const code = document.getElementById('adminCode').value;
+            const hashed = await hashString(code);
+            if (hashed === ADMIN_HASH) {
+                state.isAdmin = true;
+                state.showAdminLogin = false;
+                state.activeTab = 'admin';
+                updateUI();
+            }
+        }
+
+        function logoutAdmin() {
+            state.isAdmin = false;
+            state.activeTab = 'dashboard';
+            updateUI();
+        }
+
+        function closeModal() {
+            state.selectedInnovation = null;
+            updateUI();
+        }
+
+        function closeIdeaModal() {
+            state.selectedIdea = null;
+            updateUI();
+        }
+
+        function showDetails(id) {
+            state.selectedInnovation = state.submissions.find(s => s.id === id);
+            updateUI();
+        }
+
+        function showIdeaDetails(id) {
+            state.selectedIdea = state.ideas.find(i => i.id === id);
+            updateUI();
+        }
+
+        function handleFormInput(stateKey, field, value) {
+            state[stateKey][field] = value;
+        }
+
+        function setSubmissionType(type) {
+            state.submissionType = type;
+            updateUI();
+        }
+
+        async function toggleShortlist(id, current) {
+            try {
+                const docRef = db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').doc(id);
+                await docRef.update({
+                    shortlisted: !current
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const data = state.formData;
+            try {
+                await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
+                    ...data,
+                    type: state.submissionType,
+                    round: 5,
+                    shortlisted: false,
+                    timestamp: new Date().toISOString()
+                });
+                state.formData = {};
+                state.activeTab = 'gallery';
+                updateUI();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function handleIdeaSubmit(e) {
+            e.preventDefault();
+            const data = state.ideaData;
+            try {
+                await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('ideas').add({
+                    ...data,
+                    timestamp: new Date().toISOString()
+                });
+                state.ideaData = {};
+                updateUI();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                await auth.signInAnonymously();
+            } else {
+                state.user = user;
+                setInterval(() => {
+                    updateCountdown();
+                }, 1000);
+
+                db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions')
+                    .onSnapshot((snapshot) => {
+                        state.submissions = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        state.submissions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        updateUI();
+                    });
+
+                db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('ideas')
+                    .onSnapshot((snapshot) => {
+                        state.ideas = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        state.ideas.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        updateUI();
+                    });
+
+                db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('leaderboard')
+                    .onSnapshot((snapshot) => {
+                        const firestoreData = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        const combined = [...FINAL_STANDINGS];
+                        firestoreData.forEach(item => {
+                            const existingIdx = combined.findIndex(e => e.name === item.name);
+                            if (existingIdx > -1) combined[existingIdx] = item;
+                            else combined.push(item);
+                        });
+                        state.leaderboard = combined.sort((a, b) => (b.cumulativeScore || 0) - (a.cumulativeScore || 0));
+                        updateUI();
+                    });
+
+                updateUI();
+            }
+        });
+    </script>
+</body>
+
+</html>
