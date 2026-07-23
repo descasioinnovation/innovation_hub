@@ -1181,8 +1181,11 @@
 
         function renderModal() {
             const item = state.selectedInnovation;
+            if (!item) return '';
             const isR5 = item.round === 5;
-            const titleText = isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission'));
+            const isR4 = item.round === 4;
+            const isOptimizer = isR4 || isR5;
+            const titleText = isR5 ? 'Operational Optimizer 2' : (isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission')));
             return `
                 <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
                     <div class="bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
@@ -1194,15 +1197,15 @@
                             ${item.type === 'group' ? `
                                 <div class="flex items-center gap-3 text-slate-200 text-xs font-black uppercase tracking-widest truncate"><i data-lucide="shield" class="text-blue-500 w-4 h-4"></i> ${item.teamName}</div>
                                 <div class="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-3">
-                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member1Name} • ${item.member1Dept}</div>
-                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member2Name} • ${item.member2Dept}</div>
+                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member1Name || ''} • ${item.member1Dept || ''}</div>
+                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member2Name || ''} • ${item.member2Dept || ''}</div>
                                 </div>
                             ` : `
-                                <div class="flex items-center gap-3 text-slate-300 text-sm font-black uppercase tracking-widest truncate"><i data-lucide="user" class="text-blue-500 w-4 h-4"></i> ${item.name} • ${item.email}</div>
+                                <div class="flex items-center gap-3 text-slate-300 text-sm font-black uppercase tracking-widest truncate"><i data-lucide="user" class="text-blue-500 w-4 h-4"></i> ${item.name || 'Anonymous'} • ${item.email || ''}</div>
                                 <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest px-1"><i data-lucide="briefcase" class="w-3 h-3"></i> ${item.dept || 'CORE'}</div>
                             `}
                         </div>
-                        ${isR4 ? `
+                        ${isOptimizer ? `
                             <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
                                 <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="alert-circle" class="w-4 h-4"></i> Problem Definition</h4>
                                 <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.problemDefinition || 'None reported.'}</p>
@@ -1211,6 +1214,12 @@
                                 <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
                                 <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed || 'None suggested.'}</p>
                             </div>
+                            ${item.operationalimpact ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="activity" class="w-4 h-4"></i> Operational Impact</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.operationalimpact}</p>
+                            </div>
+                            ` : ''}
                             ${item.solutionLink ? `
                                 <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
                                     <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Solution Link</h4>
@@ -1236,7 +1245,7 @@
                             ` : item.round === 1 ? `
                                 <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
                                     <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-8"><i data-lucide="zap" class="w-4 h-4 fill-blue-400"></i> Prompt Used</h4>
-                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">"${item.achievements}"</p>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">"${item.achievements || ''}"</p>
                                 </div>
                             ` : ''}
                         `}
@@ -1247,6 +1256,7 @@
 
         function renderIdeaModal() {
             const idea = state.selectedIdea;
+            if (!idea) return '';
             return `
                 <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
                     <div class="bg-slate-900 max-w-3xl w-full p-12 rounded-[4rem] border-2 border-yellow-500/30 shadow-[0_0_100px_rgba(234,179,8,0.1)] relative max-h-[90vh] overflow-y-auto custom-card">
@@ -1315,7 +1325,12 @@
         }
 
         function showDetails(id) {
-            state.selectedInnovation = state.submissions.find(s => s.id === id);
+            state.selectedInnovation = state.submissions.find(s => String(s.id) === String(id));
+            updateUI();
+        }
+
+        function showIdeaDetails(id) {
+            state.selectedIdea = state.ideas.find(i => String(i.id) === String(id));
             updateUI();
         }
 
