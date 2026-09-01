@@ -860,7 +860,7 @@
                         <div class="bg-slate-900 border-2 border-blue-500/30 p-10 rounded-[3rem] shadow-2xl space-y-6 relative overflow-hidden">
                             <div class="flex items-center gap-3 text-blue-400">
                                 <i data-lucide="shield-alert" class="w-7 h-7"></i>
-                                <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building (Read This First)</h3>
+                                <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building</h3>
                             </div>
                             <p class="text-slate-300 text-sm leading-relaxed italic">
                                 You'll use Gemini Canvas to build <strong>The Descasio Security Trainer</strong> — an interactive phishing-awareness quiz where players work through 6 realistic workplace scenarios across email, SMS, and Microsoft Teams, and decide what's a scam and what's legitimate.
@@ -873,7 +873,7 @@
                                 </div>
                             </div>
                             <p class="text-blue-400 font-bold text-xs uppercase tracking-wider">
-                                ⚠️ Real Descasio logo, descasio.io domain, and Microsoft Teams only — never a placeholder logo, .com, or Slack.
+                                ⚠️ Real Descasio logo, descasio.io domain, and Microsoft Teams only — never a placeholder logo, .com.
                             </p>
                         </div>
 
@@ -892,7 +892,7 @@
                                     <div class="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-emerald-500/30">2</div>
                                     <div>
                                         <h4 class="text-white font-bold text-base uppercase mb-1">Test With 3 Colleagues</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Share your Canvas link with at least 3 people outside the AI Innovation Hub team. Ask each of them to play through all 6 rounds and screenshot their final results screen.</p>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Share your Canvas link with at least any 3 people within the organization. Ask each of them to play through all 6 rounds and screenshot their final results screen.</p>
                                     </div>
                                 </div>
                                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
@@ -1504,7 +1504,7 @@
                 await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
                     ...data,
                     type: state.submissionType,
-                    round: 6,
+                    round: 7,
                     shortlisted: false,
                     timestamp: new Date().toISOString()
                 });
