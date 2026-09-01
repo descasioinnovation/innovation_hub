@@ -860,7 +860,7 @@
                         <div class="bg-slate-900 border-2 border-blue-500/30 p-10 rounded-[3rem] shadow-2xl space-y-6 relative overflow-hidden">
                             <div class="flex items-center gap-3 text-blue-400">
                                 <i data-lucide="shield-alert" class="w-7 h-7"></i>
-                                <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building (Read This First)</h3>
+                                <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building</h3>
                             </div>
                             <p class="text-slate-300 text-sm leading-relaxed italic">
                                 You'll use Gemini Canvas to build <strong>The Descasio Security Trainer</strong> — an interactive phishing-awareness quiz where players work through 6 realistic workplace scenarios across email, SMS, and Microsoft Teams, and decide what's a scam and what's legitimate.
@@ -873,7 +873,7 @@
                                 </div>
                             </div>
                             <p class="text-blue-400 font-bold text-xs uppercase tracking-wider">
-                                ⚠️ Real Descasio logo, descasio.io domain, and Microsoft Teams only — never a placeholder logo, .com, or Slack.
+                                ⚠️ Real Descasio logo, descasio.io domain, and Microsoft Teams only — never a placeholder logo, .com.
                             </p>
                         </div>
 
@@ -892,7 +892,7 @@
                                     <div class="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-emerald-500/30">2</div>
                                     <div>
                                         <h4 class="text-white font-bold text-base uppercase mb-1">Test With 3 Colleagues</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Share your Canvas link with at least 3 people outside the AI Innovation Hub team. Ask each of them to play through all 6 rounds and screenshot their final results screen.</p>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Share your Canvas link with at least any 3 people within the organization. Ask each of them to play through all 6 rounds and screenshot their final results screen.</p>
                                     </div>
                                 </div>
                                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
@@ -1231,7 +1231,7 @@
                         <div class="flex justify-between items-end border-b border-slate-800 pb-10"><div><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Admin Control</h2></div><button onclick="logoutAdmin()" class="bg-red-600/10 text-red-500 text-[10px] font-black uppercase px-6 py-3 rounded-xl border border-red-500/20 hover:bg-red-600 hover:text-white transition-all">Sign Out</button></div>
                         <div class="overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 shadow-2xl">
                             <table class="w-full text-left text-xs">
-                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800"><tr><th class="p-6">Origin / Team</th><th class="p-6">Submission Detail</th><th class="p-6">Round</th><th class="p-6">Preview</th><th class="p-6 text-center">Shortlist</th></tr></thead>
+                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800"><tr><th class="p-6">Origin / Team</th><th class="p-6">Submission Detail</th><th class="p-6">Round</th><th class="p-6">Preview</th><th class="p-6 text-center">Shortlist</th><th class="p-6 text-center">Delete</th></tr></thead>
                                 <tbody class="divide-y divide-slate-800">
                                     ${state.submissions.map(sub => `
                                         <tr class="hover:bg-white/5 transition">
@@ -1240,6 +1240,7 @@
                                             <td class="p-6 font-black text-blue-500">R${sub.round || 1}</td>
                                             <td class="p-6">${sub.docLink ? `<img src="${sub.docLink}" class="w-10 h-10 rounded-lg object-cover">` : sub.round >= 4 ? (sub.solutionLink ? `<a href="${sub.solutionLink}" target="_blank" class="text-blue-500 underline text-[10px]">View Link</a>` : '-') : (sub.canvasLink ? `<a href="${sub.canvasLink}" target="_blank" class="text-blue-500 underline text-[10px]">View Link</a>` : '-')}</td>
                                             <td class="p-6 text-center"><button onclick="toggleShortlist('${sub.id}', ${sub.shortlisted})" class="p-4 rounded-2xl ${sub.shortlisted ? 'bg-yellow-500 text-black' : 'bg-slate-800 text-slate-500'} hover:scale-110 transition-all"><i data-lucide="star" class="w-6 h-6 ${sub.shortlisted ? 'fill-black' : ''}"></i></button></td>
+                                            <td class="p-6 text-center"><button onclick="deleteSubmission('${sub.id}')" class="p-4 rounded-2xl bg-slate-800 text-red-500 hover:bg-red-600 hover:text-white hover:scale-110 transition-all"><i data-lucide="trash-2" class="w-6 h-6"></i></button></td>
                                         </tr>
                                     `).join('')}
                                 </tbody>
@@ -1497,6 +1498,18 @@
             }
         }
 
+        async function deleteSubmission(id) {
+            const confirmed = confirm('Permanently delete this submission? This removes it everywhere on the Hub and cannot be undone.');
+            if (!confirmed) return;
+            try {
+                const docRef = db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').doc(id);
+                await docRef.delete();
+            } catch (e) {
+                console.error(e);
+                alert('Failed to delete submission. Check console for details.');
+            }
+        }
+
         async function handleFormSubmit(e) {
             e.preventDefault();
             const data = state.formData;
@@ -1504,7 +1517,7 @@
                 await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
                     ...data,
                     type: state.submissionType,
-                    round: 6,
+                    round: 7,
                     shortlisted: false,
                     timestamp: new Date().toISOString()
                 });
