@@ -580,6 +580,7 @@
             selectedIdea: null,
             isAdmin: false,
             showAdminLogin: false,
+            challengeClosed: false,
             timeLeft: {
                 days: 0,
                 hours: 0,
@@ -673,23 +674,29 @@
 
         function updateCountdown() {
             const now = new Date();
-            // Target date strictly set to: 23rd September 2026 11:59PM (Month is 0-indexed, so September is 8)
-            const targetDate = new Date(2026, 8, 23, 23, 59, 0);
+            // Round 8 deadline: 12:00 PM, Wednesday 28 October 2026, West Africa Time (Africa/Lagos, UTC+1)
+            const targetDate = new Date("2026-10-28T12:00:00+01:00");
             const diff = targetDate - now;
+            const closed = diff <= 0;
 
-            if (diff <= 0) {
+            if (closed !== state.challengeClosed) {
+                state.challengeClosed = closed;
+                updateUI();
+            }
+
+            if (closed) {
                 state.timeLeft = {
                     days: 0,
                     hours: 0,
                     mins: 0,
-                    label: "CHALLENGE ENDED"
+                    label: "SUBMISSIONS CLOSED"
                 };
             } else {
                 state.timeLeft = {
                     days: Math.floor(diff / (1000 * 60 * 60 * 24)),
                     hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
                     mins: Math.floor((diff / 1000 / 60) % 60),
-                    label: "CHALLENGE ENDS"
+                    label: "CLOSES 12:00 PM WAT, 28 OCT 2026"
                 };
             }
 
@@ -788,7 +795,7 @@
 
         function renderTabContent() {
             if (state.activeTab === 'dashboard') {
-                const round7Count = state.submissions.filter(s => s.round === 7).length;
+                const round8Count = state.submissions.filter(s => s.round === 8).length;
                 return `
                     <div class="space-y-12 animate-in fade-in">
                         <div class="relative p-10 md:p-14 rounded-[3.5rem] hero-gradient overflow-hidden shadow-[0_0_100px_rgba(30,58,138,0.3)] border border-white/10 group">
@@ -797,11 +804,11 @@
                                 <div class="lg:col-span-7 space-y-8">
                                     <div>
                                         <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em]">
-                                            <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> Round 7 Mission: ONGOING
+                                            <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span> Round 8 Mission: ONGOING
                                         </span>
-                                        <h2 class="text-5xl md:text-7xl font-black mt-8 mb-6 text-white leading-[0.9] italic tracking-tighter uppercase">SEPTEMBER AI CHALLENGE: THE DESCASIO SECURITY TRAINER</h2>
+                                        <h2 class="text-5xl md:text-7xl font-black mt-8 mb-6 text-white leading-[0.9] italic tracking-tighter uppercase">OCTOBER AI CHALLENGE: DESCASIO DECISION INTELLIGENCE PLATFORM (DIP): BUILD THE FRONT DOOR</h2>
                                         <p class="text-blue-100/80 text-xl leading-relaxed max-w-xl font-medium italic">
-                                            Step into the role of a Security Awareness Designer and build a fully interactive "Spot the Phish" training quiz using Gemini Canvas. Test it with real colleagues, then submit your Canvas link, source code, and tester results for judging.
+                                            “Design the Future” — create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link.
                                         </p>
                                     </div>
                                     <div class="flex flex-wrap gap-6 items-center">
@@ -842,15 +849,15 @@
                                 </div>
                             </div>
 
-                            <!-- Round 7 Activity Box -->
+                            <!-- Round 8 Activity Box -->
                             <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-blue-600 transition-transform hover:-translate-y-1">
                                 <div class="w-24 h-24 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center shrink-0 border border-blue-500/20 shadow-inner">
                                     <i data-lucide="activity" class="text-blue-500 w-12 h-12"></i>
                                 </div>
                                 <div class="space-y-1">
-                                    <h3 class="text-blue-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 7 Activity</h3>
-                                    <p class="text-6xl font-black text-white italic tracking-tighter leading-none">${round7Count}</p>
-                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">${round7Count === 1 ? 'Solution' : 'Solutions'} Recorded</p>
+                                    <h3 class="text-blue-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 8 Activity</h3>
+                                    <p class="text-6xl font-black text-white italic tracking-tighter leading-none">${round8Count}</p>
+                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">${round8Count === 1 ? 'Solution' : 'Solutions'} Recorded</p>
                                 </div>
                             </div>
                         </div>
@@ -901,32 +908,40 @@
                     <div class="max-w-4xl mx-auto space-y-12 animate-in slide-in-from-bottom duration-500">
                         <div class="border-b border-slate-800 pb-8 text-center">
                             <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em] mb-4">
-                                🏆 Round 7 Challenge • Launch: 1st Sep – Ends: 23rd Sep
+                                ${state.challengeClosed ? '🔒 Round 8 Challenge • Submissions Closed' : '🏆 Round 8 Challenge • Launch: 6th Oct – Closes: 28th Oct'}
                             </span>
-                            <h2 class="text-4xl font-black mb-4 text-white uppercase italic tracking-tighter">SEPTEMBER AI CHALLENGE: THE DESCASIO SECURITY TRAINER</h2>
+                            <h2 class="text-4xl font-black mb-4 text-white uppercase italic tracking-tighter">OCTOBER AI CHALLENGE: DESCASIO DECISION INTELLIGENCE PLATFORM (DIP): BUILD THE FRONT DOOR</h2>
                             <p class="text-slate-400 text-base max-w-2xl mx-auto italic leading-relaxed">
-                                <strong class="text-blue-400">The Mission:</strong> Build a fully interactive "Spot the Phish" training quiz in Gemini Canvas, test it with real colleagues, and submit it for judging on realism, functionality, educational value, and Descasio branding.
+                                <strong class="text-blue-400">The Mission:</strong> “Design the Future” — create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link.
                             </p>
                         </div>
 
                         <!-- What You're Building Card -->
                         <div class="bg-slate-900 border-2 border-blue-500/30 p-10 rounded-[3rem] shadow-2xl space-y-6 relative overflow-hidden">
                             <div class="flex items-center gap-3 text-blue-400">
-                                <i data-lucide="shield-alert" class="w-7 h-7"></i>
+                                <i data-lucide="layout-template" class="w-7 h-7"></i>
                                 <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building</h3>
                             </div>
                             <p class="text-slate-300 text-sm leading-relaxed italic">
-                                You'll use Gemini Canvas to build <strong>The Descasio Security Trainer</strong> — an interactive phishing-awareness quiz where players work through 6 realistic workplace scenarios across email, SMS, and Microsoft Teams, and decide what's a scam and what's legitimate.
+                                Design and build a landing page for the <strong>Descasio Decision Intelligence Platform (DIP)</strong> in Gemini Canvas, using your descasio.io account. Gemini Pro is the only approved tool.
                             </p>
                             <div class="bg-black/60 p-6 rounded-2xl border-l-4 border-blue-500 text-slate-300 text-xs italic space-y-2">
-                                <p class="font-bold text-slate-400">Full instructions, screenshots, and a video walkthrough are available here:</p>
-                                <div class="flex flex-wrap gap-4 pt-2 not-italic">
-                                    <a href="https://drive.google.com/drive/folders/1t25TJcw1nRElgE7jHSMw9GQhRPhutdLp?usp=drive_link" target="_blank" class="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600/30 transition"><i data-lucide="file-text" class="w-4 h-4"></i> Step-by-Step Guide</a>
-                                    <a href="https://www.loom.com/share/237508d85a52499198aaf8743ea561a8" target="_blank" class="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600/30 transition"><i data-lucide="play-circle" class="w-4 h-4"></i> Video Walkthrough</a>
-                                </div>
+                                <p class="font-bold text-slate-400">Your landing page must include:</p>
+                                <ul class="list-disc list-inside space-y-1 not-italic">
+                                    <li>A short intro at the top</li>
+                                    <li>Brand colors and logo</li>
+                                    <li>How It Works</li>
+                                    <li>Who It's For</li>
+                                    <li>A Trust Score section</li>
+                                    <li>A Founding Circle section</li>
+                                </ul>
+                                <p class="font-bold text-slate-400 pt-2">Extras (FAQ, demo quiz, animations, etc.) are welcome.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-4 pt-2 not-italic">
+                                <a href="https://drive.google.com/drive/folders/1Xg80YH3vbROjBYxxtpGsTwyx9zV2BjH6?usp=sharing" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600/30 transition"><i data-lucide="download" class="w-4 h-4"></i> Landing Page Starter Kit</a>
                             </div>
                             <p class="text-blue-400 font-bold text-xs uppercase tracking-wider">
-                                ⚠️ Real Descasio logo, descasio.io domain, and Microsoft Teams only — never a placeholder logo, .com.
+                                ⚠️ Submit your Gemini Canvas share link only — no file upload. Open it in a private window first to confirm it loads without signing in.
                             </p>
                         </div>
 
@@ -938,53 +953,53 @@
                                     <div class="w-10 h-10 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-blue-500/30">1</div>
                                     <div>
                                         <h4 class="text-white font-bold text-base uppercase mb-1">Build in Gemini Canvas</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Log in to gemini.google.com with your descasio.io account, attach the official Descasio logo, and prompt Gemini in Canvas to build your Security Trainer. Use Preview to play through all 6 rounds yourself first.</p>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Log in to gemini.google.com with your descasio.io account, attach the official Descasio logo and brand colors, and prompt Gemini in Canvas to build the DIP landing page covering every required section.</p>
                                     </div>
                                 </div>
                                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
                                     <div class="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-emerald-500/30">2</div>
                                     <div>
-                                        <h4 class="text-white font-bold text-base uppercase mb-1">Test With 3 Colleagues</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Share your Canvas link with at least any 3 people within the organization. Ask each of them to play through all 6 rounds and screenshot their final results screen.</p>
+                                        <h4 class="text-white font-bold text-base uppercase mb-1">Test Before You Submit</h4>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Open your Canvas share link in a private/incognito window to confirm it loads without signing in.</p>
                                     </div>
                                 </div>
                                 <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
                                     <div class="w-10 h-10 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-purple-500/30">3</div>
                                     <div>
-                                        <h4 class="text-white font-bold text-base uppercase mb-1">Compile & Submit</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Create a single Word document with your Canvas share link, your 3 testers' captioned results screenshots, and the full source code pasted as text. Submit the link below.</p>
+                                        <h4 class="text-white font-bold text-base uppercase mb-1">Submit Your Link</h4>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Paste your Gemini Canvas share link into the submission form below. Deadline: 12:00 PM (WAT), 28 October 2026.</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Scoring Criteria -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                             <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-blue-500 space-y-2">
-                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Scenario Realism & Variety</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">5 Pts</p>
-                                <p class="text-slate-500 text-[10px] italic">Believable, varied examples across email, SMS, and Microsoft Teams — not obvious or repetitive.</p>
+                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Clarity & Accuracy of the Message</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
                             </div>
                             <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-emerald-500 space-y-2">
-                                <p class="text-emerald-400 font-black text-[9px] uppercase tracking-widest">Functionality & Testing</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">5 Pts</p>
-                                <p class="text-slate-500 text-[10px] italic">Works end-to-end with an accurate, synced score, verified by at least 3 people other than the builder.</p>
+                                <p class="text-emerald-400 font-black text-[9px] uppercase tracking-widest">UI/UX & Responsiveness</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
                             </div>
                             <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-purple-500 space-y-2">
-                                <p class="text-purple-400 font-black text-[9px] uppercase tracking-widest">Educational Value</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">5 Pts</p>
-                                <p class="text-slate-500 text-[10px] italic">Feedback teaches the specific "why" behind each answer, not just right or wrong.</p>
+                                <p class="text-purple-400 font-black text-[9px] uppercase tracking-widest">Brand Color & Visual Identity</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
                             </div>
                             <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-amber-500 space-y-2">
-                                <p class="text-amber-400 font-black text-[9px] uppercase tracking-widest">UX & Professionalism</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">5 Pts</p>
-                                <p class="text-slate-500 text-[10px] italic">Clean, responsive, and accurately Descasio-branded — real logo, descasio.io domain, Microsoft Teams.</p>
+                                <p class="text-amber-400 font-black text-[9px] uppercase tracking-widest">Creativity & Added Features</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-blue-500 space-y-2">
+                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Essential Site Features</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
                             </div>
                         </div>
 
-                        <!-- Live Round 7 Submission Form -->
+                        <!-- Live Round 8 Submission Form -->
                         <div class="bg-slate-900 border-2 border-blue-500/20 rounded-[3rem] p-12 shadow-2xl">
-                            <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round 7 Submission</h3>
+                            <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round 8 Submission</h3>
                             <div class="flex gap-4 mb-10 bg-slate-950 p-2 rounded-2xl border border-slate-800 max-w-md">
                                 <button onclick="setSubmissionType('individual')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'individual' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Individual</button>
                                 <button onclick="setSubmissionType('group')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'group' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Group (Team of 2)</button>
@@ -1040,15 +1055,16 @@
                                 <div class="pt-10 border-t border-slate-800 space-y-8">
                                     <div class="space-y-2">
                                         <label class="text-[10px] font-black text-slate-500 uppercase ml-1">1. Submission Document Link</label>
-                                        <input required oninput="handleFormInput('formData', 'submissionDocLink', this.value)" value="${state.formData.submissionDocLink || ''}" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="Link to your Word document (Canvas link + testers' screenshots + full source code)">
+                                        <input required oninput="handleFormInput('formData', 'submissionDocLink', this.value)" value="${state.formData.submissionDocLink || ''}" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="https://gemini.google.com/share/...">
+                                        <p class="text-[10px] text-slate-500 italic mt-1 ml-1">Paste your Gemini Canvas share link. Open it in a private window first to check it loads without signing in.</p>
                                     </div>
                                     <div class="space-y-2">
                                         <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Tools Used</label>
                                         <input required oninput="handleFormInput('formData', 'toolsUsed', this.value)" value="${state.formData.toolsUsed || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="e.g. ChatGPT, Gemini, Claude, Custom Prompt Guardrails">
                                     </div>
                                 </div>
-                                <div id="formStatus"></div>
-                                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">Submit Round 7 Entry</button>
+                                <div id="formStatus" class="hidden text-red-400 text-[10px] font-bold uppercase tracking-wider"></div>
+                                <button type="submit" ${state.challengeClosed ? 'disabled' : ''} class="w-full ${state.challengeClosed ? 'bg-slate-700 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-500'} text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">${state.challengeClosed ? 'Submissions Closed' : 'Submit Round 8 Entry'}</button>
                             </form>
                         </div>
                     </div>
@@ -1057,6 +1073,7 @@
 
             if (state.activeTab === 'gallery') {
                 const shortlisted = state.submissions.filter(s => s.shortlisted);
+                const round8Submissions = state.submissions.filter(s => s.round === 8);
                 const round7Submissions = state.submissions.filter(s => s.round === 7);
                 const round6Submissions = state.submissions.filter(s => s.round === 6);
                 const round5Submissions = state.submissions.filter(s => s.round === 5);
@@ -1087,16 +1104,30 @@
                                 <i data-lucide="users" class="text-blue-500 w-8 h-8"></i>
                                 <div>
                                     <h2 class="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Submission Feed</h2>
-                                    <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Current: Round 7 Descasio Security Trainer entries</p>
+                                    <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Current: Round 8 DIP: Build the Front Door entries</p>
                                 </div>
                             </div>
                             <div class="grid md:grid-cols-3 gap-6">
-                                ${round7Submissions.map(item => renderSubmissionCard(item)).join('')}
-                                ${round7Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No Round 7 submissions recorded yet. Be the first!</div>' : ''}
+                                ${round8Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round8Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No Round 8 submissions recorded yet. Be the first!</div>' : ''}
                             </div>
                         </section>
 
                         <section class="space-y-8 opacity-70 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
+                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 7 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Descasio Security Trainer Entries</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round7Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round7Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 7.</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
                             <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
                                 <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
                                 <div>
@@ -1310,8 +1341,11 @@
             const isRound5 = item.round === 5;
             const isRound6 = item.round === 6;
             const isRound7 = item.round === 7;
+            const isRound8 = item.round === 8;
             let title = item.innovationName || 'Submission';
-            if (isRound7) {
+            if (isRound8) {
+                title = 'DIP: Build the Front Door';
+            } else if (isRound7) {
                 title = 'Descasio Security Trainer';
             } else if (isRound6) {
                 title = 'Rogue AI Recovery Plan';
@@ -1341,12 +1375,13 @@
         function renderModal() {
             const item = state.selectedInnovation;
             if (!item) return '';
+            const isR8 = item.round === 8;
             const isR7 = item.round === 7;
             const isR6 = item.round === 6;
             const isR5 = item.round === 5;
             const isR4 = item.round === 4;
             const isOptimizer = isR4 || isR5;
-            const titleText = isR7 ? 'Descasio Security Trainer' : (isR6 ? 'Rogue AI Case Study & Recovery Plan' : (isR5 ? 'Operational Optimizer 2' : (isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission')))));
+            const titleText = isR8 ? 'DIP: Build the Front Door' : (isR7 ? 'Descasio Security Trainer' : (isR6 ? 'Rogue AI Case Study & Recovery Plan' : (isR5 ? 'Operational Optimizer 2' : (isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission'))))));
             return `
                 <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
                     <div class="bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
@@ -1574,14 +1609,32 @@
             }
         }
 
+        function showFormError(msg) {
+            const errEl = document.getElementById('formStatus');
+            if (errEl) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            }
+        }
+
         async function handleFormSubmit(e) {
             e.preventDefault();
+            if (state.challengeClosed) {
+                showFormError('Submissions are closed for this round.');
+                return;
+            }
             const data = state.formData;
+            if (!data.submissionDocLink || !data.submissionDocLink.startsWith('https://')) {
+                showFormError('Submission link must start with https://');
+                return;
+            }
+            const errEl = document.getElementById('formStatus');
+            if (errEl) errEl.classList.add('hidden');
             try {
                 await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
                     ...data,
                     type: state.submissionType,
-                    round: 7,
+                    round: 8,
                     shortlisted: false,
                     timestamp: new Date().toISOString()
                 });
