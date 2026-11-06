@@ -245,29 +245,84 @@ a:hover {
     color: var(--text-strong);
 }
 
-/* Phone (<=768px): nav drops to its own full-width row and scrolls horizontally
-   instead of wrapping - "no hidden hamburger" per the spec. */
-.shell-nav {
-    order: 3;
-    flex-basis: 100%;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+/* Header layout, three tiers:
+   <=640px:   logo row (logo + Admin) then a 3x2 grid of equal-width nav pills below -
+              no horizontal scroll, nothing hidden, 44px minimum tap height.
+   641-1279px: logo row (logo left, Admin right) then all 6 tabs on one centred row.
+   >=1280px:  everything on a single row (logo, nav, Admin). */
+.shell-header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+.shell-logo-group {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 .shell-admin-btn {
     order: 2;
+    flex: 0 0 auto;
     margin-left: auto;
 }
-@media (min-width: 768px) {
+.shell-nav {
+    order: 3;
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.shell-nav .shell-nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    text-align: center;
+}
+.shell-logo-svg {
+    width: 130px;
+    height: 32px;
+}
+@media (max-width: 640px) {
+    .shell-logo-svg {
+        width: 104px;
+        height: 26px;
+    }
+}
+@media (max-width: 360px) {
+    .shell-divider {
+        display: none;
+    }
+    .shell-title-text {
+        font-size: 13px;
+    }
+}
+@media (min-width: 641px) {
+    .shell-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        gap: 6px;
+    }
+    .shell-nav .shell-nav-link {
+        min-height: auto;
+    }
+}
+@media (min-width: 1280px) {
+    .shell-header-inner {
+        flex-wrap: nowrap;
+    }
+    .shell-logo-group {
+        flex: 0 0 auto;
+    }
     .shell-nav {
         order: 2;
-        flex-basis: auto;
-        flex-wrap: wrap;
-        overflow-x: visible;
+        flex: 1 1 auto;
+        margin: 0 20px;
     }
     .shell-admin-btn {
         order: 3;
-        margin-left: 0;
     }
 }
 
@@ -389,6 +444,89 @@ button:disabled {
     }
     .ticker-item[aria-hidden="true"] {
         display: none;
+    }
+}
+
+/* Dashboard hero at small widths (js/app.js renderDashboard). */
+.hero-section {
+    padding: 48px;
+}
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 32px;
+    }
+}
+@media (max-width: 480px) {
+    .hero-section {
+        padding: 20px;
+    }
+}
+
+.hero-title {
+    font-size: clamp(28px, 7.5vw, 52px);
+    line-height: 1.1;
+}
+
+.hero-mesca-col {
+    padding-bottom: 16px;
+}
+.hero-mesca-circle {
+    width: min(300px, calc(100% - 32px));
+    aspect-ratio: 1;
+}
+
+/* Small-screen audit (Step 8): reduce oversized card padding, never below 16px.
+   "main .p-7" etc. beats Tailwind's own bare ".p-7" on specificity regardless of
+   stylesheet load order, since every tab's content renders inside <main>. Each
+   group only touches the sides its own Tailwind utility actually sets. */
+@media (max-width: 480px) {
+    main .p-7, main .p-8, main .p-9, main .p-10, main .p-11, main .p-12 {
+        padding: 16px;
+    }
+    main .px-7, main .px-8, main .px-9, main .px-10, main .px-11, main .px-12 {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    main .py-7, main .py-8, main .py-9, main .py-10, main .py-11, main .py-12 {
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
+    main .pt-7, main .pt-8, main .pt-9, main .pt-10, main .pt-11, main .pt-12 {
+        padding-top: 16px;
+    }
+    main .pb-7, main .pb-8, main .pb-9, main .pb-10, main .pb-11, main .pb-12 {
+        padding-bottom: 16px;
+    }
+
+    .modal-card {
+        padding: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-cta-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .hero-cta-row > a,
+    .hero-cta-row > span {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hero-countdown-row {
+        flex-direction: column;
+    }
+    .hero-countdown-boxes {
+        width: 100%;
+    }
+    .hero-countdown-boxes > div {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+    .hero-countdown-num {
+        font-size: 22px;
     }
 }
 

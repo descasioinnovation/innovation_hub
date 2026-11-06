@@ -227,6 +227,53 @@
             }
         }
 
+        // DEV-ONLY (Step 8 responsive audit): logs any element whose right edge exceeds
+        // the viewport width, so overflow bugs show up in the console while testing at
+        // narrow widths in DevTools. Same localhost + ?preview=1 guarantee as the other
+        // dev-only overrides (js/challenges.js) - never runs on the live domain.
+        function isDevOverflowCheckEnabled() {
+            try {
+                const host = location.hostname;
+                const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+                if (!isLocalHost) return false;
+                return new URLSearchParams(location.search).get('preview') === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // True if some ancestor between el and <body> scrolls its own overflow (e.g. the
+        // leaderboard table's overflow-x-auto wrapper) and that ancestor itself fits the
+        // viewport - i.e. el's overflow is intentionally contained, not a layout bug.
+        function hasContainingScrollAncestor(el, vw) {
+            let node = el.parentElement;
+            while (node && node !== document.body) {
+                const style = getComputedStyle(node);
+                if (style.overflowX === 'auto' || style.overflowX === 'scroll') {
+                    if (node.getBoundingClientRect().right <= vw + 1) return true;
+                }
+                node = node.parentElement;
+            }
+            return false;
+        }
+
+        function logOverflowingElements() {
+            if (!isDevOverflowCheckEnabled()) return;
+            const vw = document.documentElement.clientWidth;
+            const offenders = [];
+            document.querySelectorAll('body *').forEach(el => {
+                if (el.closest('.ticker-wrap')) return; // the announcement ticker is deliberately wider than the viewport mid-scroll
+                const rect = el.getBoundingClientRect();
+                if (rect.width > 0 && rect.right > vw + 1 && !hasContainingScrollAncestor(el, vw)) {
+                    offenders.push({ el, right: Math.round(rect.right) });
+                }
+            });
+            if (offenders.length) {
+                console.warn(`[overflow-check] ${offenders.length} element(s) exceed the ${vw}px viewport:`);
+                offenders.forEach(o => console.warn(`  right edge ${o.right}px:`, o.el));
+            }
+        }
+
         function updateUI() {
             if (document.activeElement &&
                 (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
@@ -253,6 +300,7 @@
             `;
             lucide.createIcons();
             updateCountdown();
+            logOverflowingElements();
         }
 
         function renderLoginGateway() {
@@ -260,7 +308,7 @@
                 <div class="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
                     <div class="absolute -top-20 -left-20 w-96 h-96 bg-blue-900/20 blur-[120px] rounded-full"></div>
                     <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-900/20 blur-[120px] rounded-full"></div>
-                    <div class="w-full max-w-md bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-12 shadow-2xl relative z-10 text-center">
+                    <div class="modal-card w-full max-w-md bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-12 shadow-2xl relative z-10 text-center">
                         <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-lg shadow-blue-500/20">
                             <i data-lucide="zap" class="text-white w-10 h-10"></i>
                         </div>
@@ -358,15 +406,15 @@
                 : status === 'closed' ? 'Submissions closed'
                 : 'Submit your entry';
             const submitCta = submitDisabled
-                ? `<span class="inline-flex items-center h-12 px-6 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-[15px] shell-sentence-case cursor-not-allowed opacity-70">${submitLabel}</span>`
+                ? `<span class="inline-flex items-center h-12 px-6 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-[15px] shell-sentence-case cursor-not-allowed opacity-70 whitespace-nowrap">${submitLabel}</span>`
                 : `<a href="#submit" class="btn-outline inline-flex items-center h-12 px-6 rounded-full border-[1.5px] border-[#7FA9D6] text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Submit your entry</a>`;
 
             // --- Countdown / status text ---
             const countdownBlock = state.timeLeft && state.timeLeft.showCountdown ? `
-                <div class="flex gap-2">
-                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.days}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">days</div></div>
-                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.hours}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">hrs</div></div>
-                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.mins}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">mins</div></div>
+                <div class="hero-countdown-boxes flex gap-2">
+                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="hero-countdown-num font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.days}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">days</div></div>
+                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="hero-countdown-num font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.hours}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">hrs</div></div>
+                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="hero-countdown-num font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.mins}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">mins</div></div>
                 </div>
                 <div class="flex flex-col justify-center gap-0.5 pl-1.5">
                     <span id="countdown-label" class="font-inter font-semibold text-[13px] text-text-strong shell-sentence-case">${state.timeLeft.label}</span>
@@ -455,21 +503,21 @@
 
             return `
                 <div class="space-y-7 animate-in fade-in">
-                    <section class="relative overflow-hidden rounded-[28px] border border-border p-12 flex flex-wrap gap-10 items-center" style="background: radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 45%, #061A33 100%)">
+                    <section class="hero-section relative overflow-hidden rounded-[28px] border border-border flex flex-wrap gap-10 items-center" style="background: radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 45%, #061A33 100%)">
                         <div aria-hidden="true" class="absolute inset-0 pointer-events-none overflow-hidden">${generateSnowflakes(24)}</div>
                         <div class="flex-[999_1_520px] min-w-0 flex flex-col gap-5 relative">
                             <div class="flex gap-2.5 flex-wrap">${statusBadge}${finaleBadge}</div>
-                            <h1 class="m-0 font-poppins font-bold text-[clamp(32px,5vw,52px)] leading-[1.05] tracking-[-1.2px] text-text-strong shell-sentence-case">${round.month} AI Challenge: ${round.title}</h1>
+                            <h1 class="hero-title m-0 font-poppins font-bold tracking-[-1.2px] text-text-strong shell-sentence-case">${round.month} AI Challenge: ${round.title}</h1>
                             <p class="m-0 max-w-[560px] font-inter text-lg leading-[1.6] text-text-2">${round.summary || ''}</p>
-                            <div class="flex gap-3 flex-wrap items-center">
-                                <a href="${briefHref}" class="btn-coral inline-flex items-center h-12 px-6 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Read the brief</a>
+                            <div class="hero-cta-row flex gap-3 flex-wrap items-center">
+                                <a href="${briefHref}" class="btn-coral inline-flex items-center justify-center h-12 px-6 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Read the brief</a>
                                 ${submitCta}
                             </div>
                             ${resourcesHtml}
-                            <div class="flex gap-2.5 items-stretch flex-wrap">${countdownBlock}</div>
+                            <div class="hero-countdown-row flex gap-2.5 items-stretch flex-wrap">${countdownBlock}</div>
                         </div>
-                        <div class="flex-[1_1_300px] flex justify-center relative">
-                            <div class="relative w-[260px] h-[260px] sm:w-[300px] sm:h-[300px]">
+                        <div class="flex-[1_1_300px] flex justify-center relative hero-mesca-col">
+                            <div class="relative hero-mesca-circle">
                                 <div class="absolute inset-0 rounded-full border-[6px] border-coral" style="box-shadow:0 0 40px rgba(230,83,60,0.35)"></div>
                                 <div class="absolute inset-3 rounded-full overflow-hidden" style="background:#0B1F38">
                                     <img src="${HUB_AVATAR}" alt="Mesca, the AI Innovation Hub mascot" class="w-full h-full object-contain">
@@ -490,7 +538,7 @@
                         </div>
                     </section>
 
-                    <section aria-label="Hub at a glance" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${kpiHtml}</section>
+                    <section aria-label="Hub at a glance" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">${kpiHtml}</section>
 
                     <div class="flex flex-wrap gap-6 items-stretch">
                         <section class="flex-[999_1_560px] min-w-0 p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-5">
@@ -498,7 +546,7 @@
                                 <h2 class="m-0 font-poppins font-semibold text-[22px] text-text-strong shell-sentence-case">Our ${round.year} challenge journey</h2>
                                 <a href="${Router.buildHash('challenge')}" class="link-text font-inter font-semibold text-sm shell-sentence-case">Browse all challenges</a>
                             </div>
-                            <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${journeyTiles}${financeTile}</div>
+                            <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(min(150px,100%),1fr))">${journeyTiles}${financeTile}</div>
                         </section>
 
                         <section class="flex-[1_1_320px] p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-4">
@@ -511,7 +559,7 @@
                         </section>
                     </div>
 
-                    <div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+                    <div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))">
                         <section class="p-7 rounded-[24px] bg-surface border border-border flex gap-4.5 items-center">
                             <div aria-hidden="true" class="w-16 h-16 shrink-0 rounded-full flex items-center justify-center" style="background:rgba(242,181,68,0.14);border:1px solid rgba(242,181,68,0.45)">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F2B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"></circle><path d="M8.2 13.3 7 22l5-3 5 3-1.2-8.7"></path></svg>
@@ -656,7 +704,7 @@
                                 ${archiveNameHtml}
                             </div>
                             <div class="px-8 pb-8 pt-7 flex flex-col gap-6">
-                                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+                                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr))">
                                     <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted shell-sentence-case">Winner</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${selected.winnerName || 'To be announced'}</div></div>
                                     <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted shell-sentence-case">Entries</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${entriesDisplay}</div></div>
                                     <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted shell-sentence-case">Window</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${formatWindow(selected)}</div></div>
@@ -955,7 +1003,7 @@
                     ? `<div class="p-4 rounded-2xl font-inter text-sm shell-sentence-case" style="background:rgba(242,181,68,0.12);border:1px solid rgba(242,181,68,0.4);color:var(--gold-text)">The form unlocks ${opensInfo.weekday} ${formatShortDateWAT(round.opensAt)} at ${opensInfo.time}.</div>`
                     : '';
                 const memberBlock = (n, label) => `
-                    <div class="grid gap-4 p-5 rounded-2xl bg-bg border border-border" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+                    <div class="grid gap-4 p-5 rounded-2xl bg-bg border border-border" style="grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr))">
                         <div class="font-inter font-semibold text-xs text-link uppercase shell-sentence-case" style="grid-column:1/-1;text-transform:uppercase">${label}</div>
                         <div class="space-y-2"><label class="lbl">Name</label><input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','member${n}Name',this.value)" value="${state.formData['member' + n + 'Name'] || ''}" class="fld"></div>
                         <div class="space-y-2"><label class="lbl">Email</label><input ${disabled ? 'disabled' : ''} required type="email" oninput="handleFormInput('formData','member${n}Email',this.value)" value="${state.formData['member' + n + 'Email'] || ''}" class="fld" placeholder="name@descasio.io"></div>
@@ -969,7 +1017,7 @@
                     ${memberBlock(1, 'Member 1 (team lead)')}
                     ${memberBlock(2, 'Member 2')}` : '';
                 const individualFieldsHtml = state.submissionType !== 'group' ? `
-                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
                         <div class="space-y-2">
                             <label class="lbl">Full name</label>
                             <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','name',this.value)" value="${state.formData.name || ''}" class="fld" placeholder="Your full name">
@@ -1080,7 +1128,7 @@
                 </div>`;
             } else if (cards.length) {
                 bodyHtml = `
-                <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+                <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr))">
                     ${cards.map(c => renderSubmissionCard(c.item, c.round)).join('')}
                 </div>`;
             } else {
@@ -1150,7 +1198,7 @@
                 </div>` : `
                 <form onsubmit="handleIdeaSubmit(event)" class="space-y-4.5">
                     <h2 class="m-0 flex items-center gap-2.5 font-poppins font-semibold text-[22px] text-text-strong"><i data-lucide="lightbulb" class="text-gold w-[22px] h-[22px]"></i> Pitch a concept</h2>
-                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
                         <div class="space-y-2"><label class="lbl">Full name</label><input required oninput="handleFormInput('ideaData','name',this.value)" value="${state.ideaData.name || ''}" class="fld" placeholder="Your full name"></div>
                         <div class="space-y-2"><label class="lbl">Work email</label><input required type="email" oninput="handleFormInput('ideaData','email',this.value)" value="${state.ideaData.email || ''}" class="fld" placeholder="name@descasio.io"></div>
                         <div class="space-y-2"><label class="lbl">Department</label>
@@ -1196,7 +1244,7 @@
                         <h2 class="m-0 font-poppins font-semibold text-2xl text-text-strong">Concept wall</h2>
                         <span class="font-inter font-medium text-[13px] text-text-muted">Click a card to read the full pitch</span>
                     </div>
-                    <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+                    <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">
                         ${state.ideas.length ? state.ideas.map(idea => renderIdeaCard(idea)).join('') : `<div class="col-span-full p-14 rounded-[24px] border border-dashed border-border-strong bg-surface text-center font-poppins font-semibold text-text-strong">No ideas yet - be the first to pitch one.</div>`}
                     </div>
                 </section>
@@ -1258,7 +1306,7 @@
             </section>` : '';
 
             const highlightsHtml = `
-            <section aria-label="Highlights" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+            <section aria-label="Highlights" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
                 <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Rounds decided</div><div class="font-poppins font-bold text-[30px] text-text-strong mt-1">${roundsDecided} <span class="font-inter font-medium text-sm text-text-muted">of ${roundsTotal}</span></div></div>
                 <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Two-time winners</div><div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">${repeatWinners.length ? repeatWinners.join('<br>') : 'None yet'}</div></div>
                 <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Different winners</div><div class="font-poppins font-bold text-[30px] text-text-strong mt-1">${differentWinners}</div></div>
@@ -1323,7 +1371,7 @@
                 </div>
                 ${spotlightHtml}
                 ${highlightsHtml}
-                <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">${gridHtml}</div>
+                <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr))">${gridHtml}</div>
             </div>`;
         }
 
@@ -1405,9 +1453,9 @@
                     <p class="m-0 font-inter font-medium text-[15px] text-link shell-sentence-case">Real-time performance standings (verified)</p>
                 </div>
                 <div class="flex justify-between items-center gap-4 flex-wrap">
-                    <label class="flex items-center gap-2.5">
-                        <span class="font-inter font-semibold text-[13px] text-text-2">Find a name</span>
-                        <input class="fld" style="width:240px;height:44px" value="${state.leaderboardQuery || ''}" oninput="handleLeaderboardSearch(this.value)" placeholder="Type to filter…">
+                    <label class="flex items-center gap-2.5 flex-1 min-w-0" style="max-width:340px">
+                        <span class="font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap">Find a name</span>
+                        <input class="fld" style="width:100%;min-width:100px;max-width:240px;height:44px" value="${state.leaderboardQuery || ''}" oninput="handleLeaderboardSearch(this.value)" placeholder="Type to filter…">
                     </label>
                     <span id="leaderboard-count" class="font-inter font-medium text-[13px] text-text-muted">${leaderboardCountText()}</span>
                 </div>
@@ -1456,7 +1504,7 @@
                         ${isWinner ? `<span class="px-2.5 py-1 rounded-[10px] font-inter font-semibold text-[11px] text-gold-text" style="background:rgba(242,181,68,0.16)">Winner</span>` : ''}
                         ${hiddenChip}
                     </div>
-                    <h3 class="m-0 font-poppins font-semibold text-[17px] leading-[1.3] text-text-strong truncate">${title}</h3>
+                    <h3 class="m-0 font-poppins font-semibold text-[17px] leading-[1.3] text-text-strong break-words">${title}</h3>
                     <p class="m-0 font-inter text-[13px] leading-[1.5] text-text-muted truncate">By ${name}</p>
                     <div class="mt-auto flex gap-2" style="padding-top:6px">
                         <button type="button" onclick="showDetails('${item.id}')" class="btn-neutral flex-1 inline-flex justify-center items-center rounded-full bg-surface-active text-text-strong font-inter font-semibold text-[13px] cursor-pointer border-0" style="height:38px">Details and impact</button>
@@ -1474,7 +1522,7 @@
             const texts = collectTextFields(item);
             return `
                 <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
-                    <div class="bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
+                    <div class="modal-card bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
                         <button onclick="closeModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
                         <span class="bg-blue-600/20 text-blue-400 border border-blue-400/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic">ROUND ${item.round === undefined || item.round === null ? 1 : item.round} ENTRY DETAIL</span>
                         <h3 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-tight mt-8 mb-6 break-words">${title}</h3>
@@ -1514,7 +1562,7 @@
             if (!idea) return '';
             return `
                 <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
-                    <div class="bg-slate-900 max-w-3xl w-full p-12 rounded-[4rem] border-2 border-yellow-500/30 shadow-[0_0_100px_rgba(234,179,8,0.1)] relative max-h-[90vh] overflow-y-auto custom-card">
+                    <div class="modal-card bg-slate-900 max-w-3xl w-full p-12 rounded-[4rem] border-2 border-yellow-500/30 shadow-[0_0_100px_rgba(234,179,8,0.1)] relative max-h-[90vh] overflow-y-auto custom-card">
                         <button onclick="closeIdeaModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
                         <div class="flex items-center gap-3 text-yellow-500 mb-8"><i data-lucide="lightbulb" class="w-6 h-6"></i> <span class="text-xs font-black uppercase tracking-[0.3em] italic">Concept Detail</span></div>
                         <h3 class="text-5xl font-black text-white italic tracking-tighter uppercase leading-none mb-10 break-words">${idea.title}</h3>
@@ -1530,7 +1578,7 @@
         function renderAdminLogin() {
             return `
                 <div class="fixed inset-0 z-[100] bg-bg/[0.92] backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in duration-300">
-                    <div class="bg-surface max-w-md w-full p-10 rounded-[28px] border border-border shadow-2xl text-center">
+                    <div class="modal-card bg-surface max-w-md w-full p-10 rounded-[28px] border border-border shadow-2xl text-center">
                         <div class="w-20 h-20 rounded-[20px] flex items-center justify-center mx-auto mb-7" style="background:rgba(0,174,239,0.1);border:1px solid rgba(0,174,239,0.2)">
                             <i data-lucide="shield-check" class="w-10 h-10" style="color:var(--brand-blue)"></i>
                         </div>

@@ -1,9 +1,10 @@
 // Captures console errors and takes screenshots of all six tabs (Dashboard,
-// Challenges, Submissions, Idea Hub, Winners, Leaderboard) at 1440/768/390px, plus a
-// few desktop-only extras (Challenges round-8/round-1, Submissions round-8, the
-// details modal, the forceOpen=9 variant of #submit so the Round 9 form can be seen
-// while it's really still upcoming, and the hover state of a few representative
-// links/buttons/cards from the polish pass), into backups/<date>/screens/.
+// Challenges, Submissions, Idea Hub, Winners, Leaderboard) at 320/375/425/768/1024/1440
+// (the same matrix as the Step 8 manual DevTools review), plus a few desktop-only
+// extras (Challenges round-8/round-1, Submissions round-8, the details modal, the
+// forceOpen=9 variant of #submit so the Round 9 form can be seen while it's really
+// still upcoming, and the hover state of a few representative links/buttons/cards
+// from the polish pass), into backups/<date>/screens/.
 //
 // Step 7A removed the ?preview=1 OTP-gate bypass from the app itself, so this script
 // now authenticates the same way the real login flow would leave a visitor logged in:
@@ -17,7 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 const BASE = 'http://localhost:8080/?preview=1';
-const WIDTHS = [1440, 768, 390];
+const WIDTHS = [1440, 1024, 768, 425, 375, 320];
 
 function seedAuth(context) {
     return context.addInitScript(() => {
@@ -62,7 +63,10 @@ async function main() {
         const context = await browser.newContext({ viewport: { width, height: 1000 } });
         await seedAuth(context);
         const page = await context.newPage();
-        page.on('console', msg => { if (msg.type() === 'error') errors.push(`[w${width}] console.error: ${msg.text()}`); });
+        page.on('console', msg => {
+            if (msg.type() === 'error') errors.push(`[w${width}] console.error: ${msg.text()}`);
+            if (msg.type() === 'warning' && msg.text().includes('[overflow-check]')) errors.push(`[w${width}] ${msg.text()}`);
+        });
         page.on('pageerror', err => errors.push(`[w${width}] pageerror: ${err.message}`));
 
         for (const p of PAGES) {
