@@ -4,6 +4,23 @@
         const DEPARTMENTS = ["Finance", "Sales", "Customer Success", "HR/Admin", "Marketing", "Strategy", "Product", "Software Engineering", "Technology Services"];
         const HUB_AVATAR = "https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/Mesca_png.jpeg";
 
+        // Department gradient colours (submission covers) - redesign/DESIGN_SPEC.md.
+        // "Team" is for group submissions; "Unknown" is the fallback for a missing/unlisted
+        // department (note HR/Admin, in DEPARTMENTS above, has no distinct spec colour and
+        // falls back to Unknown too).
+        const DEPT_COLORS = {
+            'Technology Services': ['#003366', '#00AEEF'],
+            'Software Engineering': ['#2B2350', '#6F5BD6'],
+            'Marketing': ['#5A1F17', '#E6533C'],
+            'Sales': ['#4A3510', '#D99A22'],
+            'Finance': ['#123D2A', '#3FA66B'],
+            'Strategy': ['#0B3B3F', '#22A6A0'],
+            'Product': ['#3D1640', '#B54FB8'],
+            'Customer Success': ['#0B3B4F', '#3CC1D9'],
+            'Team': ['#1B2A44', '#F2B544'],
+            'Unknown': ['#1C3150', '#4A6488']
+        };
+
         let ADMIN_HASH = "e28f7db64cfc2056566ea88b8100b9969be70080f868590301d4f0005c536d30";
 
         const MONTHLY_RECORDS = [{

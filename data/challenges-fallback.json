@@ -538,7 +538,7 @@
     "winnerImage": null,
     "requirements": [
       {
-        "id": "canvasShareLink",
+        "id": "canvasLink",
         "label": "Gemini Canvas share link",
         "type": "url",
         "required": true

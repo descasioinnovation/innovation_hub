@@ -349,7 +349,7 @@ const CHALLENGES = [
         winnerImage: null,
         winningSubmissionId: null,
         requirements: [
-            { id: 'canvasShareLink', label: 'Gemini Canvas share link', type: 'url', required: true },
+            { id: 'canvasLink', label: 'Gemini Canvas share link', type: 'url', required: true, _note: 'Renamed from canvasShareLink to canvasLink (scripts/patch-round9-field.js) to reuse Round 3\'s existing field name for the same kind of answer.' },
             { id: 'toolsUsed', label: 'Tools used', type: 'multiselect', required: true, options: ['Gemini Canvas', 'Claude', 'ChatGPT', 'Canva', 'Figma', 'Other'] }
         ],
         checklist: [

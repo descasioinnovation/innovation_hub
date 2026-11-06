@@ -12,10 +12,8 @@
 //   #leaderboard                -> tab 'leaderboard'
 //   (anything else, or empty)   -> tab 'dashboard'
 //
-// Note: `sub` is parsed and stored on state.routeSub for the content-rebuild step to
-// consume later. The existing (unmodified) tab bodies don't read it yet, so deep links
-// like #challenges/round-6 currently land on the right TAB but don't yet filter to that
-// round within it — that's page-content work, out of scope for this step.
+// Note: `sub` is parsed and stored on state.routeSub, which renderChallenge() and
+// renderGallery() (js/app.js) read to select/filter within their tab.
 const Router = (() => {
     const HASH_TO_TAB = {
         dashboard: 'dashboard',
@@ -42,10 +40,9 @@ const Router = (() => {
         const base = parts[0] || 'dashboard';
 
         if (base === 'submit') {
-            // The submission <form> is rendered inside the Challenge tab's detail panel
-            // (only visible for the currently open round) - not the Submissions/gallery
-            // tab, which is just the archive feed.
-            return { tab: 'challenge', sub: null, wantsForm: true };
+            // The submission <form> lives at the top of the Submissions tab (js/app.js
+            // renderGallery()), not the Challenge tab's detail panel.
+            return { tab: 'gallery', sub: null, wantsForm: true };
         }
 
         const tab = HASH_TO_TAB[base] || 'dashboard';

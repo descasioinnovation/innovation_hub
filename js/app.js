@@ -50,6 +50,9 @@
                 label: "HUNT ENDS"
             },
             formData: {},
+            formToolsSelected: [], // multiselect requirement answers (array of chip labels)
+            submitting: false,
+            submissionSent: false,
             ideaData: {},
             loading: false
         };
@@ -521,7 +524,7 @@
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Alison LMS</span>
                             <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Finish your assigned Alison courses</span>
                             <span class="font-inter text-sm leading-[1.5] text-text-muted">Incomplete courses mean your ${round.year} leaderboard position will not count.</span>
-                            <a href="#alison" class="font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
+                            <a href="https://alison.com" target="_blank" rel="noopener noreferrer" class="font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
                         </section>
                         <section class="p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-2.5">
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case" style="text-transform:uppercase">Idea Hub</span>
@@ -610,9 +613,9 @@
             const ctaHtml = ctaHref
                 ? `<a href="${ctaHref}" class="inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">${cta}</a>`
                 : `<span class="inline-flex items-center h-11 px-5 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-sm shell-sentence-case cursor-not-allowed opacity-70">${cta}</span>`;
-            const viewEntriesHtml = `<a href="${Router.buildHash('gallery', selected.slug || `round-${selected.round}`)}" class="inline-flex items-center h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">View entries</a>`;
+            const viewEntriesHtml = isUpcoming ? '' : `<a href="${Router.buildHash('gallery', selected.slug || `round-${selected.round}`)}" class="inline-flex items-center h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">View entries</a>`;
 
-            const entriesDisplay = isUpcoming ? `${liveEntryCount(selected)} so far` : String(selected.entryCount != null ? selected.entryCount : liveEntryCount(selected));
+            const entriesDisplay = isUpcoming ? `Opens ${formatShortDateWAT(selected.opensAt)}` : String(selected.entryCount != null ? selected.entryCount : liveEntryCount(selected));
             const archiveNameHtml = selected.archiveName
                 ? `<div class="font-inter text-xs text-text-faint italic">Previously: ${selected.archiveName}</div>` : '';
 
@@ -626,11 +629,6 @@
                         ${selected.criteria.map(c => `<span class="px-3 py-1.5 rounded-xl bg-surface-2 border border-border font-inter font-medium text-[13px] text-text-2">${c}</span>`).join('')}
                     </div>
                 </div>` : '';
-
-            // The submission form only renders for the currently open round - same
-            // handleFormSubmit/setSubmissionType/state.formData wiring as before, untouched,
-            // just made round-number-dynamic instead of hardcoded ("Round 8" etc.).
-            const submissionFormHtml = isOpen ? renderSubmissionForm(selected.round) : '';
 
             return `
                 <div class="space-y-7 animate-in fade-in">
@@ -675,7 +673,6 @@
                             </div>
                         </section>
                     </div>
-                    ${submissionFormHtml}
                 </div>
             `;
         }
@@ -805,138 +802,7 @@
             }
 
             if (state.activeTab === 'gallery') {
-                const shortlisted = state.submissions.filter(s => s.shortlisted);
-                const round8Submissions = state.submissions.filter(s => s.round === 8);
-                const round7Submissions = state.submissions.filter(s => s.round === 7);
-                const round6Submissions = state.submissions.filter(s => s.round === 6);
-                const round5Submissions = state.submissions.filter(s => s.round === 5);
-                const round4Submissions = state.submissions.filter(s => s.round === 4);
-                const round3Submissions = state.submissions.filter(s => s.round === 3);
-                const round2Submissions = state.submissions.filter(s => s.round === 2);
-                const round1Submissions = state.submissions.filter(s => s.round === 1 || !s.round);
-
-                return `
-                    <div class="space-y-20 animate-in fade-in">
-                        <section class="space-y-8">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
-                                <div>
-                                    <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase underline decoration-blue-500 decoration-8 underline-offset-8">Shortlisted for Voting</h2>
-                                </div>
-                                <a href="${EXTERNAL_VOTING_URL}" target="_blank" class="btn-shiny text-white px-12 py-6 rounded-[2rem] font-black uppercase text-sm tracking-[0.1em] shadow-2xl transition hover:scale-110 flex items-center justify-center gap-4">
-                                    <i data-lucide="vote" class="w-6 h-6"></i> CAST OFFICIAL VOTE
-                                </a>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-8">
-                                ${shortlisted.map(item => renderSubmissionCard(item)).join('')}
-                                ${shortlisted.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">Admin verification in progress...</div>' : ''}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8">
-                            <div class="flex items-center gap-4 border-b border-blue-500/20 pb-10">
-                                <i data-lucide="users" class="text-blue-500 w-8 h-8"></i>
-                                <div>
-                                    <h2 class="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Submission Feed</h2>
-                                    <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Current: Round 8 DIP: Build the Front Door entries</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round8Submissions.map(item => renderSubmissionCard(item)).join('')}
-                                ${round8Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No Round 8 submissions recorded yet. Be the first!</div>' : ''}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-70 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
-                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 7 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Descasio Security Trainer Entries</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round7Submissions.map(item => renderSubmissionCard(item)).join('')}
-                                ${round7Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 7.</div>' : ''}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
-                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 6 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Rogue AI Case Study & Recovery Plan Entries</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round6Submissions.map(item => renderSubmissionCard(item)).join('')}
-                                ${round6Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 6.</div>' : ''}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
-                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 5 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: The Optimizer 2.0 Entries</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round5Submissions.map(item => renderSubmissionCard(item)).join('')}
-                                ${round5Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 5.</div>' : ''}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 4 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: The Optimizer 1.0</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round4Submissions.map(item => renderSubmissionCard(item)).join('')}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 3 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Build a Website with AI</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round3Submissions.map(item => renderSubmissionCard(item)).join('')}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-50 grayscale transition-all duration-500">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 2 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Efficiency at Descasio</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round2Submissions.map(item => renderSubmissionCard(item)).join('')}
-                            </div>
-                        </section>
-
-                        <section class="space-y-8 opacity-40 grayscale transition-all duration-500">
-                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
-                                <div>
-                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 1 Archive</h2>
-                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Descasio Avatar Challenge</p>
-                                </div>
-                            </div>
-                            <div class="grid md:grid-cols-3 gap-6">
-                                ${round1Submissions.map(item => renderSubmissionCard(item)).join('')}
-                            </div>
-                        </section>
-                    </div>
-                `;
+                return renderGallery();
             }
             if (state.activeTab === 'winners') {
                 return `
@@ -1072,152 +938,476 @@
             }
         }
 
-        function renderSubmissionCard(item) {
-            const isRound3 = item.round === 3;
-            const isRound4 = item.round === 4;
-            const isRound5 = item.round === 5;
-            const isRound6 = item.round === 6;
-            const isRound7 = item.round === 7;
-            const isRound8 = item.round === 8;
-            let title = item.innovationName || 'Submission';
-            if (isRound8) {
-                title = 'DIP: Build the Front Door';
-            } else if (isRound7) {
-                title = 'Descasio Security Trainer';
-            } else if (isRound6) {
-                title = 'Rogue AI Recovery Plan';
-            } else if (isRound4 || isRound5) {
-                title = item.problemDefinition ? (isRound5 ? 'Department Optimizer 2' : 'Department Optimizer') : 'AI Optimization';
-            } else if (isRound3) {
-                title = item.canvasLink ? 'Gemini Canvas Entry' : 'AI Website Entry';
+        function tidyName(raw) {
+            if (!raw) return '';
+            return raw
+                .replace(/\b([a-z])/g, (m) => m.toUpperCase())
+                .replace(/\b([A-Z])([A-Z]{3,})\b/g, (m, a, b) => a + b.toLowerCase());
+        }
+
+        function initialsOf(name) {
+            return (name || '')
+                .replace(/\[.*?\]/g, '')
+                .replace(/[^A-Za-z\s-]/g, '')
+                .trim()
+                .split(/[\s-]+/)
+                .filter(Boolean)
+                .map(w => w[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase();
+        }
+
+        function deptColorsFor(item) {
+            const key = item.type === 'group' ? 'Team' : (DEPT_COLORS[item.dept] ? item.dept : 'Unknown');
+            return DEPT_COLORS[key];
+        }
+
+        function getSubmissionDisplayName(item) {
+            const raw = item.type === 'group' ? item.teamName : item.name;
+            return tidyName(raw || 'Anonymous');
+        }
+
+        // Fallback order: existing title field -> "<Challenge title> entry".
+        // ("Avatar name" for Round 1 is the same innovationName field, not a separate one.)
+        function getSubmissionTitle(item, roundTitle) {
+            return item.innovationName || `${roundTitle || 'Challenge'} entry`;
+        }
+
+        // Every link field present on the item: the viewing round's own url-type
+        // requirements first (real labels), then a legacy fallback for any of the four
+        // historical link field names not already covered. Fixes the old bug where
+        // submissionDocLink never rendered for Round 8 (no isR8 branch existed).
+        function collectLinkFields(item) {
+            const round = Challenges.getRound(item.round === undefined || item.round === null ? 1 : item.round);
+            const seen = new Set();
+            const out = [];
+            if (round && round.requirements) {
+                for (const req of round.requirements) {
+                    if (req.type === 'url' && item[req.id]) {
+                        out.push({ label: req.label, url: item[req.id] });
+                        seen.add(req.id);
+                    }
+                }
+            }
+            const legacy = [
+                { id: 'docLink', label: 'Image / Doc Link' },
+                { id: 'submissionDocLink', label: 'Submission Document Link' },
+                { id: 'canvasLink', label: 'Canvas / Shared Link' },
+                { id: 'solutionLink', label: 'Solution Link' }
+            ];
+            for (const f of legacy) {
+                if (!seen.has(f.id) && item[f.id]) out.push({ label: f.label, url: item[f.id] });
+            }
+            return out;
+        }
+
+        // Every non-link text/textarea/multiselect answer, labelled from the round's own
+        // requirements first, then legacy free-text fields from earlier rounds that
+        // predate the requirements model.
+        function collectTextFields(item) {
+            const round = Challenges.getRound(item.round === undefined || item.round === null ? 1 : item.round);
+            const out = [];
+            const covered = new Set();
+            if (round && round.requirements) {
+                for (const req of round.requirements) {
+                    if (req.type === 'url') continue;
+                    covered.add(req.id);
+                    const val = item[req.id];
+                    if (req.type === 'multiselect') {
+                        if (val && val.length) out.push({ label: req.label, value: Array.isArray(val) ? val.join(', ') : val });
+                    } else if (val) {
+                        out.push({ label: req.label, value: val });
+                    }
+                }
+            }
+            const legacyText = [
+                { id: 'achievements', label: 'Description' },
+                { id: 'bugsIdentified', label: 'Bugs Identified' },
+                { id: 'productRecommendations', label: 'Product Recommendations' },
+                { id: 'problemDefinition', label: 'Problem Definition' },
+                { id: 'operationalimpact', label: 'Operational Impact' },
+                { id: 'rootCauseAnalysis', label: 'Root Cause Analysis' },
+                { id: 'recoveryEmail', label: 'Client Recovery Email' },
+                { id: 'guardrailRules', label: 'Guardrail System Rules' },
+                { id: 'toolsUsed', label: 'Tools Used' }
+            ];
+            for (const f of legacyText) {
+                if (!covered.has(f.id) && item[f.id]) {
+                    const val = Array.isArray(item[f.id]) ? item[f.id].join(', ') : item[f.id];
+                    out.push({ label: f.label, value: val });
+                }
+            }
+            return out;
+        }
+
+        function renderDuplicateNotice(round) {
+            const email = (state.formData.email || '').toLowerCase().trim();
+            if (!email) return '';
+            const hasExisting = state.submissions.some(s => {
+                if (s.hiddenReason) return false;
+                const effRound = (s.round === undefined || s.round === null) ? 1 : s.round;
+                return effRound === round.round && (s.email || '').toLowerCase().trim() === email;
+            });
+            if (!hasExisting) return '';
+            return `<div class="p-4 rounded-2xl font-inter text-sm shell-sentence-case" style="background:rgba(242,181,68,0.12);border:1px solid rgba(242,181,68,0.4);color:var(--gold-text)">You've already submitted for Round ${round.round}. Submitting again adds a new version; the organisers will keep your latest one.</div>`;
+        }
+
+        function renderRequirementField(req, disabled) {
+            const value = state.formData[req.id] || '';
+            if (req.type === 'multiselect') {
+                const options = req.options || [];
+                const chips = options.map(opt => {
+                    const on = state.formToolsSelected.includes(opt);
+                    const safeOpt = opt.replace(/'/g, "\\'");
+                    return `<button type="button" ${disabled ? 'disabled' : ''} onclick="toggleToolChip('${safeOpt}')" class="h-[38px] px-3.5 rounded-full font-inter font-semibold text-[13px] cursor-pointer border ${on ? 'border-[#00AEEF]' : 'border-border-strong bg-transparent text-text-2'}" style="${on ? 'background:rgba(0,174,239,0.16);color:var(--link)' : ''}">${on ? '✓ ' : ''}${opt}</button>`;
+                }).join('');
+                return `
+                <div class="space-y-2">
+                    <span class="lbl">${req.label} <span class="font-normal text-text-muted">(pick all that apply)</span></span>
+                    <div class="flex gap-2 flex-wrap">${chips}</div>
+                </div>`;
+            }
+            if (req.type === 'textarea') {
+                return `
+                <div class="space-y-2">
+                    <label class="lbl">${req.label}</label>
+                    <textarea ${disabled ? 'disabled' : ''} ${req.required ? 'required' : ''} rows="4" oninput="handleFormInput('formData','${req.id}',this.value)" class="fld" style="height:auto;padding-top:12px;padding-bottom:12px" placeholder="${req.placeholder || ''}">${value}</textarea>
+                </div>`;
+            }
+            const inputType = req.type === 'url' ? 'url' : 'text';
+            return `
+            <div class="space-y-2">
+                <label class="lbl">${req.label}</label>
+                <input ${disabled ? 'disabled' : ''} ${req.required ? 'required' : ''} type="${inputType}" oninput="handleFormInput('formData','${req.id}',this.value)" value="${value}" class="fld" placeholder="${req.placeholder || ''}">
+            </div>`;
+        }
+
+        function toggleToolChip(label) {
+            const idx = state.formToolsSelected.indexOf(label);
+            if (idx > -1) state.formToolsSelected.splice(idx, 1);
+            else state.formToolsSelected.push(label);
+            updateUI();
+        }
+
+        function resetSubmissionForm() {
+            state.submissionSent = false;
+            state.formData = {};
+            state.formToolsSelected = [];
+            updateUI();
+        }
+
+        function renderSubmissionFormSection(round) {
+            const status = Challenges.statusOf(round);
+            const reqLabels = (round.requirements || []).map(r => r.label.charAt(0).toLowerCase() + r.label.slice(1));
+            const needText = reqLabels.length
+                ? `This month you only need ${reqLabels.length === 1 ? 'one thing' : reqLabels.length + ' things'}: ${reqLabels.join(' and ')}.`
+                : '';
+            const checklistHtml = (round.checklist || []).map(c => `<span class="font-inter text-sm leading-[1.5] text-text-2">✓ ${c}</span>`).join('');
+            const closeTarget = round.closesAt || round.opensAt;
+            const { time, day, month, weekday } = closeTarget ? formatWATDateTime(closeTarget) : {};
+
+            let statusBadge;
+            if (status === 'open') {
+                statusBadge = `<span class="self-start inline-flex items-center gap-2 h-7 px-3 rounded-full bg-[rgba(63,166,107,0.18)] border border-[rgba(63,166,107,0.5)] text-green-text font-inter font-semibold text-xs shell-sentence-case"><span class="w-2 h-2 rounded-full bg-green"></span>Round ${round.round} · Open</span>`;
+            } else if (status === 'upcoming') {
+                statusBadge = `<span class="self-start inline-flex items-center h-7 px-3 rounded-full bg-[rgba(242,181,68,0.14)] border border-[rgba(242,181,68,0.4)] text-gold-text font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · Opens ${weekday || 'soon'}</span>`;
+            } else {
+                statusBadge = `<span class="self-start inline-flex items-center h-7 px-3 rounded-full bg-[rgba(159,179,200,0.12)] border border-border-strong text-text-2 font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · ${status === 'judging' ? 'Judging' : 'Closed'}</span>`;
+            }
+
+            const infoCard = `
+            <div class="flex-[1_1_320px] p-8 rounded-[24px] border border-border flex flex-col gap-4" style="background:radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%)">
+                ${statusBadge}
+                <h1 class="m-0 font-poppins font-bold text-[32px] leading-[1.15] text-text-strong shell-sentence-case">Submit your ${round.title}</h1>
+                ${needText ? `<p class="m-0 font-inter text-[15px] leading-[1.6] text-text-2">${needText}</p>` : ''}
+                ${checklistHtml ? `
+                <div class="flex flex-col gap-2.5 p-4 rounded-2xl" style="background:rgba(5,14,28,0.45)">
+                    <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Before you submit</span>
+                    ${checklistHtml}
+                </div>` : ''}
+                <div class="mt-auto flex gap-4 flex-wrap items-center">
+                    ${time ? `<span class="font-inter font-semibold text-sm text-text-strong shell-sentence-case">Closes ${time} WAT, ${day} ${month}</span>` : ''}
+                    <a href="${Router.buildHash('challenge', round.slug || `round-${round.round}`)}" class="font-inter font-semibold text-sm shell-sentence-case">Read the full brief</a>
+                </div>
+            </div>`;
+
+            let formCard;
+            if (state.submissionSent) {
+                formCard = `
+                <div class="flex-[999_1_560px] min-w-0 p-8 rounded-[24px] bg-surface border border-border flex items-center justify-center" style="min-height:420px">
+                    <div class="flex flex-col items-center gap-3 text-center">
+                        <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background:rgba(63,166,107,0.18);border:1px solid rgba(63,166,107,0.5)">
+                            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8FE0B0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+                        </div>
+                        <span class="font-poppins font-semibold text-2xl text-text-strong">Entry received</span>
+                        <span class="font-inter text-[15px] leading-[1.6] text-text-muted" style="max-width:380px">Thanks for taking part. Round ${round.round} entries go live in the feed after the deadline.</span>
+                        <button type="button" onclick="resetSubmissionForm()" class="mt-2 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:42px;padding:0 20px">Back to the form</button>
+                    </div>
+                </div>`;
+            } else if (status === 'judging' || status === 'closed') {
+                formCard = `
+                <div class="flex-[999_1_560px] min-w-0 p-8 rounded-[24px] bg-surface border border-border flex items-center justify-center text-center" style="min-height:420px">
+                    <span class="font-poppins font-semibold text-xl text-text-strong">Round ${round.round} is closed — see the entries below.</span>
+                </div>`;
+            } else {
+                const disabled = status === 'upcoming';
+                const memberFieldsHtml = state.submissionType === 'group' ? `
+                    <div class="grid gap-4 p-5 rounded-2xl bg-bg border border-border" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+                        <div class="font-inter font-semibold text-xs text-link uppercase shell-sentence-case" style="grid-column:1/-1;text-transform:uppercase">Additional team member (optional)</div>
+                        <div class="space-y-2"><label class="lbl">Name</label><input ${disabled ? 'disabled' : ''} oninput="handleFormInput('formData','member1Name',this.value)" value="${state.formData.member1Name || ''}" class="fld"></div>
+                        <div class="space-y-2"><label class="lbl">Email</label><input ${disabled ? 'disabled' : ''} type="email" oninput="handleFormInput('formData','member1Email',this.value)" value="${state.formData.member1Email || ''}" class="fld"></div>
+                        <div class="space-y-2"><label class="lbl">Department</label><select ${disabled ? 'disabled' : ''} onchange="handleFormInput('formData','member1Dept',this.value)" class="fld"><option value="">Select department</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                    </div>
+                    <div class="grid gap-4 p-5 rounded-2xl bg-bg border border-border" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+                        <div class="font-inter font-semibold text-xs text-link uppercase shell-sentence-case" style="grid-column:1/-1;text-transform:uppercase">Another team member (optional)</div>
+                        <div class="space-y-2"><label class="lbl">Name</label><input ${disabled ? 'disabled' : ''} oninput="handleFormInput('formData','member2Name',this.value)" value="${state.formData.member2Name || ''}" class="fld"></div>
+                        <div class="space-y-2"><label class="lbl">Email</label><input ${disabled ? 'disabled' : ''} type="email" oninput="handleFormInput('formData','member2Email',this.value)" value="${state.formData.member2Email || ''}" class="fld"></div>
+                        <div class="space-y-2"><label class="lbl">Department</label><select ${disabled ? 'disabled' : ''} onchange="handleFormInput('formData','member2Dept',this.value)" class="fld"><option value="">Select department</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                    </div>` : '';
+
+                formCard = `
+                <div class="flex-[999_1_560px] min-w-0 p-8 rounded-[24px] bg-surface border border-border">
+                    <form id="submission-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
+                        ${renderDuplicateNotice(round)}
+                        <div class="space-y-2">
+                            <span class="lbl">Entry type</span>
+                            <div role="group" aria-label="Entry type" class="inline-flex self-start p-1 rounded-[14px] bg-bg border border-border-strong">
+                                <button type="button" ${disabled ? 'disabled' : ''} aria-pressed="${state.submissionType === 'individual'}" onclick="setSubmissionType('individual')" class="h-10 px-5 rounded-[10px] border-0 font-inter font-semibold text-sm cursor-pointer ${state.submissionType === 'individual' ? 'bg-text text-bg' : 'bg-transparent text-text-2'}">Individual</button>
+                                <button type="button" ${disabled ? 'disabled' : ''} aria-pressed="${state.submissionType === 'group'}" onclick="setSubmissionType('group')" class="h-10 px-5 rounded-[10px] border-0 font-inter font-semibold text-sm cursor-pointer ${state.submissionType === 'group' ? 'bg-text text-bg' : 'bg-transparent text-text-2'}">Group</button>
+                            </div>
+                        </div>
+                        ${state.submissionType === 'group' ? `
+                        <div class="space-y-2">
+                            <label class="lbl">Team name</label>
+                            <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','teamName',this.value)" value="${state.formData.teamName || ''}" class="fld" placeholder="e.g. Team DataFlow TS">
+                        </div>` : ''}
+                        <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                            <div class="space-y-2">
+                                <label class="lbl">${state.submissionType === 'group' ? 'Team lead full name' : 'Full name'}</label>
+                                <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','name',this.value)" value="${state.formData.name || ''}" class="fld" placeholder="Your full name">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="lbl">Work email</label>
+                                <input ${disabled ? 'disabled' : ''} required type="email" oninput="handleFormInput('formData','email',this.value)" value="${state.formData.email || ''}" class="fld" placeholder="name@descasio.io">
+                            </div>
+                            <div class="space-y-2">
+                                <label class="lbl">Department</label>
+                                <select ${disabled ? 'disabled' : ''} required onchange="handleFormInput('formData','dept',this.value)" class="fld">
+                                    <option value="">Select department</option>
+                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+                        ${memberFieldsHtml}
+                        <div class="flex items-center gap-3 pt-1">
+                            <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case whitespace-nowrap" style="text-transform:uppercase">Round ${round.round} requirements</span>
+                            <span class="flex-1 h-px bg-border"></span>
+                        </div>
+                        ${(round.requirements || []).map(req => renderRequirementField(req, disabled)).join('')}
+                        <div id="formStatus" class="hidden rounded-xl px-4 py-3 text-red-300 text-xs font-semibold" style="background:rgba(230,83,60,0.12);border:1px solid rgba(230,83,60,0.4)"></div>
+                        <button type="submit" ${disabled || state.submitting ? 'disabled' : ''} class="w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer mt-1 ${disabled ? 'bg-border-strong text-text-faint cursor-not-allowed' : 'bg-coral-btn text-text-strong'}" style="height:52px">
+                            ${disabled ? formatOpenShort(round.opensAt) : (state.submitting ? 'Submitting…' : 'Submit entry')}
+                        </button>
+                    </form>
+                </div>`;
+            }
+
+            return `<section id="submit-section" class="flex flex-wrap gap-6 items-stretch">${infoCard}${formCard}</section>`;
+        }
+
+        function renderArchiveFeed(current) {
+            const allRounds = Challenges.allRounds(); // newest first
+            const currentKey = current.slug || `round-${current.round}`;
+            const filter = state.routeSub;
+            const selectedKey = filter || currentKey;
+
+            const others = allRounds.filter(r => r.round !== current.round).sort((a, b) => b.round - a.round);
+            const chipDefs = [current, ...others].map(r => ({ key: r.slug || `round-${r.round}`, label: `Round ${r.round} · ${(r.month || '').slice(0, 3)}` }));
+            chipDefs.push({ key: 'all', label: 'All rounds' });
+
+            const chipsHtml = chipDefs.map(c => {
+                const on = c.key === selectedKey;
+                return `<button type="button" onclick="navigate('gallery','${c.key}')" aria-pressed="${on}" class="h-9 px-3.5 rounded-full font-inter font-semibold text-[13px] cursor-pointer ${on ? 'bg-text text-bg border border-text' : 'bg-transparent text-text-2 border border-border-strong'}">${c.label}</button>`;
+            }).join('');
+
+            let roundsToShow, headerTitle, headerMeta, isCurrentUpcomingView = false;
+            if (selectedKey === 'all') {
+                roundsToShow = allRounds.slice().sort((a, b) => b.round - a.round);
+                headerTitle = `All rounds · March to ${current.month} ${current.year}`;
+                headerMeta = 'Newest round first';
+            } else {
+                const r = allRounds.find(x => (x.slug || `round-${x.round}`) === selectedKey) || current;
+                roundsToShow = [r];
+                const st = Challenges.statusOf(r);
+                if (r.round === current.round && (st === 'open' || st === 'upcoming')) isCurrentUpcomingView = true;
+                headerTitle = `Round ${r.round} · ${r.title}`;
+                headerMeta = r.winnerName
+                    ? `Completed · ${r.month} ${r.year} · winner: ${r.winnerName}`
+                    : (st === 'open' ? 'Open now · entries are revealed after the deadline'
+                        : (st === 'upcoming' ? `Opens ${formatShortDateWAT(r.opensAt)}`
+                            : `${st === 'judging' ? 'Judging' : 'Completed'} · ${r.month} ${r.year}`));
+            }
+
+            const cards = [];
+            for (const r of roundsToShow) {
+                const st = Challenges.statusOf(r);
+                const hideBecauseOpenCurrent = (r.round === current.round) && (st === 'open' || st === 'upcoming') && !state.isAdmin;
+                if (hideBecauseOpenCurrent) continue;
+                const roundSubs = state.submissions.filter(s => {
+                    const effRound = (s.round === undefined || s.round === null) ? 1 : s.round;
+                    if (effRound !== r.round) return false;
+                    if (s.hidden === true && !state.isAdmin) return false;
+                    return true;
+                });
+                for (const s of roundSubs) cards.push({ item: s, round: r });
+            }
+
+            const totalKnown = selectedKey === 'all' ? null : (roundsToShow[0] && roundsToShow[0].entryCount);
+            const countText = selectedKey === 'all'
+                ? `${cards.length} entries`
+                : (totalKnown != null ? `${cards.length} entries${cards.length < totalKnown ? ' shown of ' + totalKnown : ''}` : `${cards.length} entries`);
+
+            const underWraps = isCurrentUpcomingView && selectedKey !== 'all';
+
+            let bodyHtml;
+            if (underWraps) {
+                bodyHtml = `
+                <div class="p-14 rounded-[24px] border border-dashed border-border-strong bg-surface text-center flex flex-col gap-2 items-center">
+                    <span class="font-poppins font-semibold text-xl text-text-strong">Round ${current.round} entries are under wraps</span>
+                    <span class="font-inter text-sm leading-[1.6] text-text-muted" style="max-width:460px">Entries for the open round appear here after the deadline, so nobody copies a design before judging.</span>
+                </div>`;
+            } else if (cards.length) {
+                bodyHtml = `
+                <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
+                    ${cards.map(c => renderSubmissionCard(c.item, c.round)).join('')}
+                </div>`;
+            } else {
+                bodyHtml = `
+                <div class="p-14 rounded-[24px] border border-dashed border-border-strong bg-surface text-center flex flex-col gap-2 items-center">
+                    <span class="font-poppins font-semibold text-xl text-text-strong">No entries yet</span>
+                </div>`;
+            }
+
+            return `
+            <section class="space-y-5">
+                <div class="flex justify-between items-end gap-4 flex-wrap">
+                    <div class="flex flex-col gap-1.5">
+                        <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Submissions archive</span>
+                        <h2 class="m-0 font-poppins font-bold text-[30px] leading-[1.15] text-text-strong shell-sentence-case">What the team built</h2>
+                    </div>
+                    <span class="font-inter font-medium text-[13px] text-text-muted">${countText}</span>
+                </div>
+                <div class="flex gap-2 flex-wrap" role="group" aria-label="Filter by round">${chipsHtml}</div>
+                <div class="px-4.5 py-3.5 rounded-2xl bg-surface border border-border flex gap-3 flex-wrap items-baseline">
+                    <span class="font-poppins font-semibold text-[15px] text-text-strong">${headerTitle}</span>
+                    <span class="font-inter text-[13px] text-text-muted">${headerMeta}</span>
+                </div>
+                ${bodyHtml}
+                <div class="px-5 py-4 rounded-2xl bg-surface border border-border font-inter text-[13px] leading-[1.6] text-text-muted">
+                    <strong class="text-text">How the cover works:</strong> each card draws its own cover from the entry title, round and entrant initials, tinted by department, so no card is ever blank.
+                </div>
+            </section>`;
+        }
+
+        function renderGallery() {
+            const round = Challenges.currentRound();
+            if (!round) {
+                return `<div class="text-center py-24 font-inter text-text-muted">Loading challenge data…</div>`;
             }
             return `
-                <div class="bg-slate-900/30 border border-slate-800/50 rounded-[2rem] p-6 flex flex-col h-full hover:border-blue-500/30 transition-all overflow-hidden group shadow-xl">
-                    <div class="aspect-square bg-slate-950 rounded-2xl mb-6 overflow-hidden border border-slate-800 flex items-center justify-center">
-                        ${item.docLink ? `<img src="${item.docLink}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">` : `<div class="w-full h-full flex items-center justify-center text-slate-800"><i data-lucide="zap" class="w-12 h-12"></i></div>`}
+            <div class="space-y-8 animate-in fade-in">
+                ${renderSubmissionFormSection(round)}
+                ${renderArchiveFeed(round)}
+            </div>`;
+        }
+
+        function renderSubmissionCard(item, round) {
+            const [c1, c2] = deptColorsFor(item);
+            const name = getSubmissionDisplayName(item);
+            const initials = initialsOf(name);
+            const title = getSubmissionTitle(item, round ? round.title : 'Challenge');
+            const roundLabel = `Round ${item.round === undefined || item.round === null ? 1 : item.round}`;
+            const deptLabel = item.type === 'group' ? 'Team' : (item.dept || 'Unknown');
+            const isWinner = !!(round && round.winningSubmissionId && round.winningSubmissionId === item.id);
+            const hiddenChip = item.hidden
+                ? `<span class="px-2.5 py-1 rounded-[10px] font-inter font-semibold text-[10px]" style="background:rgba(230,83,60,0.18);color:#F2A08A">Hidden · ${item.hiddenReason || 'hidden'}</span>`
+                : '';
+            return `
+            <article class="rounded-[20px] bg-surface border border-border overflow-hidden flex flex-col transition-transform hover:-translate-y-1">
+                <div class="relative" style="height:168px;overflow:hidden;background:linear-gradient(135deg, ${c1} 0%, ${c2} 100%)">
+                    <div class="absolute rounded-t-[10px] overflow-hidden flex flex-col" style="left:18px;right:18px;top:18px;bottom:0;background:#F5F7FA;box-shadow:0 10px 30px rgba(0,0,0,0.35)">
+                        <div class="flex items-center gap-1" style="height:18px;flex-shrink:0;background:#E3E9F0;padding:0 8px">
+                            <span class="rounded-full" style="width:6px;height:6px;background:#E6533C"></span>
+                            <span class="rounded-full" style="width:6px;height:6px;background:#F2B544"></span>
+                            <span class="rounded-full" style="width:6px;height:6px;background:#3FA66B"></span>
+                        </div>
+                        <div class="flex flex-col justify-end gap-0.5 box-border" style="height:72px;flex-shrink:0;padding:10px 12px;background:linear-gradient(135deg, ${c1}, ${c2})">
+                            <span class="font-inter font-bold text-[10px] tracking-[1px] uppercase text-white" style="opacity:0.85;text-transform:uppercase">${roundLabel}</span>
+                            <span class="font-poppins font-bold text-[15px] leading-[1.2] text-white truncate">${title}</span>
+                        </div>
+                        <div class="flex gap-1.5" style="padding:8px 10px">
+                            <span class="rounded" style="flex:2;height:6px;background:#CDD7E2"></span>
+                            <span class="rounded" style="flex:1;height:6px;background:#CDD7E2"></span>
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-[9px] font-black uppercase text-blue-500 tracking-widest">${item.type === 'group' ? 'TEAM' : (item.dept || 'CORE')}</span>
-                        <span class="text-[8px] font-black uppercase px-2 py-1 rounded bg-slate-800 text-slate-400">Round ${item.round || 1}</span>
-                    </div>
-                    <h3 class="text-xl font-black text-white mb-2 uppercase italic tracking-tighter truncate break-words">${title}</h3>
-                    <p class="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-black mb-8 truncate">
-                        BY ${item.type === 'group' ? item.teamName : `${item.name}`}
-                    </p>
-                    <button onclick="showDetails('${item.id}')" class="mt-auto w-full bg-slate-950 p-4 rounded-xl border border-white/5 text-[9px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition">Details & Impact</button>
+                    <span class="absolute rounded-full flex items-center justify-center font-poppins font-bold text-sm text-white" style="right:14px;bottom:12px;width:40px;height:40px;background:#050E1C;border:2px solid ${c2}">${initials}</span>
                 </div>
-            `;
+                <div class="flex flex-col gap-2.5 flex-1" style="padding:18px">
+                    <div class="flex gap-1.5 flex-wrap">
+                        <span class="px-2.5 py-1 rounded-[10px] bg-surface-2 font-inter font-semibold text-[11px] text-link">${roundLabel}</span>
+                        <span class="px-2.5 py-1 rounded-[10px] bg-surface-2 font-inter font-semibold text-[11px]" style="color:${c2}">${deptLabel}</span>
+                        ${isWinner ? `<span class="px-2.5 py-1 rounded-[10px] font-inter font-semibold text-[11px] text-gold-text" style="background:rgba(242,181,68,0.16)">Winner</span>` : ''}
+                        ${hiddenChip}
+                    </div>
+                    <h3 class="m-0 font-poppins font-semibold text-[17px] leading-[1.3] text-text-strong truncate">${title}</h3>
+                    <p class="m-0 font-inter text-[13px] leading-[1.5] text-text-muted truncate">By ${name}</p>
+                    <div class="mt-auto flex gap-2" style="padding-top:6px">
+                        <button type="button" onclick="showDetails('${item.id}')" class="flex-1 inline-flex justify-center items-center rounded-full bg-surface-active text-text-strong font-inter font-semibold text-[13px] cursor-pointer border-0" style="height:38px">Details and impact</button>
+                    </div>
+                </div>
+            </article>`;
         }
 
         function renderModal() {
             const item = state.selectedInnovation;
             if (!item) return '';
-            const isR8 = item.round === 8;
-            const isR7 = item.round === 7;
-            const isR6 = item.round === 6;
-            const isR5 = item.round === 5;
-            const isR4 = item.round === 4;
-            const isOptimizer = isR4 || isR5;
-            const titleText = isR8 ? 'DIP: Build the Front Door' : (isR7 ? 'Descasio Security Trainer' : (isR6 ? 'Rogue AI Case Study & Recovery Plan' : (isR5 ? 'Operational Optimizer 2' : (isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission'))))));
+            const round = Challenges.getRound(item.round === undefined || item.round === null ? 1 : item.round);
+            const title = getSubmissionTitle(item, round ? round.title : 'Submission');
+            const links = collectLinkFields(item);
+            const texts = collectTextFields(item);
             return `
                 <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
                     <div class="bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
                         <button onclick="closeModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
-                        <span class="bg-blue-600/20 text-blue-400 border border-blue-400/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic">ROUND ${item.round || 1} ENTRY DETAIL</span>
-                        <h3 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-tight mt-8 mb-6 break-words">${titleText}</h3>
+                        <span class="bg-blue-600/20 text-blue-400 border border-blue-400/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic">ROUND ${item.round === undefined || item.round === null ? 1 : item.round} ENTRY DETAIL</span>
+                        <h3 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-tight mt-8 mb-6 break-words">${title}</h3>
                         ${item.docLink ? `<img src="${item.docLink}" class="w-full aspect-square object-cover rounded-[2rem] border-2 border-blue-500/20 mb-10 shadow-2xl">` : ''}
-                        <div class="space-y-4 mb-12">
+                        <div class="space-y-4 mb-10">
                             ${item.type === 'group' ? `
-                                <div class="flex items-center gap-3 text-slate-200 text-xs font-black uppercase tracking-widest truncate"><i data-lucide="shield" class="text-blue-500 w-4 h-4"></i> ${item.teamName}</div>
+                                <div class="flex items-center gap-3 text-slate-200 text-xs font-black uppercase tracking-widest truncate"><i data-lucide="shield" class="text-blue-500 w-4 h-4"></i> ${item.teamName || ''}</div>
                                 <div class="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-3">
-                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member1Name || ''} • ${item.member1Dept || ''}</div>
-                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member2Name || ''} • ${item.member2Dept || ''}</div>
+                                    ${item.member1Name ? `<div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member1Name} • ${item.member1Dept || ''}</div>` : ''}
+                                    ${item.member2Name ? `<div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member2Name} • ${item.member2Dept || ''}</div>` : ''}
                                 </div>
                             ` : `
                                 <div class="flex items-center gap-3 text-slate-300 text-sm font-black uppercase tracking-widest truncate"><i data-lucide="user" class="text-blue-500 w-4 h-4"></i> ${item.name || 'Anonymous'} • ${item.email || ''}</div>
                                 <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest px-1"><i data-lucide="briefcase" class="w-3 h-3"></i> ${item.dept || 'CORE'}</div>
                             `}
                         </div>
-                        ${isR7 ? `
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="link" class="w-4 h-4"></i> Submission Document</h4>
-                                <a href="${item.submissionDocLink || '#'}" target="_blank" class="text-blue-100 text-base leading-relaxed italic break-all underline decoration-blue-500/50">${item.submissionDocLink || 'None provided.'}</a>
+                        ${links.length ? `
+                        <div class="space-y-4 mb-6">
+                            <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3"><i data-lucide="link" class="w-4 h-4"></i> Links</h4>
+                            <div class="flex flex-wrap gap-3">
+                                ${links.map(l => `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-100 font-black text-[11px] uppercase tracking-widest no-underline"><i data-lucide="external-link" class="w-3.5 h-3.5"></i>${l.label}</a>`).join('')}
                             </div>
-                            ${item.toolsUsed ? `
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
-                                <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed}</p>
-                            </div>
-                            ` : ''}
-                        ` : isR6 ? `
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="search" class="w-4 h-4"></i> Root Cause Analysis</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.rootCauseAnalysis || 'None reported.'}</p>
-                            </div>
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="mail" class="w-4 h-4"></i> Client Recovery Email</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.recoveryEmail || 'None provided.'}</p>
-                            </div>
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-purple-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="shield-check" class="w-4 h-4"></i> Guardrail System Rules</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.guardrailRules || 'None provided.'}</p>
-                            </div>
-                            ${item.toolsUsed ? `
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed}</p>
-                            </div>
-                            ` : ''}
-                            ${item.solutionLink ? `
-                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
-                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Solution Link</h4>
-                                    <a href="${item.solutionLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.solutionLink}</a>
-                                </div>
-                            ` : ''}
-                        ` : isOptimizer ? `
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="alert-circle" class="w-4 h-4"></i> Problem Definition</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.problemDefinition || 'None reported.'}</p>
-                            </div>
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed || 'None suggested.'}</p>
-                            </div>
-                            ${item.operationalimpact ? `
-                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="activity" class="w-4 h-4"></i> Operational Impact</h4>
-                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.operationalimpact}</p>
-                            </div>
-                            ` : ''}
-                            ${item.solutionLink ? `
-                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
-                                    <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Solution Link</h4>
-                                    <a href="${item.solutionLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.solutionLink}</a>
-                                </div>
-                            ` : ''}
-                        ` : `
-                            ${item.canvasLink ? `
-                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
-                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Shared Website Link</h4>
-                                    <a href="${item.canvasLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.canvasLink}</a>
-                                </div>
-                            ` : ''}
-                            ${item.round === 2 ? `
-                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
-                                    <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="bug" class="w-4 h-4"></i> Bugs Identified</h4>
-                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.bugsIdentified || 'None reported.'}</p>
-                                </div>
-                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
-                                    <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="zap" class="w-4 h-4"></i> Recommendations</h4>
-                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.productRecommendations || 'None suggested.'}</p>
-                                </div>
-                            ` : item.round === 1 ? `
-                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
-                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-8"><i data-lucide="zap" class="w-4 h-4 fill-blue-400"></i> Prompt Used</h4>
-                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">"${item.achievements || ''}"</p>
-                                </div>
-                            ` : ''}
-                        `}
+                        </div>` : ''}
+                        ${texts.map(t => `
+                        <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                            <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="file-text" class="w-4 h-4"></i> ${t.label}</h4>
+                            <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${t.value}</p>
+                        </div>`).join('')}
+                        ${(!links.length && !texts.length) ? `<p class="text-slate-500 italic text-sm">No additional details recorded.</p>` : ''}
                     </div>
                 </div>
             `;
@@ -1355,31 +1545,78 @@
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            if (state.challengeClosed) {
+            const round = Challenges.currentRound();
+            if (!round || Challenges.statusOf(round) !== 'open') {
                 showFormError('Submissions are closed for this round.');
                 return;
             }
             const data = state.formData;
-            if (!data.submissionDocLink || !data.submissionDocLink.startsWith('https://')) {
-                showFormError('Submission link must start with https://');
+
+            if (!data.email || !data.email.toLowerCase().trim().endsWith('@descasio.io')) {
+                showFormError('Work email must be a @descasio.io address.');
                 return;
             }
+            if (!data.name) {
+                showFormError(state.submissionType === 'group' ? 'Team lead full name is required.' : 'Full name is required.');
+                return;
+            }
+            if (!data.dept) {
+                showFormError('Department is required.');
+                return;
+            }
+            if (state.submissionType === 'group' && !data.teamName) {
+                showFormError('Team name is required.');
+                return;
+            }
+
+            for (const req of (round.requirements || [])) {
+                if (!req.required) continue;
+                if (req.type === 'multiselect') {
+                    if (!state.formToolsSelected.length) {
+                        showFormError(`${req.label} is required.`);
+                        return;
+                    }
+                } else {
+                    const val = data[req.id];
+                    if (!val) {
+                        showFormError(`${req.label} is required.`);
+                        return;
+                    }
+                    if (req.type === 'url' && !val.startsWith('https://')) {
+                        showFormError(`${req.label} must start with https://`);
+                        return;
+                    }
+                }
+            }
+
             const errEl = document.getElementById('formStatus');
             if (errEl) errEl.classList.add('hidden');
-            const openRound = Challenges.currentRound();
+
+            const payload = {
+                ...data,
+                type: state.submissionType,
+                round: round.round,
+                shortlisted: false,
+                timestamp: new Date().toISOString()
+            };
+            for (const req of (round.requirements || [])) {
+                if (req.type === 'multiselect') payload[req.id] = [...state.formToolsSelected];
+            }
+
+            state.submitting = true;
+            updateUI();
             try {
-                await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
-                    ...data,
-                    type: state.submissionType,
-                    round: openRound ? openRound.round : null,
-                    shortlisted: false,
-                    timestamp: new Date().toISOString()
-                });
+                await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add(payload);
                 state.formData = {};
-                state.activeTab = 'gallery';
+                state.formToolsSelected = [];
+                state.submitting = false;
+                state.submissionSent = true;
                 updateUI();
             } catch (err) {
                 console.error(err);
+                state.submitting = false;
+                showFormError('Something went wrong - please try again.');
+                updateUI();
             }
         }
 
@@ -1399,6 +1636,9 @@
         }
 
         Router.onRouteChange((route) => {
+            if (route.tab !== 'gallery' && state.activeTab === 'gallery') {
+                state.submissionSent = false; // don't leave a stale "Entry received" screen behind
+            }
             state.activeTab = route.tab;
             state.routeSub = route.sub;
             updateUI();

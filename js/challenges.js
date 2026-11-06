@@ -71,11 +71,30 @@ const Challenges = (() => {
         return cache.find(c => c.round === n) || null;
     }
 
+    // DEV-ONLY testing override: on localhost with ?preview=1&forceOpen=N in the URL,
+    // round N is treated as "open" regardless of its real dates. Both the localhost check
+    // and the ?preview=1 flag are required, same structural guarantee as app.js's OTP
+    // bypass - impossible on the live domain, whose hostname is never localhost/127.0.0.1.
+    function getForcedOpenRound() {
+        try {
+            const host = location.hostname;
+            const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+            if (!isLocalHost) return null;
+            const params = new URLSearchParams(location.search);
+            if (params.get('preview') !== '1') return null;
+            const forced = params.get('forceOpen');
+            return forced ? Number(forced) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
     // "upcoming" (now < opensAt), "open", "judging" (past closesAt, no winner yet),
     // "closed" (winner set). Respects a stored status override if present.
     function statusOf(ch, now) {
         now = now || new Date();
         if (!ch) return null;
+        if (ch.round === getForcedOpenRound()) return 'open';
         if (ch.statusOverride) return ch.statusOverride;
         const opens = ch.opensAt ? new Date(ch.opensAt) : null;
         const closes = ch.closesAt ? new Date(ch.closesAt) : null;

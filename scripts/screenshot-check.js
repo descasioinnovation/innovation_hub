@@ -1,6 +1,7 @@
 // Loads the local preview (OTP bypass via ?preview=1), captures console errors, and
-// takes screenshots of Dashboard and Challenges at 1440/768/390px, plus Challenges with
-// round-8 and round-1 selected, into backups/<date>/screens/.
+// takes screenshots of Dashboard, Challenges and Submissions at 1440/768/390px, plus
+// Challenges with round-8/round-1 selected, Submissions filtered to round-8, and the
+// submission details modal, into backups/<date>/screens/.
 
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -43,6 +44,24 @@ async function main() {
         const hScroll2 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
         if (hScroll2) errors.push(`[w${width}] HORIZONTAL SCROLL detected on challenges`);
 
+        // Submissions tab: the submission form (#submit)
+        await page.goto(`${BASE}#submit`, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+        const bodyHeight3 = await page.evaluate(() => document.body.scrollHeight);
+        await page.setViewportSize({ width, height: Math.min(bodyHeight3, 6000) });
+        await page.screenshot({ path: path.join(outDir, `submit-${width}.png`), fullPage: true });
+        const hScroll3 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        if (hScroll3) errors.push(`[w${width}] HORIZONTAL SCROLL detected on submit`);
+
+        // Submissions tab: archive feed filtered to Round 8
+        await page.goto(`${BASE}#submissions/round-8`, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+        const bodyHeight4 = await page.evaluate(() => document.body.scrollHeight);
+        await page.setViewportSize({ width, height: Math.min(bodyHeight4, 6000) });
+        await page.screenshot({ path: path.join(outDir, `submissions-round8-${width}.png`), fullPage: true });
+        const hScroll4 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        if (hScroll4) errors.push(`[w${width}] HORIZONTAL SCROLL detected on submissions/round-8`);
+
         await context.close();
     }
 
@@ -63,6 +82,20 @@ async function main() {
     h = await page.evaluate(() => document.body.scrollHeight);
     await page.setViewportSize({ width: 1440, height: Math.min(h, 6000) });
     await page.screenshot({ path: path.join(outDir, 'challenges-round1-1440.png'), fullPage: true });
+
+    // Submission details modal: open the first visible "Details and impact" card on
+    // the Round 8 archive feed and screenshot it.
+    await page.goto(`${BASE}#submissions/round-8`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    const detailsBtn = await page.$('article button:has-text("Details and impact")');
+    if (detailsBtn) {
+        await detailsBtn.click();
+        await page.waitForTimeout(300);
+        await page.setViewportSize({ width: 1440, height: 1200 });
+        await page.screenshot({ path: path.join(outDir, 'submissions-modal-1440.png'), fullPage: true });
+    } else {
+        errors.push('Could not find a "Details and impact" button on #submissions/round-8 to open the modal');
+    }
 
     await context.close();
     await browser.close();
