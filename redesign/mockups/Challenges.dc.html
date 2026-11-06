@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Challenges archive</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050E1C;font-family:Inter,system-ui,sans-serif}
+a{color:#7FD6F7}a:hover{color:#FFFFFF}
+.nav a{color:#9FB3C8;text-decoration:none}.nav a:hover{color:#FFFFFF}
+.mrow{cursor:pointer;text-align:left}
+.mrow:hover{border-color:#4A6488 !important}
+button:focus-visible,a:focus-visible{outline:3px solid #00AEEF;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #050E1C; color: #EAF1F8; font-family: Inter, system-ui, sans-serif">
+
+  <header style="border-bottom: 1px solid #1C3150; background: rgba(5,14,28,0.92)">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 14px; text-decoration: none">
+        <img src="/_blob/fdaa4ecbb669b824c51e87da1dbd5077" alt="Descasio" style="width: 130px; height: 32px; display: block">
+        <span aria-hidden="true" style="width: 1px; height: 26px; background: #2A4466"></span>
+        <span style="font: 600 14px Poppins, sans-serif; color: #EAF1F8">AI Innovation Hub</span>
+      </a>
+      <nav class="nav" aria-label="Main" style="display: flex; gap: 6px; flex-wrap: wrap; font: 500 14px Inter, sans-serif">
+        <a href="Main.dc.html" style="padding: 10px 14px; border-radius: 10px">Dashboard</a>
+        <a href="Challenges.dc.html" aria-current="page" style="padding: 10px 14px; border-radius: 10px; background: #10223A; color: #FFFFFF">Challenges</a>
+        <a href="Submissions.dc.html" style="padding: 10px 14px; border-radius: 10px">Submissions</a>
+        <a href="Ideas.dc.html" style="padding: 10px 14px; border-radius: 10px">Idea Hub</a>
+        <a href="Winners.dc.html" style="padding: 10px 14px; border-radius: 10px">Winners</a>
+        <a href="Leaderboard.dc.html" style="padding: 10px 14px; border-radius: 10px">Leaderboard</a>
+      </nav>
+      <button style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A4466; background: transparent; color: #EAF1F8; font: 600 13px Inter, sans-serif; cursor: pointer">Admin</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 56px; display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: #F6CD7F">Challenge archive · 2026</span>
+      <h1 style="margin: 0; font: 700 40px/1.1 Poppins, sans-serif; letter-spacing: -0.8px; color: #FFFFFF">Every challenge, newest first</h1>
+      <p style="margin: 0; max-width: 640px; font: 400 16px/1.6 Inter, sans-serif; color: #9FB3C8">Pick a month to see the brief, the winner and the entries. Past rounds are read-only; only the open round accepts submissions.</p>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+      <nav aria-label="Challenge months" style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 8px">
+        <sc-for list="{{months}}" as="m" hint-placeholder-count="9">
+          <button class="mrow" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">
+            <span style="{{m.dot}}"></span>
+            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+              <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">{{m.month}} challenge</span>
+              <span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">{{m.label}} · {{m.title}}</span>
+            </span>
+          </button>
+        </sc-for>
+      </nav>
+
+      <section aria-live="polite" style="flex: 999 1 560px; min-width: 0; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; overflow: hidden">
+        <div style="{{c.bannerStyle}}">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <span style="{{c.statusStyle}}">{{c.status}}</span>
+            <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(5,14,28,0.5); color: #C9D8E8; font: 600 12px Inter, sans-serif">{{c.label}} · {{c.month}} 2026</span>
+          </div>
+          <h2 style="margin: 0; font: 700 32px/1.15 Poppins, sans-serif; color: #FFFFFF">{{c.title}}</h2>
+        </div>
+        <div style="padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Winner</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.winner}}</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Entries</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.entries}}</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Window</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.window}}</div></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <h3 style="margin: 0; font: 600 17px Poppins, sans-serif; color: #FFFFFF">The brief</h3>
+            <p style="margin: 0; font: 400 15px/1.65 Inter, sans-serif; color: #C9D8E8">{{c.brief}}</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <h3 style="margin: 0; font: 600 17px Poppins, sans-serif; color: #FFFFFF">What entrants submitted</h3>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap">
+              <sc-for list="{{c.fields}}" as="k" hint-placeholder-count="3">
+                <span style="padding: 6px 12px; border-radius: 12px; background: #10223A; border: 1px solid #1C3150; font: 500 13px Inter, sans-serif; color: #C9D8E8">{{k}}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-top: 16px; border-top: 1px solid #1C3150">
+            <a href="{{c.ctaHref}}" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; background: #C8432D; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">{{c.cta}}</a>
+            <a href="Submissions.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; border: 1.5px solid #4A6488; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">View entries</a>
+            <span style="font: 500 13px Inter, sans-serif; color: {{c.noteColor}}">{{c.note}}</span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer style="border-top: 1px solid #1C3150; padding: 28px 24px; text-align: center; display: flex; flex-direction: column; gap: 6px">
+    <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
+    <span style="font: 400 12px Inter, sans-serif; color: #8197AE">© 2026 Descasio AI Innovation Hub · Empowering Your Digital Future</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sel: 0 };
+  }
+  renderVals() {
+    const ph = '[Brief text to be loaded from the challenges collection]';
+    const std = ['Solution link', 'Description and impact'];
+    const C = [
+      { live: true, month: 'November', label: 'Round 9', title: "Season's Greetings E-card", winner: 'To be announced', entries: '[7] so far', window: '[1–24 Nov]', brief: "Design Descasio's official season's greetings e-card for clients and partners. Mesca must appear, the card must work on phone and tablet, use brand and season colours with the official logo, and be finished in Gemini Canvas.", fields: ['Gemini Canvas share link', 'Tools used'] },
+      { month: 'October', label: 'Round 8', title: 'DIP: Build the Front Door', winner: 'MaryBlessing Umeh', entries: '12', window: '[dates]', brief: 'Build the front door for DIP: the page people land on first, built with AI tools. [Full brief from the Round 8 record]', fields: ['Solution link', 'Submission doc', 'Tools used'] },
+      { month: 'September', label: 'Round 7', title: 'Descasio Security Trainer', winner: 'Adedayo Oluyemi', entries: '12', window: '[dates]', brief: 'Build an AI-assisted security awareness trainer for Descasio staff. [Full brief from the Round 7 record]', fields: std },
+      { month: 'August', label: 'Round 6', title: 'Rogue AI Case Study & Recovery Plan', winner: 'Michael Oredunni', entries: '1', window: '[dates]', brief: ph, fields: std },
+      { month: 'July', label: 'Round 5', title: 'The Optimizer 2.0', winner: 'Team DataFlow TS', entries: '1', window: '[dates]', brief: ph, fields: std },
+      { month: 'June', label: 'Round 4', title: 'The Optimizer 1.0', winner: 'Tomi Adejorooluwa', entries: '4', window: '[dates]', brief: ph, fields: std },
+      { month: 'May', label: 'Round 3', title: 'Build a Website with AI', winner: 'Ifeloluwa Ajibola', entries: '7', window: '[dates]', brief: ph, fields: ['Gemini Canvas link', 'Description'] },
+      { month: 'April', label: 'Round 2', title: 'Efficiency at Descasio', winner: 'Ifeloluwa Ajibola', entries: '7', window: '[dates]', brief: ph, fields: ['Case study', 'Description and impact'] },
+      { month: 'March', label: 'Round 1', title: 'Descasio Avatar Challenge', winner: 'Michael Oredunni', entries: '26', window: '[dates]', brief: ph, fields: ['Avatar name', 'Avatar image', 'Description'] }
+    ];
+    const sel = this.state.sel;
+    const months = C.map((c, i) => {
+      const on = i === sel;
+      return {
+        month: c.month, label: c.label, title: c.title,
+        pressed: on ? 'true' : 'false',
+        pick: () => this.setState({ sel: i }),
+        dot: 'width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: ' + (c.live ? '#3FA66B; box-shadow: 0 0 0 4px rgba(63,166,107,0.22)' : '#4A6488'),
+        style: 'display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 14px; font: inherit; color: inherit; ' +
+          (on ? 'background: #12345C; border: 1.5px solid #00AEEF;' : 'background: #0B1A2E; border: 1px solid #1C3150;')
+      };
+    });
+    const c = Object.assign({}, C[sel]);
+    const live = !!c.live;
+    c.status = live ? 'Open for submissions' : 'Closed';
+    c.statusStyle = 'display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; font: 600 12px Inter, sans-serif; ' +
+      (live ? 'background: rgba(63,166,107,0.18); color: #8FE0B0; border: 1px solid rgba(63,166,107,0.5);' : 'background: rgba(159,179,200,0.12); color: #C9D8E8; border: 1px solid #2A4466;');
+    c.bannerStyle = 'padding: 32px; display: flex; flex-direction: column; gap: 14px; ' +
+      (live ? 'background: radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%);' : 'background: linear-gradient(135deg, #10223A 0%, #0B1A2E 100%);');
+    c.cta = live ? 'Submit your entry' : 'See the winner';
+    c.ctaHref = live ? 'Submissions.dc.html' : 'Winners.dc.html';
+    c.note = live ? 'Closes [24 Nov, 11:59 PM WAT]' : 'Submissions closed. This round is read-only.';
+    c.noteColor = live ? '#8FE0B0' : '#9FB3C8';
+    return { months, c };
+  }
+}
+</script>
+</body>
+</html>

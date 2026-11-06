@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Innovation Hub dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050E1C;font-family:Inter,system-ui,sans-serif}
+a{color:#7FD6F7}a:hover{color:#FFFFFF}
+.nav a{color:#9FB3C8;text-decoration:none}.nav a:hover{color:#FFFFFF}
+.btn:focus-visible,a:focus-visible{outline:3px solid #00AEEF;outline-offset:2px}
+@keyframes fall{0%{transform:translateY(-10px);opacity:0}15%{opacity:.8}100%{transform:translateY(420px);opacity:0}}
+.flake{position:absolute;top:0;border-radius:50%;background:#FFFFFF;animation-name:fall;animation-timing-function:linear;animation-iteration-count:infinite;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.flake{animation:none;opacity:0}}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #050E1C; color: #EAF1F8; font-family: Inter, system-ui, sans-serif">
+
+  <div style="background: linear-gradient(90deg, #003366, #0B2A4D 60%, #003366); border-bottom: 1px solid #1C3150; padding: 10px 24px; display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; text-align: center">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="#F2B544"></path></svg>
+    <span style="font: 500 13px Inter, sans-serif; color: #D6E4F2">Season's greetings from the AI Innovation Hub · Round 9 is open: design Descasio's season's greetings e-card</span>
+    <a href="Challenges.dc.html" style="font: 600 13px Inter, sans-serif">Read the brief</a>
+  </div>
+
+  <header style="border-bottom: 1px solid #1C3150; background: rgba(5,14,28,0.92)">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <img src="/_blob/fdaa4ecbb669b824c51e87da1dbd5077" alt="Descasio" style="width: 130px; height: 32px; display: block">
+        <span aria-hidden="true" style="width: 1px; height: 26px; background: #2A4466"></span>
+        <span style="font: 600 14px Poppins, sans-serif; color: #EAF1F8; letter-spacing: 0.2px">AI Innovation Hub</span>
+      </div>
+      <nav class="nav" aria-label="Main" style="display: flex; gap: 6px; flex-wrap: wrap; font: 500 14px Inter, sans-serif">
+        <a href="Main.dc.html" aria-current="page" style="padding: 10px 14px; border-radius: 10px; background: #10223A; color: #FFFFFF">Dashboard</a>
+        <a href="Challenges.dc.html" style="padding: 10px 14px; border-radius: 10px">Challenges</a>
+        <a href="Submissions.dc.html" style="padding: 10px 14px; border-radius: 10px">Submissions</a>
+        <a href="Ideas.dc.html" style="padding: 10px 14px; border-radius: 10px">Idea Hub</a>
+        <a href="Winners.dc.html" style="padding: 10px 14px; border-radius: 10px">Winners</a>
+        <a href="Leaderboard.dc.html" style="padding: 10px 14px; border-radius: 10px">Leaderboard</a>
+      </nav>
+      <button class="btn" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A4466; background: transparent; color: #EAF1F8; font: 600 13px Inter, sans-serif; cursor: pointer">Admin</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 56px; display: flex; flex-direction: column; gap: 28px">
+
+    <section style="position: relative; overflow: hidden; border-radius: 28px; border: 1px solid #1C3150; background: radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 45%, #061A33 100%); padding: 48px; display: flex; flex-wrap: wrap; gap: 40px; align-items: center">
+      <div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none; overflow: hidden">
+        <sc-for list="{{flakes}}" as="f" hint-placeholder-count="0">
+          <span class="flake" style="{{f.style}}"></span>
+        </sc-for>
+      </div>
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 20px; position: relative">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <span style="display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(63,166,107,0.16); border: 1px solid rgba(63,166,107,0.45); color: #8FE0B0; font: 600 12px Inter, sans-serif; letter-spacing: 0.4px"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3FA66B"></span>Round 9 · Open now</span>
+          <span style="display: inline-flex; align-items: center; height: 30px; padding: 0 12px; border-radius: 15px; background: rgba(242,181,68,0.14); border: 1px solid rgba(242,181,68,0.4); color: #F6CD7F; font: 600 12px Inter, sans-serif">Final challenge of 2026</span>
+        </div>
+        <h1 style="margin: 0; font: 700 52px/1.05 Poppins, sans-serif; letter-spacing: -1.2px; color: #FFFFFF">November AI Challenge: Season's Greetings E-card</h1>
+        <p style="margin: 0; max-width: 560px; font: 400 18px/1.6 Inter, sans-serif; color: #C9D8E8">Design Descasio's official season's greetings e-card for our clients and partners, finished in Gemini Canvas. The winning card goes out on 1 December.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+          <a href="Challenges.dc.html" style="display: inline-flex; align-items: center; height: 48px; padding: 0 24px; border-radius: 24px; background: #C8432D; color: #FFFFFF; font: 600 15px Inter, sans-serif; text-decoration: none">Read the brief</a>
+          <a href="Submissions.dc.html" style="display: inline-flex; align-items: center; height: 48px; padding: 0 24px; border-radius: 24px; border: 1.5px solid #7FA9D6; color: #FFFFFF; font: 600 15px Inter, sans-serif; text-decoration: none">Submit your entry</a>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap">
+          <div style="display: flex; gap: 8px">
+            <div style="width: 72px; padding: 10px 0; border-radius: 14px; background: rgba(5,14,28,0.55); border: 1px solid #2A4466; text-align: center"><div style="font: 700 26px Poppins, sans-serif; color: #FFFFFF">18</div><div style="font: 500 11px Inter, sans-serif; color: #9FB3C8; letter-spacing: 1px">DAYS</div></div>
+            <div style="width: 72px; padding: 10px 0; border-radius: 14px; background: rgba(5,14,28,0.55); border: 1px solid #2A4466; text-align: center"><div style="font: 700 26px Poppins, sans-serif; color: #FFFFFF">10</div><div style="font: 500 11px Inter, sans-serif; color: #9FB3C8; letter-spacing: 1px">HOURS</div></div>
+            <div style="width: 72px; padding: 10px 0; border-radius: 14px; background: rgba(5,14,28,0.55); border: 1px solid #2A4466; text-align: center"><div style="font: 700 26px Poppins, sans-serif; color: #FFFFFF">36</div><div style="font: 500 11px Inter, sans-serif; color: #9FB3C8; letter-spacing: 1px">MINS</div></div>
+          </div>
+          <div style="display: flex; flex-direction: column; justify-content: center; gap: 2px; padding-left: 6px">
+            <span style="font: 600 13px Inter, sans-serif; color: #FFFFFF">Closes [24 Nov, 11:59 PM WAT]</span>
+            <span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">[7] entries so far</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex: 1 1 300px; display: flex; justify-content: center; position: relative">
+        <div style="position: relative; width: 300px; height: 300px">
+          <div style="position: absolute; inset: 0; border-radius: 50%; border: 6px solid #E6533C; box-shadow: 0 0 40px rgba(230,83,60,0.35)"></div>
+          <img src="/_blob/5b9229be2dc8d2f837b86385d086f86a" alt="Mesca, the AI Innovation Hub mascot" style="position: absolute; inset: 12px; width: 276px; height: 276px; border-radius: 50%; object-fit: cover; object-position: 50% 22%">
+          <svg aria-hidden="true" viewBox="0 0 300 300" style="position: absolute; left: -14px; top: -14px; width: 328px; height: 328px; pointer-events: none">
+            <path d="M22 92 C10 82, 6 104, 18 112 C28 120, 34 100, 22 92 Z" fill="#2E7D32"></path>
+            <path d="M12 104 C2 102, 4 120, 16 122 C26 124, 24 106, 12 104 Z" fill="#1B5E20"></path>
+            <circle cx="23" cy="107" r="5" fill="#E6533C"></circle>
+            <circle cx="30" cy="112" r="4" fill="#C62828"></circle>
+            <path d="M278 92 C290 82, 294 104, 282 112 C272 120, 266 100, 278 92 Z" fill="#2E7D32"></path>
+            <path d="M288 104 C298 102, 296 120, 284 122 C274 124, 276 106, 288 104 Z" fill="#1B5E20"></path>
+            <circle cx="277" cy="107" r="5" fill="#E6533C"></circle>
+            <circle cx="270" cy="112" r="4" fill="#C62828"></circle>
+            <path d="M150 6 L152 13 L159 15 L152 17 L150 24 L148 17 L141 15 L148 13 Z" fill="#F2B544"></path>
+          </svg>
+          <div style="position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%); white-space: nowrap; padding: 8px 16px; border-radius: 18px; background: #050E1C; border: 1px solid #2A4466; font: 600 13px Poppins, sans-serif; color: #FFFFFF">Mesca · Hub mascot</div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-label="Hub at a glance" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+      <div style="padding: 22px; border-radius: 20px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 6px"><span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Challenges in 2026</span><span style="font: 700 34px Poppins, sans-serif; color: #FFFFFF">9</span><span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">March to November</span></div>
+      <div style="padding: 22px; border-radius: 20px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 6px"><span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Innovators on the leaderboard</span><span style="font: 700 34px Poppins, sans-serif; color: #FFFFFF">26</span><span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">across all departments</span></div>
+      <div style="padding: 22px; border-radius: 20px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 6px"><span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Entries in Round 8</span><span style="font: 700 34px Poppins, sans-serif; color: #FFFFFF">12</span><span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">DIP: Build the Front Door</span></div>
+      <div style="padding: 22px; border-radius: 20px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 6px"><span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Leaderboard leader</span><span style="font: 700 34px Poppins, sans-serif; color: #FFFFFF">11.0 <span style="font: 500 15px Inter, sans-serif; color: #9FB3C8">pts</span></span><span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">Michael Oredunni</span></div>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+
+      <section style="flex: 999 1 560px; min-width: 0; padding: 28px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 20px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+          <h2 style="margin: 0; font: 600 22px Poppins, sans-serif; color: #FFFFFF">Our 2026 challenge journey</h2>
+          <a href="Challenges.dc.html" style="font: 600 14px Inter, sans-serif">Browse all challenges</a>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px">
+          <sc-for list="{{rounds}}" as="r" hint-placeholder-count="10">
+            <a href="Challenges.dc.html" style="{{r.style}}">
+              <span style="font: 600 11px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: #9FB3C8">{{r.month}} · {{r.label}}</span>
+              <span style="font: 600 15px/1.3 Poppins, sans-serif; color: #FFFFFF">{{r.title}}</span>
+              <span style="font: 500 12px Inter, sans-serif; color: {{r.metaColor}}">{{r.meta}}</span>
+            </a>
+          </sc-for>
+        </div>
+      </section>
+
+      <section id="leaderboard" style="flex: 1 1 320px; padding: 28px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+          <h2 style="margin: 0; font: 600 22px Poppins, sans-serif; color: #FFFFFF">Leaderboard</h2>
+          <a href="Leaderboard.dc.html" style="font: 600 14px Inter, sans-serif">Full table</a>
+        </div>
+        <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{leaders}}" as="l" hint-placeholder-count="5">
+            <li style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; background: #10223A">
+              <span style="{{l.badge}}">{{l.rank}}</span>
+              <span style="flex: 1; min-width: 0; font: 600 15px Inter, sans-serif; color: #FFFFFF">{{l.name}}</span>
+              <span style="font: 700 16px Poppins, sans-serif; color: #FFFFFF">{{l.pts}}</span>
+            </li>
+          </sc-for>
+        </ol>
+        <span style="font: 400 13px/1.5 Inter, sans-serif; color: #9FB3C8">Positions count for the year-end rewards only when all assigned Alison courses are complete.</span>
+      </section>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px">
+      <section id="winners" style="padding: 28px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; gap: 18px; align-items: center">
+        <div aria-hidden="true" style="width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; background: rgba(242,181,68,0.14); border: 1px solid rgba(242,181,68,0.45); display: flex; align-items: center; justify-content: center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F2B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"></circle><path d="M8.2 13.3 7 22l5-3 5 3-1.2-8.7"></path></svg>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+          <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: #F6CD7F">Round 8 winner</span>
+          <span style="font: 600 22px Poppins, sans-serif; color: #FFFFFF">MaryBlessing Umeh</span>
+          <span style="font: 400 14px Inter, sans-serif; color: #9FB3C8">DIP: Build the Front Door · October 2026</span>
+          <a href="Winners.dc.html" style="font: 600 14px Inter, sans-serif; margin-top: 4px">Hall of Fame</a>
+        </div>
+      </section>
+      <section style="padding: 28px; border-radius: 24px; background: #0B1A2E; border: 1px solid rgba(242,181,68,0.45); display: flex; flex-direction: column; gap: 10px">
+        <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: #F6CD7F">Alison LMS</span>
+        <span style="font: 600 19px/1.35 Poppins, sans-serif; color: #FFFFFF">Finish your assigned courses by [Alison deadline]</span>
+        <span style="font: 400 14px/1.5 Inter, sans-serif; color: #9FB3C8">Incomplete courses mean your 2026 leaderboard position will not count.</span>
+        <a href="#alison" style="font: 600 14px Inter, sans-serif">Go to Alison</a>
+      </section>
+      <section id="ideas" style="padding: 28px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 10px">
+        <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: #7FD6F7">Idea Hub</span>
+        <span style="font: 600 19px/1.35 Poppins, sans-serif; color: #FFFFFF">Got an idea that could save time or add value?</span>
+        <span style="font: 400 14px/1.5 Inter, sans-serif; color: #9FB3C8">Share it, vote on others, and help pick the next challenge.</span>
+        <a href="Ideas.dc.html" style="font: 600 14px Inter, sans-serif">Share an idea</a>
+      </section>
+    </div>
+  </main>
+
+  <footer style="border-top: 1px solid #1C3150; padding: 28px 24px; text-align: center; display: flex; flex-direction: column; gap: 6px">
+    <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
+    <span style="font: 400 12px Inter, sans-serif; color: #8197AE">© 2026 Descasio AI Innovation Hub · Empowering Your Digital Future</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1880}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const data = [
+      ['Mar', 'Round 1', 'Descasio Avatar Challenge', 'Winner: Michael Oredunni', 'done'],
+      ['Apr', 'Round 2', 'Efficiency at Descasio', 'Winner: Ifeloluwa Ajibola', 'done'],
+      ['May', 'Round 3', 'Build a Website with AI', 'Winner: Ifeloluwa Ajibola', 'done'],
+      ['Jun', 'Round 4', 'The Optimizer 1.0', 'Winner: Tomi Adejorooluwa', 'done'],
+      ['Jul', 'Round 5', 'The Optimizer 2.0', 'Winner: Team Dataflow TS', 'done'],
+      ['Aug', 'Round 6', 'Rogue AI Recovery Plan', 'Winner: Michael Oredunni', 'done'],
+      ['Sep', 'Round 7', 'Security Trainer', 'Winner: Adedayo Oluyemi', 'done'],
+      ['Oct', 'Round 8', 'DIP: Build the Front Door', 'Winner: MaryBlessing Umeh', 'done'],
+      ['Nov', 'Round 9', "Season's Greetings E-card", 'Open now', 'live'],
+      ['Dec', 'Finale', 'Year-end awards', 'Coming soon', 'next']
+    ];
+    const rounds = data.map(([month, label, title, meta, st]) => ({
+      month, label, title, meta,
+      metaColor: st === 'live' ? '#8FE0B0' : (st === 'next' ? '#F6CD7F' : '#9FB3C8'),
+      style: 'display: flex; flex-direction: column; gap: 6px; padding: 14px; border-radius: 16px; text-decoration: none; min-height: 112px; box-sizing: border-box; ' +
+        (st === 'live' ? 'background: #12345C; border: 1.5px solid #3FA66B;' : (st === 'next' ? 'background: #0E1F36; border: 1px dashed #4A6488;' : 'background: #10223A; border: 1px solid #1C3150;'))
+    }));
+    const lb = [['1', 'Michael Oredunni', '11.0'], ['2', 'Ifeloluwa Ajibola', '10.0'], ['3', 'MaryBlessing Umeh', '6.0'], ['4', 'Tomi Adejorooluwa', '4.0'], ['5', 'Adedayo Oluyemi', '3.5']];
+    const medal = ['#F2B544', '#C9D3DF', '#E08A5A'];
+    const leaders = lb.map(([rank, name, pts], i) => ({
+      rank, name, pts,
+      badge: 'width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif; ' +
+        (i < 3 ? 'background: ' + medal[i] + '; color: #050E1C;' : 'background: #1C3150; color: #C9D8E8;')
+    }));
+    const flakes = [];
+    for (let i = 0; i < 24; i++) {
+      const s = 2 + (i % 3);
+      flakes.push({ style: 'left: ' + ((i * 41) % 100) + '%; width: ' + s + 'px; height: ' + s + 'px; animation-duration: ' + (7 + (i % 6)) + 's; animation-delay: -' + ((i * 0.7) % 8).toFixed(1) + 's' });
+    }
+    return { rounds, leaders, flakes };
+  }
+}
+</script>
+</body>
+</html>

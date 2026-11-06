@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Innovation leaderboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050E1C;font-family:Inter,system-ui,sans-serif}
+a{color:#7FD6F7}a:hover{color:#FFFFFF}
+.nav a{color:#9FB3C8;text-decoration:none}.nav a:hover{color:#FFFFFF}
+.fld{box-sizing:border-box;height:44px;padding:0 14px;border-radius:12px;border:1px solid #2A4466;background:#050E1C;color:#EAF1F8;font:500 14px Inter,sans-serif}
+.fld::placeholder{color:#7F93A8}
+.fld:focus{outline:none;border-color:#00AEEF;box-shadow:0 0 0 3px rgba(0,174,239,0.25)}
+table{border-collapse:collapse;width:100%;min-width:1080px}
+th{font:600 11px Inter,sans-serif;letter-spacing:1px;text-transform:uppercase;color:#9FB3C8;padding:16px 10px;text-align:center;border-bottom:1px solid #1C3150;background:#081527}
+td{padding:14px 10px;text-align:center;border-bottom:1px solid #13253D;font:700 15px Poppins,sans-serif}
+tbody tr:hover td{background:#0E2038}
+a:focus-visible,button:focus-visible{outline:3px solid #00AEEF;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #050E1C; color: #EAF1F8; font-family: Inter, system-ui, sans-serif">
+
+  <header style="border-bottom: 1px solid #1C3150; background: rgba(5,14,28,0.92)">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 14px; text-decoration: none">
+        <img src="/_blob/fdaa4ecbb669b824c51e87da1dbd5077" alt="Descasio" style="width: 130px; height: 32px; display: block">
+        <span aria-hidden="true" style="width: 1px; height: 26px; background: #2A4466"></span>
+        <span style="font: 600 14px Poppins, sans-serif; color: #EAF1F8">AI Innovation Hub</span>
+      </a>
+      <nav class="nav" aria-label="Main" style="display: flex; gap: 6px; flex-wrap: wrap; font: 500 14px Inter, sans-serif">
+        <a href="Main.dc.html" style="padding: 10px 14px; border-radius: 10px">Dashboard</a>
+        <a href="Challenges.dc.html" style="padding: 10px 14px; border-radius: 10px">Challenges</a>
+        <a href="Submissions.dc.html" style="padding: 10px 14px; border-radius: 10px">Submissions</a>
+        <a href="Ideas.dc.html" style="padding: 10px 14px; border-radius: 10px">Idea Hub</a>
+        <a href="Winners.dc.html" style="padding: 10px 14px; border-radius: 10px">Winners</a>
+        <a href="Leaderboard.dc.html" aria-current="page" style="padding: 10px 14px; border-radius: 10px; background: #10223A; color: #FFFFFF">Leaderboard</a>
+      </nav>
+      <button style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A4466; background: transparent; color: #EAF1F8; font: 600 13px Inter, sans-serif; cursor: pointer">Admin</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 56px; display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center">
+      <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: #F6CD7F">Leaderboard · after Round 8</span>
+      <h1 style="margin: 0; font: 700 44px/1.1 Poppins, sans-serif; letter-spacing: -0.8px; color: #FFFFFF">Innovation leaderboard</h1>
+      <p style="margin: 0; font: 500 15px Inter, sans-serif; color: #7FD6F7">Real-time performance standings (verified)</p>
+    </div>
+
+    <section aria-label="Top three" style="display: flex; justify-content: center; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+      <sc-for list="{{podium}}" as="p" hint-placeholder-count="3">
+        <div style="{{p.style}}">
+          <span style="{{p.badge}}">{{p.rank}}</span>
+          <span style="font: 600 17px/1.25 Poppins, sans-serif; color: #FFFFFF">{{p.name}}</span>
+          <span style="font: 700 28px Poppins, sans-serif; color: #FFFFFF">{{p.total}} <span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">pts</span></span>
+        </div>
+      </sc-for>
+    </section>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+      <label style="display: flex; align-items: center; gap: 10px">
+        <span style="font: 600 13px Inter, sans-serif; color: #C9D8E8">Find a name</span>
+        <input class="fld" value="{{q}}" onChange="{{setQ}}" placeholder="Type to filter…" style="width: 240px">
+      </label>
+      <span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">{{countText}}</span>
+    </div>
+
+    <section style="border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; overflow: hidden">
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 70px">Rank</th>
+              <th style="text-align: left; min-width: 220px">Participant detail</th>
+              <th>R1<br><span style="font-weight: 500; letter-spacing: 0">Mar</span></th><th>R2<br><span style="font-weight: 500; letter-spacing: 0">Apr</span></th><th>R3<br><span style="font-weight: 500; letter-spacing: 0">May</span></th><th>R4<br><span style="font-weight: 500; letter-spacing: 0">Jun</span></th>
+              <th>R5<br><span style="font-weight: 500; letter-spacing: 0">Jul</span></th><th>R6<br><span style="font-weight: 500; letter-spacing: 0">Aug</span></th><th>R7<br><span style="font-weight: 500; letter-spacing: 0">Sep</span></th><th>R8<br><span style="font-weight: 500; letter-spacing: 0">Oct</span></th>
+              <th>R9<br><span style="font-weight: 500; letter-spacing: 0">Nov</span></th>
+              <th style="color: #F6CD7F; background: #0D1D33">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="12">
+              <tr>
+                <td><span style="{{r.badge}}">{{r.rank}}</span></td>
+                <td style="text-align: left"><div style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">{{r.name}}</div><div style="font: 400 12px Inter, sans-serif; color: #7F93A8; margin-top: 2px">{{r.email}}</div></td>
+                <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="9">
+                  <td style="{{c.style}}">{{c.v}}</td>
+                </sc-for>
+                <td style="background: #0D1D33; color: #FFFFFF; font: 700 17px Poppins, sans-serif">{{r.total}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding: 14px 20px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font: 400 13px Inter, sans-serif; color: #9FB3C8">
+        <span>Showing the top 12 of 26 · scroll sideways on smaller screens</span>
+        <span>Rows 6–12: per-round scores load from the live standings (not copied into this mockup)</span>
+      </div>
+    </section>
+
+    <div style="padding: 18px 20px; border-radius: 16px; background: #0B1A2E; border: 1px solid rgba(242,181,68,0.45); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: space-between">
+      <span style="font: 500 14px/1.5 Inter, sans-serif; color: #C9D8E8"><strong style="color: #F6CD7F">Heads up:</strong> positions count for the year-end rewards only when all assigned Alison courses are complete.</span>
+      <a href="Winners.dc.html" style="font: 600 14px Inter, sans-serif">See monthly winners →</a>
+    </div>
+  </main>
+
+  <footer style="border-top: 1px solid #1C3150; padding: 28px 24px; text-align: center; display: flex; flex-direction: column; gap: 6px">
+    <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
+    <span style="font: 400 12px Inter, sans-serif; color: #8197AE">© 2026 Descasio AI Innovation Hub · Empowering Your Digital Future</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1700}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: '' };
+  }
+  renderVals() {
+    const roundColors = ['#C9D3DF', '#5AA9F0', '#8E8CF2', '#C084F5', '#4FB4F0', '#3ECF8E', '#F2B544', '#F2667A', '#8197AE'];
+    const L = [
+      [1, 'Michael Oredunni', 'michael.oredunni@descasio.io', [3, 0.5, 2, 0, 0, 3, 0.5, 2], '11.0'],
+      [2, 'Ifeloluwa Ajibola', 'ifeloluwa.ajibola@descasio.io', [0.5, 3, 3, 2, 1.5, 0, 0, 0], '10.0'],
+      [3, 'MaryBlessing Umeh', 'maryblessing.umeh@descasio.io', [0.5, 0, 0, 0.5, 0, 0, 2, 3], '6.0'],
+      [4, 'Tomi Adejorooluwa', 'tomi.adejorooluwa@descasio.io', [0.5, 0, 0.5, 3, 0, 0, 0, 0], '4.0'],
+      [5, 'Adedayo Oluyemi', 'dayo.oluyemi@descasio.io', [0, 0, 0, 0, 0, 0, 3, 0.5], '3.5'],
+      [5, 'Solomon Ojeigbo', '[email]', null, '3.5'],
+      [6, 'Kehinde Ridwan Onifade', '[email]', null, '3.0'],
+      [6, 'Mohammed Gberejaye', '[email]', null, '3.0'],
+      [6, 'Sodiq Fakeye', '[email]', null, '3.0'],
+      [7, 'Aishat Lawal', '[email]', null, '2.5'],
+      [8, 'Anthony Olise', '[email]', null, '2.0'],
+      [9, 'Precious Owhonda', '[email]', null, '1.5']
+    ];
+    const medal = { 1: '#F2B544', 2: '#C9D3DF', 3: '#E08A5A' };
+    const badge = (rank) => 'display: inline-flex; width: 34px; height: 34px; border-radius: 50%; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif; ' +
+      (medal[rank] ? 'background: ' + medal[rank] + '; color: #050E1C;' : 'background: #1C3150; color: #C9D8E8;');
+    const q = this.state.q.trim().toLowerCase();
+    const rows = L.filter((r) => !q || r[1].toLowerCase().includes(q)).map(([rank, name, email, scores, total]) => {
+      const vals = (scores || [null, null, null, null, null, null, null, null]).concat([null]);
+      return {
+        rank: String(rank), name, email, total, badge: badge(rank),
+        cells: vals.map((v, i) => ({
+          v: v === null ? '–' : String(v),
+          style: 'color: ' + (v === null ? '#3A5272' : roundColors[i]) + (v === 0 ? '; opacity: 0.55' : '')
+        }))
+      };
+    });
+    const pod = [L[1], L[0], L[2]];
+    const podium = pod.map(([rank, name, , , total]) => ({
+      rank: String(rank), name, total, badge: badge(rank),
+      style: 'width: 220px; box-sizing: border-box; padding: 22px; border-radius: 22px; background: #0B1A2E; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; ' +
+        'border: 1.5px solid ' + medal[rank] + '; min-height: ' + (rank === 1 ? 210 : (rank === 2 ? 186 : 170)) + 'px; justify-content: flex-end' +
+        (rank === 1 ? '; box-shadow: 0 0 40px rgba(242,181,68,0.22)' : '')
+    }));
+    return {
+      rows, podium, q: this.state.q,
+      setQ: (e) => this.setState({ q: e.target.value }),
+      countText: q ? rows.length + ' match' + (rows.length === 1 ? '' : 'es') : 'Ties share a rank'
+    };
+  }
+}
+</script>
+</body>
+</html>
