@@ -1529,17 +1529,19 @@
 
         function renderAdminLogin() {
             return `
-                <div class="fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in duration-300">
-                    <div class="bg-slate-900 max-md w-full p-12 rounded-[3rem] border-2 border-slate-800 shadow-2xl text-center custom-card">
-                        <div class="w-24 h-24 bg-blue-600/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-blue-500/20 shadow-inner"><i data-lucide="shield-check" class="text-blue-500 w-12 h-12"></i></div>
-                        <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-6">Admin Access</h3>
-                        <p class="text-slate-400 text-sm italic mb-10 px-4 leading-relaxed">Sign in with your Descasio Google account. Only accounts granted admin access will see the Admin tab.</p>
-                        ${state.adminSignInError ? `<div class="text-red-500 text-[10px] font-bold uppercase mb-6">${state.adminSignInError}</div>` : ''}
-                        <div class="flex flex-col gap-4">
-                            <button onclick="signInAdminWithGoogle()" ${state.adminSigningIn ? 'disabled' : ''} class="w-full bg-white text-black font-black py-5 rounded-2xl uppercase tracking-widest text-[11px] hover:bg-blue-50 transition shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed">
-                                ${state.adminSigningIn ? '<div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>' : 'Sign in with Google'}
+                <div class="fixed inset-0 z-[100] bg-bg/[0.92] backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in duration-300">
+                    <div class="bg-surface max-w-md w-full p-10 rounded-[28px] border border-border shadow-2xl text-center">
+                        <div class="w-20 h-20 rounded-[20px] flex items-center justify-center mx-auto mb-7" style="background:rgba(0,174,239,0.1);border:1px solid rgba(0,174,239,0.2)">
+                            <i data-lucide="shield-check" class="w-10 h-10" style="color:var(--brand-blue)"></i>
+                        </div>
+                        <h3 class="m-0 font-poppins font-semibold text-2xl text-text-strong shell-sentence-case mb-3">Admin access</h3>
+                        <p class="m-0 font-inter text-sm leading-relaxed text-text-muted mb-7 px-2">Sign in with your Descasio Google account. Only accounts granted admin access will see the Admin tab.</p>
+                        ${state.adminSignInError ? `<div class="font-inter text-sm mb-6" style="color:#F2667A">${state.adminSignInError}</div>` : ''}
+                        <div class="flex flex-col gap-3">
+                            <button onclick="signInAdminWithGoogle()" ${state.adminSigningIn ? 'disabled' : ''} class="btn-coral w-full rounded-full border-0 bg-coral-btn text-text-strong font-inter font-semibold text-[15px] cursor-pointer flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed" style="height:52px">
+                                ${state.adminSigningIn ? '<div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>' : 'Sign in with Google'}
                             </button>
-                            <button onclick="toggleAdminLogin()" class="w-full p-4 rounded-2xl border border-slate-800 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition">Cancel</button>
+                            <button onclick="toggleAdminLogin()" class="btn-outline w-full rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:48px">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -1573,7 +1575,7 @@
                     state.showAdminLogin = false;
                     state.activeTab = 'admin';
                 } else {
-                    state.adminSignInError = 'This Google account is not an admin.';
+                    state.adminSignInError = "This Google account isn't an admin yet.";
                     await auth.signOut(); // onAuthStateChanged below re-establishes the anonymous session
                 }
             } catch (e) {
