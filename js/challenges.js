@@ -89,10 +89,31 @@ const Challenges = (() => {
         }
     }
 
+    // DEV-ONLY testing override: on localhost with ?preview=1&now=<ISO date> in the URL,
+    // every "current time" calculation in this module (and app.js's countdown, via
+    // Challenges.previewNow()) uses that date instead of the real clock, so the whole
+    // round lifecycle can be exercised at any simulated moment. Same localhost+preview
+    // guarantee as getForcedOpenRound() - structurally impossible on the live domain.
+    function previewNow() {
+        try {
+            const host = location.hostname;
+            const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+            if (!isLocalHost) return null;
+            const params = new URLSearchParams(location.search);
+            if (params.get('preview') !== '1') return null;
+            const raw = params.get('now');
+            if (!raw) return null;
+            const d = new Date(raw);
+            return isNaN(d.getTime()) ? null : d;
+        } catch (e) {
+            return null;
+        }
+    }
+
     // "upcoming" (now < opensAt), "open", "judging" (past closesAt, no winner yet),
     // "closed" (winner set). Respects a stored status override if present.
     function statusOf(ch, now) {
-        now = now || new Date();
+        now = now || previewNow() || new Date();
         if (!ch) return null;
         if (ch.round === getForcedOpenRound()) return 'open';
         if (ch.statusOverride) return ch.statusOverride;
@@ -106,7 +127,7 @@ const Challenges = (() => {
     // The round whose opensAt <= now <= closesAt; if none, the nearest upcoming;
     // if none of those either, the latest (highest round number).
     function currentRound(now) {
-        now = now || new Date();
+        now = now || previewNow() || new Date();
         if (!cache.length) return null;
 
         const open = cache.find(c => statusOf(c, now) === 'open');
@@ -124,7 +145,7 @@ const Challenges = (() => {
     // opensAt while upcoming, otherwise closesAt.
     function countdownTarget(ch, now) {
         if (!ch) return null;
-        now = now || new Date();
+        now = now || previewNow() || new Date();
         const status = statusOf(ch, now);
         if (status === 'upcoming') {
             return { date: ch.opensAt ? new Date(ch.opensAt) : null, kind: 'opens' };
@@ -140,6 +161,7 @@ const Challenges = (() => {
         currentRound,
         statusOf,
         countdownTarget,
+        previewNow,
         isReady: () => ready,
         isUsingFallback: () => usingFallback
     };

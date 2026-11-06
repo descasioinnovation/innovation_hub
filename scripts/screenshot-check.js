@@ -1,8 +1,9 @@
 // Loads the local preview (OTP bypass via ?preview=1), captures console errors, and
 // takes screenshots of all six tabs (Dashboard, Challenges, Submissions, Idea Hub,
 // Winners, Leaderboard) at 1440/768/390px, plus a few desktop-only extras (Challenges
-// round-8/round-1, Submissions round-8, the details modal, and the forceOpen=9 variant
-// of #submit so the Round 9 form can be seen while it's really still upcoming), into
+// round-8/round-1, Submissions round-8, the details modal, the forceOpen=9 variant
+// of #submit so the Round 9 form can be seen while it's really still upcoming, and the
+// hover state of a few representative links/buttons/cards from the polish pass), into
 // backups/<date>/screens/.
 
 const { chromium } = require('playwright');
@@ -82,6 +83,28 @@ async function main() {
         await page.screenshot({ path: path.join(outDir, 'submissions-modal-1440.png'), fullPage: true });
     } else {
         errors.push('Could not find a "Details and impact" button on #submissions/round-8 to open the modal');
+    }
+
+    // Hover states of a few representative interactive elements (polish pass):
+    // the "Read the brief" ticker link, a coral CTA button, an outline button, and a
+    // journey tile (clickable card). Each is hovered, then screenshot.
+    const hoverChecks = [
+        { hash: '#dashboard', selector: '.ticker-item a', name: 'hover-announcement-link' },
+        { hash: '#dashboard', selector: 'a.btn-coral', name: 'hover-dashboard-cta' },
+        { hash: '#dashboard', selector: 'a.card-hover', name: 'hover-journey-tile' },
+        { hash: '#submit', selector: 'button.btn-coral[type="submit"]', name: 'hover-submit-button' }
+    ];
+    for (const h of hoverChecks) {
+        await page.goto(`${BASE}${h.hash}`, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(1000);
+        const el = await page.$(h.selector);
+        if (el) {
+            await el.hover();
+            await page.waitForTimeout(200);
+            await page.screenshot({ path: path.join(outDir, `${h.name}-1440.png`) });
+        } else {
+            errors.push(`Could not find selector "${h.selector}" on ${h.hash} for a hover screenshot`);
+        }
     }
 
     await context.close();

@@ -26,15 +26,27 @@ const Shell = (() => {
             text = `Round ${round.round} opens ${weekday} ${day} ${month}, ${time}: ${round.title}`;
         } else if (status === 'open') {
             text = `Round ${round.round} is open: ${round.title}`;
+        } else if (status === 'judging') {
+            text = `Round ${round.round} is closed — judging in progress`;
+        } else if (round.winnerName) {
+            text = `Congratulations to ${round.winnerName}, Round ${round.round} winner`;
         } else {
             text = `Round ${round.round}: ${round.title}`;
         }
 
+        const item = (hidden) => `
+            <span class="ticker-item"${hidden ? ' aria-hidden="true"' : ''}>
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" class="shrink-0"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="var(--gold)"></path></svg>
+                <span class="font-inter font-medium text-[13px] text-[#D6E4F2] shell-sentence-case">${text}</span>
+                <a href="${Router.buildHash('challenge')}"${hidden ? ' tabindex="-1"' : ''} class="link-gold font-inter font-semibold text-[13px] shell-sentence-case">Read the brief</a>
+            </span>`;
+
         return `
-        <div class="bg-gradient-to-r from-navy via-[#0B2A4D] to-navy border-b border-border px-6 py-2.5 flex justify-center items-center gap-2.5 flex-wrap text-center">
-            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" class="shrink-0"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="var(--gold)"></path></svg>
-            <span class="font-inter font-medium text-[13px] text-[#D6E4F2] shell-sentence-case">${text}</span>
-            <a href="${Router.buildHash('challenge')}" class="font-inter font-semibold text-[13px] shell-sentence-case">Read the brief</a>
+        <div class="ticker-wrap bg-gradient-to-r from-navy via-[#0B2A4D] to-navy border-b border-border overflow-hidden">
+            <div class="ticker-track">
+                ${item(false)}
+                ${item(true)}
+            </div>
         </div>`;
     }
 
@@ -69,7 +81,7 @@ const Shell = (() => {
         const year = new Date().getFullYear();
         return `
         <footer class="border-t border-border py-7 px-6 text-center flex flex-col gap-1.5">
-            <span class="font-inter font-medium text-sm text-text-2 shell-sentence-case">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
+            <span class="font-inter font-medium text-sm text-text-2 shell-sentence-case">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io" class="link-text">ai-innovation-hub@descasio.io</a></span>
             <span class="font-inter text-xs text-text-faint shell-sentence-case">© ${year} Descasio AI Innovation Hub · Empowering Your Digital Future</span>
         </footer>`;
     }

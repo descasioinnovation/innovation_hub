@@ -172,7 +172,8 @@
         // Updates every minute per spec; renderDashboard() re-reads state.timeLeft directly
         // on each updateUI() render rather than being poked via getElementById.
         function updateCountdown() {
-            const now = new Date();
+            const previewNow = (typeof Challenges !== 'undefined') ? Challenges.previewNow() : null;
+            const now = previewNow || new Date();
             const round = (typeof Challenges !== 'undefined') ? Challenges.currentRound(now) : null;
 
             if (!round) {
@@ -360,7 +361,7 @@
                 : 'Submit your entry';
             const submitCta = submitDisabled
                 ? `<span class="inline-flex items-center h-12 px-6 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-[15px] shell-sentence-case cursor-not-allowed opacity-70">${submitLabel}</span>`
-                : `<a href="#submit" class="inline-flex items-center h-12 px-6 rounded-full border-[1.5px] border-[#7FA9D6] text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Submit your entry</a>`;
+                : `<a href="#submit" class="btn-outline inline-flex items-center h-12 px-6 rounded-full border-[1.5px] border-[#7FA9D6] text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Submit your entry</a>`;
 
             // --- Countdown / status text ---
             const countdownBlock = state.timeLeft && state.timeLeft.showCountdown ? `
@@ -383,7 +384,7 @@
             // --- Optional resource links ---
             const resourcesHtml = (round.resources && round.resources.length) ? `
                 <div class="flex flex-wrap gap-3">
-                    ${round.resources.map(r => `<a href="${r.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-[rgba(0,174,239,0.12)] border border-border-strong text-link font-inter font-semibold text-[13px] shell-sentence-case no-underline"><i data-lucide="link" class="w-3.5 h-3.5"></i>${r.label}</a>`).join('')}
+                    ${round.resources.map(r => `<a href="${r.url}" target="_blank" rel="noopener noreferrer" class="btn-outline inline-flex items-center gap-2 h-9 px-4 rounded-full bg-[rgba(0,174,239,0.12)] border border-border-strong text-link font-inter font-semibold text-[13px] shell-sentence-case no-underline"><i data-lucide="link" class="w-3.5 h-3.5"></i>${r.label}</a>`).join('')}
                 </div>` : '';
 
             // --- KPI tiles ---
@@ -428,14 +429,14 @@
                     tileClasses = 'bg-surface-2 border border-border';
                 }
                 return `
-                <a href="${Router.buildHash('challenge', r.slug || `round-${r.round}`)}" class="flex flex-col gap-1.5 p-3.5 rounded-2xl no-underline min-h-[112px] box-border ${tileClasses}">
+                <a href="${Router.buildHash('challenge', r.slug || `round-${r.round}`)}" class="card-hover flex flex-col gap-1.5 p-3.5 rounded-2xl no-underline min-h-[112px] box-border ${tileClasses}">
                     <span class="font-inter font-semibold text-[11px] tracking-[1.2px] uppercase text-text-muted shell-sentence-case" style="text-transform:uppercase">${r.month} · Round ${r.round}</span>
                     <span class="font-poppins font-semibold text-[15px] leading-[1.3] text-text-strong">${r.title}</span>
                     <span class="font-inter font-medium text-xs ${metaColorClass} shell-sentence-case">${meta}</span>
                 </a>`;
             }).join('');
             const financeTile = `
-                <a href="${Router.buildHash('challenge')}" class="flex flex-col gap-1.5 p-3.5 rounded-2xl no-underline min-h-[112px] box-border bg-[#0E1F36] border border-dashed border-border-muted">
+                <a href="${Router.buildHash('challenge')}" class="card-hover flex flex-col gap-1.5 p-3.5 rounded-2xl no-underline min-h-[112px] box-border bg-[#0E1F36] border border-dashed border-border-muted">
                     <span class="font-inter font-semibold text-[11px] tracking-[1.2px] uppercase text-text-muted shell-sentence-case" style="text-transform:uppercase">Dec · Finale</span>
                     <span class="font-poppins font-semibold text-[15px] leading-[1.3] text-text-strong">Year-end awards</span>
                     <span class="font-inter font-medium text-xs text-gold-text shell-sentence-case">Coming soon</span>
@@ -463,7 +464,7 @@
                             <h1 class="m-0 font-poppins font-bold text-[clamp(32px,5vw,52px)] leading-[1.05] tracking-[-1.2px] text-text-strong shell-sentence-case">${round.month} AI Challenge: ${round.title}</h1>
                             <p class="m-0 max-w-[560px] font-inter text-lg leading-[1.6] text-text-2">${round.summary || ''}</p>
                             <div class="flex gap-3 flex-wrap items-center">
-                                <a href="${briefHref}" class="inline-flex items-center h-12 px-6 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Read the brief</a>
+                                <a href="${briefHref}" class="btn-coral inline-flex items-center h-12 px-6 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Read the brief</a>
                                 ${submitCta}
                             </div>
                             ${resourcesHtml}
@@ -472,16 +473,18 @@
                         <div class="flex-[1_1_300px] flex justify-center relative">
                             <div class="relative w-[260px] h-[260px] sm:w-[300px] sm:h-[300px]">
                                 <div class="absolute inset-0 rounded-full border-[6px] border-coral" style="box-shadow:0 0 40px rgba(230,83,60,0.35)"></div>
-                                <img src="${HUB_AVATAR}" alt="Mesca, the AI Innovation Hub mascot" class="absolute inset-3 rounded-full object-cover" style="object-position:50% 22%">
+                                <div class="absolute inset-3 rounded-full overflow-hidden" style="background:#0B1F38">
+                                    <img src="${HUB_AVATAR}" alt="Mesca, the AI Innovation Hub mascot" class="w-full h-full object-contain">
+                                </div>
                                 <svg aria-hidden="true" viewBox="0 0 300 300" class="absolute pointer-events-none" style="left:-14px;top:-14px;width:calc(100% + 28px);height:calc(100% + 28px)">
-                                    <path d="M22 92 C10 82, 6 104, 18 112 C28 120, 34 100, 22 92 Z" fill="#2E7D32"></path>
-                                    <path d="M12 104 C2 102, 4 120, 16 122 C26 124, 24 106, 12 104 Z" fill="#1B5E20"></path>
-                                    <circle cx="23" cy="107" r="5" fill="#E6533C"></circle>
-                                    <circle cx="30" cy="112" r="4" fill="#C62828"></circle>
-                                    <path d="M278 92 C290 82, 294 104, 282 112 C272 120, 266 100, 278 92 Z" fill="#2E7D32"></path>
-                                    <path d="M288 104 C298 102, 296 120, 284 122 C274 124, 276 106, 288 104 Z" fill="#1B5E20"></path>
-                                    <circle cx="277" cy="107" r="5" fill="#E6533C"></circle>
-                                    <circle cx="270" cy="112" r="4" fill="#C62828"></circle>
+                                    <path d="M22 202 C10 192, 6 214, 18 222 C28 230, 34 210, 22 202 Z" fill="#2E7D32"></path>
+                                    <path d="M12 214 C2 212, 4 230, 16 232 C26 234, 24 216, 12 214 Z" fill="#1B5E20"></path>
+                                    <circle cx="23" cy="217" r="5" fill="#E6533C"></circle>
+                                    <circle cx="30" cy="222" r="4" fill="#C62828"></circle>
+                                    <path d="M278 202 C290 192, 294 214, 282 222 C272 230, 266 210, 278 202 Z" fill="#2E7D32"></path>
+                                    <path d="M288 214 C298 212, 296 230, 284 232 C274 234, 276 216, 288 214 Z" fill="#1B5E20"></path>
+                                    <circle cx="277" cy="217" r="5" fill="#E6533C"></circle>
+                                    <circle cx="270" cy="222" r="4" fill="#C62828"></circle>
                                     <path d="M150 6 L152 13 L159 15 L152 17 L150 24 L148 17 L141 15 L148 13 Z" fill="#F2B544"></path>
                                 </svg>
                                 <div class="absolute left-1/2 -bottom-3.5 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-[18px] bg-bg border border-border-strong font-poppins font-semibold text-[13px] text-text-strong">Mesca · Hub mascot</div>
@@ -495,7 +498,7 @@
                         <section class="flex-[999_1_560px] min-w-0 p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-5">
                             <div class="flex justify-between items-baseline gap-3 flex-wrap">
                                 <h2 class="m-0 font-poppins font-semibold text-[22px] text-text-strong shell-sentence-case">Our ${round.year} challenge journey</h2>
-                                <a href="${Router.buildHash('challenge')}" class="font-inter font-semibold text-sm shell-sentence-case">Browse all challenges</a>
+                                <a href="${Router.buildHash('challenge')}" class="link-text font-inter font-semibold text-sm shell-sentence-case">Browse all challenges</a>
                             </div>
                             <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${journeyTiles}${financeTile}</div>
                         </section>
@@ -503,7 +506,7 @@
                         <section class="flex-[1_1_320px] p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-4">
                             <div class="flex justify-between items-baseline gap-3">
                                 <h2 class="m-0 font-poppins font-semibold text-[22px] text-text-strong shell-sentence-case">Leaderboard</h2>
-                                <a href="${Router.buildHash('leaderboard')}" class="font-inter font-semibold text-sm shell-sentence-case">Full table</a>
+                                <a href="${Router.buildHash('leaderboard')}" class="link-text font-inter font-semibold text-sm shell-sentence-case">Full table</a>
                             </div>
                             <ol class="list-none m-0 p-0 flex flex-col gap-2.5">${leaderboardHtml}</ol>
                             <span class="font-inter text-[13px] leading-[1.5] text-text-muted">Positions count for the year-end rewards only when all assigned Alison courses are complete.</span>
@@ -521,20 +524,20 @@
                                     <span class="font-poppins font-semibold text-[22px] text-text-strong">${latestWinnerRound.winnerName}</span>
                                     <span class="font-inter text-sm text-text-muted">${latestWinnerRound.title} · ${latestWinnerRound.month} ${latestWinnerRound.year}</span>
                                 ` : `<span class="font-inter text-sm text-text-muted">No winners yet</span>`}
-                                <a href="${Router.buildHash('winners')}" class="font-inter font-semibold text-sm mt-1 shell-sentence-case">Hall of Fame</a>
+                                <a href="${Router.buildHash('winners')}" class="link-text font-inter font-semibold text-sm mt-1 shell-sentence-case">Hall of Fame</a>
                             </div>
                         </section>
                         <section class="p-7 rounded-[24px] bg-surface flex flex-col gap-2.5" style="border:1px solid rgba(242,181,68,0.45)">
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Alison LMS</span>
                             <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Finish your assigned Alison courses</span>
                             <span class="font-inter text-sm leading-[1.5] text-text-muted">Incomplete courses mean your ${round.year} leaderboard position will not count.</span>
-                            <a href="https://alison.com" target="_blank" rel="noopener noreferrer" class="font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
+                            <a href="https://alison.com" target="_blank" rel="noopener noreferrer" class="link-text font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
                         </section>
                         <section class="p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-2.5">
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case" style="text-transform:uppercase">Idea Hub</span>
                             <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Got an idea that could save time or add value?</span>
                             <span class="font-inter text-sm leading-[1.5] text-text-muted">Share it, read others' ideas, and help shape the next challenge.</span>
-                            <a href="${Router.buildHash('ideahub')}" class="font-inter font-semibold text-sm shell-sentence-case">Share an idea</a>
+                            <a href="${Router.buildHash('ideahub')}" class="link-text font-inter font-semibold text-sm shell-sentence-case">Share an idea</a>
                         </section>
                     </div>
                 </div>
@@ -566,9 +569,9 @@
                 const dotStyle = isLive
                     ? 'background:var(--green);box-shadow:0 0 0 4px rgba(63,166,107,0.22)'
                     : 'background:var(--border-muted)';
-                const rowClasses = on ? 'bg-surface-active border-[1.5px] border-brand-blue' : 'bg-surface border border-border';
+                const rowClasses = on ? 'bg-surface-active border-[1.5px] border-[#00AEEF]' : 'bg-surface border border-border';
                 return `
-                <button type="button" onclick="navigate('challenge', '${slug}')" aria-pressed="${on}" class="flex items-center gap-3.5 w-full box-border px-4 py-3.5 rounded-2xl text-left cursor-pointer ${rowClasses}">
+                <button type="button" onclick="navigate('challenge', '${slug}')" aria-pressed="${on}" class="card-hover flex items-center gap-3.5 w-full box-border px-4 py-3.5 rounded-2xl text-left cursor-pointer ${rowClasses}">
                     <span class="w-2.5 h-2.5 shrink-0 rounded-full" style="${dotStyle}"></span>
                     <span class="flex-1 min-w-0 flex flex-col gap-0.5">
                         <span class="font-poppins font-semibold text-[15px] text-text-strong shell-sentence-case">${r.month} challenge</span>
@@ -615,9 +618,9 @@
                 noteColorClass = 'text-text-muted';
             }
             const ctaHtml = ctaHref
-                ? `<a href="${ctaHref}" class="inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">${cta}</a>`
+                ? `<a href="${ctaHref}" class="btn-coral inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">${cta}</a>`
                 : `<span class="inline-flex items-center h-11 px-5 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-sm shell-sentence-case cursor-not-allowed opacity-70">${cta}</span>`;
-            const viewEntriesHtml = isUpcoming ? '' : `<a href="${Router.buildHash('gallery', selected.slug || `round-${selected.round}`)}" class="inline-flex items-center h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">View entries</a>`;
+            const viewEntriesHtml = isUpcoming ? '' : `<a href="${Router.buildHash('gallery', selected.slug || `round-${selected.round}`)}" class="btn-outline inline-flex items-center h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">View entries</a>`;
 
             const entriesDisplay = isUpcoming ? `Opens ${formatShortDateWAT(selected.opensAt)}` : String(selected.entryCount != null ? selected.entryCount : liveEntryCount(selected));
             const archiveNameHtml = selected.archiveName
@@ -638,7 +641,7 @@
                 <div class="space-y-7 animate-in fade-in">
                     <div class="flex flex-col gap-2">
                         <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Challenge archive · ${selected.year || new Date().getFullYear()}</span>
-                        <h1 class="m-0 font-poppins font-bold text-4xl leading-[1.1] tracking-[-0.8px] text-text-strong shell-sentence-case">Every challenge, newest first</h1>
+                        <h1 class="m-0 font-poppins font-bold text-4xl leading-[1.1] tracking-[-0.8px] text-text-strong shell-sentence-case">Every challenge</h1>
                         <p class="m-0 max-w-[640px] font-inter text-base leading-[1.6] text-text-muted">Pick a month to see the brief, the winner and the entries. Past rounds are read-only; only the open round accepts submissions.</p>
                     </div>
 
@@ -995,7 +998,7 @@
                 </div>` : ''}
                 <div class="mt-auto flex gap-4 flex-wrap items-center">
                     ${closesInfo ? `<span class="font-inter font-semibold text-sm text-text-strong shell-sentence-case">Closes ${closesInfo.time} WAT, ${closesInfo.day} ${closesInfo.month}</span>` : ''}
-                    <a href="${Router.buildHash('challenge', round.slug || `round-${round.round}`)}" class="font-inter font-semibold text-sm shell-sentence-case">Read the full brief</a>
+                    <a href="${Router.buildHash('challenge', round.slug || `round-${round.round}`)}" class="link-text font-inter font-semibold text-sm shell-sentence-case">Read the full brief</a>
                 </div>
             </div>`;
 
@@ -1009,7 +1012,7 @@
                         </div>
                         <span class="font-poppins font-semibold text-2xl text-text-strong">Entry received</span>
                         <span class="font-inter text-[15px] leading-[1.6] text-text-muted" style="max-width:380px">Thanks for taking part. Round ${round.round} entries go live in the feed after the deadline.</span>
-                        <button type="button" onclick="resetSubmissionForm()" class="mt-2 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:42px;padding:0 20px">Back to the form</button>
+                        <button type="button" onclick="resetSubmissionForm()" class="btn-outline mt-2 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:42px;padding:0 20px">Back to the form</button>
                     </div>
                 </div>`;
             } else if (status === 'judging' || status === 'closed') {
@@ -1075,7 +1078,7 @@
                         </div>
                         ${(round.requirements || []).map(req => renderRequirementField(req, disabled)).join('')}
                         <div id="formStatus" class="hidden rounded-xl px-4 py-3 text-red-300 text-xs font-semibold" style="background:rgba(230,83,60,0.12);border:1px solid rgba(230,83,60,0.4)"></div>
-                        <button type="submit" ${disabled || state.submitting ? 'disabled' : ''} class="w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer mt-1 ${disabled ? 'bg-border-strong text-text-faint cursor-not-allowed' : 'bg-coral-btn text-text-strong'}" style="height:52px">
+                        <button type="submit" ${disabled || state.submitting ? 'disabled' : ''} class="w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer mt-1 ${disabled ? 'bg-border-strong text-text-faint cursor-not-allowed' : 'btn-coral bg-coral-btn text-text-strong'}" style="height:52px">
                             ${disabled ? formatOpenShort(round.opensAt) : (state.submitting ? 'Submitting…' : 'Submit entry')}
                         </button>
                     </form>
@@ -1097,7 +1100,7 @@
 
             const chipsHtml = chipDefs.map(c => {
                 const on = c.key === selectedKey;
-                return `<button type="button" onclick="navigate('gallery','${c.key}')" aria-pressed="${on}" class="h-9 px-3.5 rounded-full font-inter font-semibold text-[13px] cursor-pointer ${on ? 'bg-text text-bg border border-text' : 'bg-transparent text-text-2 border border-border-strong'}">${c.label}</button>`;
+                return `<button type="button" onclick="navigate('gallery','${c.key}')" aria-pressed="${on}" class="card-hover h-9 px-3.5 rounded-full font-inter font-semibold text-[13px] cursor-pointer ${on ? 'bg-text text-bg border border-text' : 'bg-transparent text-text-2 border border-border-strong'}">${c.label}</button>`;
             }).join('');
 
             let roundsToShow, headerTitle, headerMeta, isCurrentUpcomingView = false;
@@ -1195,7 +1198,7 @@
             const expanded = state.expandedIdeaId === idea.id;
             const text = idea.description || '';
             return `
-            <button type="button" onclick="toggleIdeaExpand('${idea.id}')" aria-expanded="${expanded}" class="text-left flex flex-col gap-3 p-6 rounded-[20px] border cursor-pointer transition-transform hover:-translate-y-1" style="min-height:260px;${expanded ? 'background:var(--surface-2);border-color:var(--brand-blue)' : 'background:var(--surface);border-color:var(--border)'}">
+            <button type="button" onclick="toggleIdeaExpand('${idea.id}')" aria-expanded="${expanded}" class="card-hover text-left flex flex-col gap-3 p-6 rounded-[20px] border" style="min-height:260px;${expanded ? 'background:var(--surface-2);border-color:var(--brand-blue)' : 'background:var(--surface);border-color:var(--border)'}">
                 <span class="flex items-center gap-2 font-inter font-semibold text-[11px] tracking-[1.2px] uppercase text-link" style="text-transform:uppercase"><i data-lucide="lightbulb" class="w-3.5 h-3.5"></i> Concept</span>
                 <span class="font-poppins font-semibold text-[19px] leading-[1.3] text-text-strong">${idea.title}</span>
                 <span class="font-inter italic text-sm leading-[1.6] text-text-muted" style="${expanded ? '' : 'display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden'}">${text}</span>
@@ -1214,7 +1217,7 @@
                 <div class="flex flex-col items-center justify-center gap-3 text-center" style="min-height:380px">
                     <span class="font-poppins font-semibold text-2xl text-text-strong">Thanks, your idea is in</span>
                     <span class="font-inter text-[15px] leading-[1.6] text-text-muted" style="max-width:380px">It now appears in the concept wall below for everyone to read.</span>
-                    <button type="button" onclick="resetIdeaForm()" class="mt-2 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:42px;padding:0 20px">Pitch another</button>
+                    <button type="button" onclick="resetIdeaForm()" class="btn-outline mt-2 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:42px;padding:0 20px">Pitch another</button>
                 </div>` : `
                 <form onsubmit="handleIdeaSubmit(event)" class="space-y-4.5">
                     <h2 class="m-0 flex items-center gap-2.5 font-poppins font-semibold text-[22px] text-text-strong"><i data-lucide="lightbulb" class="text-gold w-[22px] h-[22px]"></i> Pitch a concept</h2>
@@ -1234,7 +1237,7 @@
                         <textarea required oninput="handleFormInput('ideaData','description',this.value)" rows="5" class="fld" style="height:auto;padding-top:12px;padding-bottom:12px" placeholder="What problem does it solve, who is it for, and how could AI help?">${state.ideaData.description || ''}</textarea>
                     </div>
                     <div id="ideaStatus" class="hidden rounded-xl px-4 py-3 text-red-300 text-xs font-semibold" style="background:rgba(230,83,60,0.12);border:1px solid rgba(230,83,60,0.4)"></div>
-                    <button type="submit" ${state.ideaSubmitting ? 'disabled' : ''} class="w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer bg-coral-btn text-text-strong" style="height:52px">${state.ideaSubmitting ? 'Sharing…' : 'Share concept'}</button>
+                    <button type="submit" ${state.ideaSubmitting ? 'disabled' : ''} class="btn-coral w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer bg-coral-btn text-text-strong" style="height:52px">${state.ideaSubmitting ? 'Sharing…' : 'Share concept'}</button>
                 </form>`;
 
             return `
@@ -1317,10 +1320,10 @@
                 <div class="flex-[1_1_360px] flex flex-col gap-2.5">
                     <span class="self-start px-3 py-1.5 rounded-[14px] font-inter font-semibold text-xs text-gold-text" style="background:rgba(242,181,68,0.16);border:1px solid rgba(242,181,68,0.45)">Latest winner · ${latest.month}${latest.round ? ' ' + latest.round.year : ''}</span>
                     <h2 class="m-0 font-poppins font-bold text-[36px] leading-[1.15] text-text-strong">${latest.name}</h2>
-                    <p class="m-0 font-inter font-medium text-base text-link">${latest.round ? `Round ${latest.round.round} · ${latest.label || ''}` : (latest.label || '')}</p>
+                    <p class="m-0 font-inter font-medium text-base text-link">${latest.round ? `Round ${latest.round.round} · ${latest.challengeTitle || ''}` : (latest.label || '')}</p>
                     <div class="flex gap-3 flex-wrap mt-2">
-                        ${latest.winningSubmissionId ? `<button type="button" onclick="showDetails('${latest.winningSubmissionId}')" class="inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm border-0 cursor-pointer">See the winning entry</button>` : ''}
-                        ${latest.round ? `<a href="${Router.buildHash('challenge', latest.round.slug || `round-${latest.round.round}`)}" class="inline-flex items-center h-11 px-5 rounded-full border-[1.5px] font-inter font-semibold text-sm" style="border-color:#7FA9D6">View the challenge</a>` : ''}
+                        ${latest.winningSubmissionId ? `<button type="button" onclick="showDetails('${latest.winningSubmissionId}')" class="btn-coral inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm border-0 cursor-pointer">See the winning entry</button>` : ''}
+                        ${latest.round ? `<a href="${Router.buildHash('challenge', latest.round.slug || `round-${latest.round.round}`)}" class="btn-outline inline-flex items-center h-11 px-5 rounded-full border-[1.5px] font-inter font-semibold text-sm no-underline" style="border-color:#7FA9D6">View the challenge</a>` : ''}
                     </div>
                 </div>
             </section>` : '';
@@ -1330,7 +1333,7 @@
                 <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Rounds decided</div><div class="font-poppins font-bold text-[30px] text-text-strong mt-1">${roundsDecided} <span class="font-inter font-medium text-sm text-text-muted">of ${roundsTotal}</span></div></div>
                 <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Two-time winners</div><div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">${repeatWinners.length ? repeatWinners.join('<br>') : 'None yet'}</div></div>
                 <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Different winners</div><div class="font-poppins font-bold text-[30px] text-text-strong mt-1">${differentWinners}</div></div>
-                <div class="p-5 rounded-[18px] bg-surface border" style="border-color:rgba(63,166,107,0.5)"><div class="font-inter font-medium text-[13px] text-text-muted">Up next</div>${upNext ? `<div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">Round ${upNext.round} · ${upNext.month}</div><a href="#submit" class="font-inter font-semibold text-[13px]">Enter now</a>` : `<div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">All rounds complete</div>`}</div>
+                <div class="p-5 rounded-[18px] bg-surface border" style="border-color:rgba(63,166,107,0.5)"><div class="font-inter font-medium text-[13px] text-text-muted">Up next</div>${upNext ? `<div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">Round ${upNext.round} · ${upNext.month}</div><a href="#submit" class="link-text font-inter font-semibold text-[13px]">Enter now</a>` : `<div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">All rounds complete</div>`}</div>
             </section>`;
 
             const gridHtml = infos.map(info => {
@@ -1351,7 +1354,7 @@
                             <span class="font-poppins font-bold text-[21px] leading-[1.2] text-text-strong">${info.name}</span>
                             <span class="font-inter font-semibold text-[13px] text-link">${info.label || ''}</span>
                             <span class="font-inter text-[13px] text-text-muted">Challenge: ${info.challengeTitle || ''}</span>
-                            ${info.round ? `<a href="${Router.buildHash('challenge', info.round.slug || `round-${info.round.round}`)}" class="font-inter font-semibold text-[13px]">View challenge →</a>` : ''}
+                            ${info.round ? `<a href="${Router.buildHash('challenge', info.round.slug || `round-${info.round.round}`)}" class="link-text font-inter font-semibold text-[13px]">View challenge →</a>` : ''}
                         </div>
                     </article>`;
                 }
@@ -1377,7 +1380,7 @@
                     <div class="flex flex-col items-center justify-center gap-2 text-center rounded-[18px] border-[1.5px] border-dashed border-border-strong" style="height:210px;padding:16px">
                         <span class="font-poppins font-semibold text-sm" style="color:${pendingColor}">${pendingLabel}</span>
                         <span class="font-inter text-[13px] text-text-muted">${pendingNote}</span>
-                        ${isCurrentOpen ? `<a href="#submit" class="font-inter font-semibold text-[13px]">Enter Round ${info.round.round} →</a>` : ''}
+                        ${isCurrentOpen ? `<a href="#submit" class="link-text font-inter font-semibold text-[13px]">Enter Round ${info.round.round} →</a>` : ''}
                     </div>
                 </article>`;
             }).join('');
@@ -1436,7 +1439,6 @@
                     <td class="p-3.5 text-center">${leaderboardBadgeHtml(entry.rank)}</td>
                     <td class="p-3.5 text-left">
                         <div class="font-poppins font-semibold text-[15px] text-text-strong">${entry.name}</div>
-                        <div class="font-inter text-xs text-text-faint mt-0.5">${entry.email || ''}</div>
                     </td>
                     ${cells}
                     <td class="p-3.5 text-center font-poppins font-bold text-[17px] text-text-strong" style="background:var(--surface-2)">${entry.cumulativeScore.toFixed(1)}</td>
@@ -1451,7 +1453,7 @@
                         <thead>
                             <tr style="background:var(--surface-2)">
                                 <th class="p-4 font-inter font-semibold text-[11px] tracking-[1px] uppercase text-text-muted" style="width:70px;text-transform:uppercase">Rank</th>
-                                <th class="p-4 text-left font-inter font-semibold text-[11px] tracking-[1px] uppercase text-text-muted" style="min-width:220px;text-transform:uppercase">Participant detail</th>
+                                <th class="p-4 text-left font-inter font-semibold text-[11px] tracking-[1px] uppercase text-text-muted" style="min-width:220px;text-transform:uppercase">Participant</th>
                                 ${headCols}
                                 <th class="p-4 font-inter font-semibold text-[11px] tracking-[1px] uppercase text-gold-text" style="background:var(--surface-2);text-transform:uppercase">Total</th>
                             </tr>
@@ -1483,7 +1485,7 @@
                 <div id="leaderboard-results">${renderLeaderboardResults()}</div>
                 <div class="px-5 py-4.5 rounded-2xl bg-surface border flex gap-3 flex-wrap items-center justify-between" style="border-color:rgba(242,181,68,0.45)">
                     <span class="font-inter font-medium text-sm leading-[1.5] text-text-2"><strong class="text-gold-text">Heads up:</strong> positions count for the year-end rewards only when all assigned Alison courses are complete.</span>
-                    <a href="${Router.buildHash('winners')}" class="font-inter font-semibold text-sm">See monthly winners →</a>
+                    <a href="${Router.buildHash('winners')}" class="link-text font-inter font-semibold text-sm">See monthly winners →</a>
                 </div>
             </div>`;
         }
@@ -1499,7 +1501,7 @@
                 ? `<span class="px-2.5 py-1 rounded-[10px] font-inter font-semibold text-[10px]" style="background:rgba(230,83,60,0.18);color:#F2A08A">Hidden · ${item.hiddenReason || 'hidden'}</span>`
                 : '';
             return `
-            <article class="rounded-[20px] bg-surface border border-border overflow-hidden flex flex-col transition-transform hover:-translate-y-1">
+            <article class="card-hover rounded-[20px] bg-surface border border-border overflow-hidden flex flex-col">
                 <div class="relative" style="height:168px;overflow:hidden;background:linear-gradient(135deg, ${c1} 0%, ${c2} 100%)">
                     <div class="absolute rounded-t-[10px] overflow-hidden flex flex-col" style="left:18px;right:18px;top:18px;bottom:0;background:#F5F7FA;box-shadow:0 10px 30px rgba(0,0,0,0.35)">
                         <div class="flex items-center gap-1" style="height:18px;flex-shrink:0;background:#E3E9F0;padding:0 8px">
@@ -1528,7 +1530,7 @@
                     <h3 class="m-0 font-poppins font-semibold text-[17px] leading-[1.3] text-text-strong truncate">${title}</h3>
                     <p class="m-0 font-inter text-[13px] leading-[1.5] text-text-muted truncate">By ${name}</p>
                     <div class="mt-auto flex gap-2" style="padding-top:6px">
-                        <button type="button" onclick="showDetails('${item.id}')" class="flex-1 inline-flex justify-center items-center rounded-full bg-surface-active text-text-strong font-inter font-semibold text-[13px] cursor-pointer border-0" style="height:38px">Details and impact</button>
+                        <button type="button" onclick="showDetails('${item.id}')" class="btn-neutral flex-1 inline-flex justify-center items-center rounded-full bg-surface-active text-text-strong font-inter font-semibold text-[13px] cursor-pointer border-0" style="height:38px">Details and impact</button>
                     </div>
                 </div>
             </article>`;
@@ -1564,7 +1566,7 @@
                         <div class="space-y-4 mb-6">
                             <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3"><i data-lucide="link" class="w-4 h-4"></i> Links</h4>
                             <div class="flex flex-wrap gap-3">
-                                ${links.map(l => `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-100 font-black text-[11px] uppercase tracking-widest no-underline"><i data-lucide="external-link" class="w-3.5 h-3.5"></i>${l.label}</a>`).join('')}
+                                ${links.map(l => `<a href="${l.url}" target="_blank" rel="noopener noreferrer" class="btn-outline inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-100 font-black text-[11px] uppercase tracking-widest no-underline"><i data-lucide="external-link" class="w-3.5 h-3.5"></i>${l.label}</a>`).join('')}
                             </div>
                         </div>` : ''}
                         ${texts.map(t => `

@@ -278,6 +278,120 @@ body {
     color: var(--text);
 }
 
+/* ===== Interactive-state system (polish pass) =====
+   Inline text links keep the base `a` rule's colour/hover above; .link-text/.link-gold
+   only add the underline treatment. Pill/button-shaped anchors use .btn-coral/
+   .btn-outline instead and must never carry .link-text/.link-gold too. */
+.link-text {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+}
+.link-text:hover {
+    text-decoration-thickness: 2px;
+}
+
+.link-gold {
+    color: var(--gold-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+}
+.link-gold:hover {
+    color: var(--text-strong);
+    text-decoration-thickness: 2px;
+}
+
+.btn-coral {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.btn-coral:hover {
+    background-color: #D9502F;
+}
+.btn-coral:disabled {
+    cursor: not-allowed;
+}
+.btn-coral:disabled:hover {
+    background-color: inherit;
+}
+
+.btn-outline {
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.btn-outline:hover {
+    border-color: var(--link);
+    background-color: rgba(127, 214, 247, 0.08);
+}
+
+.btn-neutral {
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+.btn-neutral:hover {
+    filter: brightness(1.18);
+}
+
+/* Clickable cards/tiles (journey tiles, challenge month list, concept/submission
+   cards, round chips): lighter border + slight lift on hover. Reduced-motion safe via
+   the @media rule above, which zeroes every transition-duration. The !important only
+   overrides an inline border-color some of these set for their own selected state. */
+.card-hover {
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.card-hover:hover {
+    border-color: var(--border-muted) !important;
+    transform: translateY(-3px);
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+/* Announcement bar ticker (js/shell.js renderAnnouncementBar) - two copies of the
+   same content scroll left as one strip; at -50% translateX the first copy has
+   scrolled fully off and the second is in exactly its start position, so the loop
+   is seamless. Paused on hover/focus so "Read the brief" can be read and clicked. */
+.ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker-scroll 35s linear infinite;
+}
+.ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 48px;
+    white-space: nowrap;
+}
+.ticker-wrap:hover .ticker-track,
+.ticker-wrap:focus-within .ticker-track {
+    animation-play-state: paused;
+}
+@keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ticker-wrap {
+        display: flex;
+        justify-content: center;
+    }
+    .ticker-track {
+        animation: none;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+    }
+    .ticker-item[aria-hidden="true"] {
+        display: none;
+    }
+}
+
 /* Dashboard hero gentle falling snow (redesign/mockups/Main.dc.html) - reduced-motion
    safe via the @media rule near the top of this file, which freezes all animations. */
 @keyframes fall {
