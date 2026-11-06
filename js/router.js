@@ -42,7 +42,10 @@ const Router = (() => {
         const base = parts[0] || 'dashboard';
 
         if (base === 'submit') {
-            return { tab: 'gallery', sub: null, wantsForm: true };
+            // The submission <form> is rendered inside the Challenge tab's detail panel
+            // (only visible for the currently open round) - not the Submissions/gallery
+            // tab, which is just the archive feed.
+            return { tab: 'challenge', sub: null, wantsForm: true };
         }
 
         const tab = HASH_TO_TAB[base] || 'dashboard';

@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "firebase-admin": "^12.6.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.0"
   }
 }

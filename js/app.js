@@ -8,9 +8,26 @@
             }
         })();
 
+        // DEV-ONLY: skips the OTP login gate for Playwright screenshots. Active only when
+        // BOTH location.hostname is localhost/127.0.0.1 AND ?preview=1 is in the URL - both
+        // conditions fail together on the live site (ai.innovation-hub.com.ng has a real
+        // hostname, so this is structurally impossible in production, not just unlikely).
+        // Remove this block (and the isAuthenticated line below reverts to `!!persistedAuth`)
+        // once the redesign no longer needs local screenshot runs.
+        const isLocalPreviewBypass = (() => {
+            try {
+                const host = location.hostname;
+                const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+                const hasPreviewFlag = new URLSearchParams(location.search).get('preview') === '1';
+                return isLocalHost && hasPreviewFlag;
+            } catch (e) {
+                return false;
+            }
+        })();
+
         let state = {
             user: null,
-            isAuthenticated: !!persistedAuth,
+            isAuthenticated: !!persistedAuth || isLocalPreviewBypass,
             gatewayView: 'email',
             authEmail: persistedAuth ? persistedAuth.email : '',
             generatedOtp: null,
@@ -125,9 +142,28 @@
             };
         }
 
+        function diffToParts(diffMs) {
+            return {
+                days: Math.floor(diffMs / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((diffMs / (1000 * 60 * 60)) % 24),
+                mins: Math.floor((diffMs / 1000 / 60) % 60)
+            };
+        }
+
+        // Short form for disabled CTA buttons, e.g. "Opens Monday 8:00 AM" (no date number).
+        function formatOpenShort(isoDate) {
+            const { weekday, time } = formatWATDateTime(isoDate);
+            return `Opens ${weekday} ${time}`;
+        }
+
         // Countdown is driven by the challenges collection (js/challenges.js) instead of a
-        // hand-edited target date. Targets the current round's closesAt, or its opensAt when
-        // the round hasn't opened yet (e.g. Round 9 before Mon 9 Nov 08:00 WAT).
+        // hand-edited target date.
+        //   upcoming -> counts down to opensAt, label "Opens <Weekday> <D> <Mon>, <time>"
+        //   open     -> counts down to closesAt, label "Closes <Wkd> <D> <Mon>, <time> WAT"
+        //   judging/closed -> no countdown; state.timeLeft.showCountdown is false and the
+        //     hero (js/app.js renderDashboard) shows status text instead.
+        // Updates every minute per spec; renderDashboard() re-reads state.timeLeft directly
+        // on each updateUI() render rather than being poked via getElementById.
         function updateCountdown() {
             const now = new Date();
             const round = (typeof Challenges !== 'undefined') ? Challenges.currentRound(now) : null;
@@ -139,36 +175,50 @@
             }
 
             const status = Challenges.statusOf(round, now);
+            const prevClosed = state.challengeClosed;
 
-            if (status === 'upcoming') {
+            if (status === 'judging' || status === 'closed') {
                 state.challengeClosed = true;
+                state.timeLeft = {
+                    days: 0, hours: 0, mins: 0, showCountdown: false,
+                    label: status === 'judging' ? 'Judging in progress' : 'Submissions closed'
+                };
+            } else if (status === 'upcoming') {
+                state.challengeClosed = true;
+                const target = new Date(round.opensAt);
+                const diff = Math.max(0, target - now);
                 const { weekday, day, month, time } = formatWATDateTime(round.opensAt);
-                state.timeLeft = { days: 0, hours: 0, mins: 0, label: `Opens ${weekday} ${day} ${month}, ${time}` };
+                state.timeLeft = {
+                    ...diffToParts(diff),
+                    showCountdown: true,
+                    label: `Opens ${weekday} ${day} ${month}, ${time}`
+                };
             } else {
-                const closesAt = round.closesAt ? new Date(round.closesAt) : null;
-                const diff = closesAt ? (closesAt - now) : -1;
-                const closed = diff <= 0;
-                if (closed !== state.challengeClosed) {
-                    state.challengeClosed = closed;
-                    updateUI();
-                }
-                if (closed) {
-                    state.timeLeft = { days: 0, hours: 0, mins: 0, label: "Submissions closed" };
-                } else {
-                    const { day, month, time } = formatWATDateTime(round.closesAt);
-                    state.timeLeft = {
-                        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-                        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-                        mins: Math.floor((diff / 1000 / 60) % 60),
-                        label: `Closes ${time} WAT, ${day} ${month}`
-                    };
-                }
+                // open
+                state.challengeClosed = false;
+                const target = new Date(round.closesAt);
+                const diff = Math.max(0, target - now);
+                const { weekday, day, month, time } = formatWATDateTime(round.closesAt);
+                state.timeLeft = {
+                    ...diffToParts(diff),
+                    showCountdown: true,
+                    label: `Closes ${weekday.slice(0, 3)} ${day} ${month}, ${time} WAT`
+                };
             }
 
-            const labelEl = document.getElementById('countdown-label');
-            const timerEl = document.getElementById('countdown-timer');
-            if (labelEl) labelEl.innerText = state.timeLeft.label;
-            if (timerEl) timerEl.innerText = `${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m`;
+            if (state.challengeClosed !== prevClosed) {
+                updateUI();
+            } else if (document.getElementById('countdown-timer')) {
+                // Cheap re-render of just the Dashboard hero's countdown digits/label each
+                // tick, without a full updateUI() pass (which would be wasted work and could
+                // interrupt focus elsewhere on the page).
+                const labelEl = document.getElementById('countdown-label');
+                const timerEl = document.getElementById('countdown-timer');
+                if (labelEl) labelEl.innerText = state.timeLeft.label;
+                if (timerEl) timerEl.innerText = state.timeLeft.showCountdown
+                    ? `${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m`
+                    : '';
+            }
         }
 
         function updateUI() {
@@ -229,77 +279,488 @@
             `;
         }
 
+
+        function formatShortDateWAT(isoDate) {
+            const d = new Date(isoDate);
+            const day = d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Africa/Lagos' });
+            const month = d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'Africa/Lagos' });
+            return `${day} ${month}`;
+        }
+
+        function formatWindow(ch) {
+            if (!ch.opensAt || !ch.closesAt) return '—';
+            const w = `${formatShortDateWAT(ch.opensAt)} – ${formatShortDateWAT(ch.closesAt)}`;
+            return ch.datesApproximate ? `${w} (approx.)` : w;
+        }
+
+        function generateSnowflakes(count) {
+            let flakes = '';
+            for (let i = 0; i < count; i++) {
+                const s = 2 + (i % 3);
+                const left = (i * 41) % 100;
+                const dur = 7 + (i % 6);
+                const delay = ((i * 0.7) % 8).toFixed(1);
+                flakes += `<span class="flake" style="left:${left}%;width:${s}px;height:${s}px;animation-duration:${dur}s;animation-delay:-${delay}s"></span>`;
+            }
+            return flakes;
+        }
+
+        // Renders a challenge's `brief` block array (paragraphs + lists) as HTML.
+        function renderBriefHtml(ch) {
+            const summaryNote = ch.briefIsSummary
+                ? `<p class="font-inter text-xs italic text-text-faint shell-sentence-case mb-2">${ch.briefIsSummaryLabel || 'Summary — original brief not archived'}</p>`
+                : '';
+            const blocks = (ch.brief || []).map(block => {
+                if (block.type === 'list') {
+                    return `<ul class="list-disc list-inside space-y-1 font-inter text-[15px] leading-[1.65] text-text-2">${block.items.map(i => `<li>${i}</li>`).join('')}</ul>`;
+                }
+                return `<p class="font-inter text-[15px] leading-[1.65] text-text-2">${block.text}</p>`;
+            }).join('<div class="h-2"></div>');
+            return `${summaryNote}<div class="space-y-3">${blocks || '<p class="font-inter text-[15px] text-text-faint italic">No brief text available.</p>'}</div>`;
+        }
+
+        function renderDashboard() {
+            const round = Challenges.currentRound();
+            if (!round) {
+                return `<div class="text-center py-24 font-inter text-text-muted">Loading challenge data…</div>`;
+            }
+            const status = Challenges.statusOf(round);
+            const allRounds = Challenges.allRounds(); // newest first
+            const highestRound = allRounds.length ? allRounds[0].round : round.round;
+            const isFinalOfYear = round.round === highestRound;
+
+            // --- Hero status badges ---
+            let statusBadge;
+            if (status === 'open') {
+                statusBadge = `<span class="inline-flex items-center gap-2 h-[30px] px-3 rounded-full bg-[rgba(63,166,107,0.16)] border border-[rgba(63,166,107,0.45)] text-green-text font-inter font-semibold text-xs tracking-[0.4px] shell-sentence-case"><span class="w-2 h-2 rounded-full bg-green"></span>Round ${round.round} · Open now</span>`;
+            } else if (status === 'upcoming') {
+                statusBadge = `<span class="inline-flex items-center h-[30px] px-3 rounded-full bg-[rgba(242,181,68,0.14)] border border-[rgba(242,181,68,0.4)] text-gold-text font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · ${formatShortDateWAT(round.opensAt) ? `Opens ${formatWATDateTime(round.opensAt).weekday}` : 'Opens soon'}</span>`;
+            } else if (status === 'judging') {
+                statusBadge = `<span class="inline-flex items-center h-[30px] px-3 rounded-full bg-[rgba(159,179,200,0.12)] border border-border-strong text-text-2 font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · Judging</span>`;
+            } else {
+                statusBadge = `<span class="inline-flex items-center h-[30px] px-3 rounded-full bg-[rgba(159,179,200,0.12)] border border-border-strong text-text-2 font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · Closed</span>`;
+            }
+            const finaleBadge = isFinalOfYear
+                ? `<span class="inline-flex items-center h-[30px] px-3 rounded-full bg-[rgba(242,181,68,0.14)] border border-[rgba(242,181,68,0.4)] text-gold-text font-inter font-semibold text-xs shell-sentence-case">Final challenge of ${round.year}</span>`
+                : '';
+
+            // --- CTAs ---
+            const briefHref = Router.buildHash('challenge', round.slug || `round-${round.round}`);
+            const submitDisabled = status !== 'open';
+            const submitLabel = status === 'upcoming' ? formatOpenShort(round.opensAt)
+                : status === 'judging' ? 'Judging in progress'
+                : status === 'closed' ? 'Submissions closed'
+                : 'Submit your entry';
+            const submitCta = submitDisabled
+                ? `<span class="inline-flex items-center h-12 px-6 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-[15px] shell-sentence-case cursor-not-allowed opacity-70">${submitLabel}</span>`
+                : `<a href="#submit" class="inline-flex items-center h-12 px-6 rounded-full border-[1.5px] border-[#7FA9D6] text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Submit your entry</a>`;
+
+            // --- Countdown / status text ---
+            const countdownBlock = state.timeLeft && state.timeLeft.showCountdown ? `
+                <div class="flex gap-2">
+                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.days}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">days</div></div>
+                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.hours}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">hrs</div></div>
+                    <div class="w-[72px] py-2.5 rounded-[14px] bg-[rgba(5,14,28,0.55)] border border-border-strong text-center"><div class="font-poppins font-bold text-2xl text-text-strong">${state.timeLeft.mins}</div><div class="font-inter font-medium text-[11px] text-text-muted tracking-[1px] shell-sentence-case">mins</div></div>
+                </div>
+                <div class="flex flex-col justify-center gap-0.5 pl-1.5">
+                    <span id="countdown-label" class="font-inter font-semibold text-[13px] text-text-strong shell-sentence-case">${state.timeLeft.label}</span>
+                    <span id="countdown-timer" class="hidden"></span>
+                    ${status !== 'upcoming' ? `<span class="font-inter text-[13px] text-text-muted shell-sentence-case">${liveEntryCount(round)} entries so far</span>` : ''}
+                </div>` : `
+                <div class="flex flex-col gap-0.5">
+                    <span id="countdown-label" class="font-poppins font-semibold text-lg text-text-strong shell-sentence-case">${state.timeLeft ? state.timeLeft.label : ''}</span>
+                    <span id="countdown-timer" class="hidden"></span>
+                    ${status !== 'upcoming' ? `<span class="font-inter text-[13px] text-text-muted shell-sentence-case">${liveEntryCount(round)} entries so far</span>` : ''}
+                </div>`;
+
+            // --- Optional resource links ---
+            const resourcesHtml = (round.resources && round.resources.length) ? `
+                <div class="flex flex-wrap gap-3">
+                    ${round.resources.map(r => `<a href="${r.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 h-9 px-4 rounded-full bg-[rgba(0,174,239,0.12)] border border-border-strong text-link font-inter font-semibold text-[13px] shell-sentence-case no-underline"><i data-lucide="link" class="w-3.5 h-3.5"></i>${r.label}</a>`).join('')}
+                </div>` : '';
+
+            // --- KPI tiles ---
+            const challengesThisYear = allRounds.filter(r => r.year === round.year && r.round <= round.round).length;
+            const innovatorCount = state.leaderboard.length;
+            const lastCompleted = allRounds.find(r => Challenges.statusOf(r) === 'closed');
+            const leader = state.leaderboard[0];
+
+            const kpiTiles = [
+                { label: 'Challenges this year', value: String(challengesThisYear), meta: `March to ${round.month}` },
+                { label: 'Innovators on the leaderboard', value: String(innovatorCount), meta: 'across all departments' },
+                lastCompleted
+                    ? { label: `Entries in Round ${lastCompleted.round}`, value: String(lastCompleted.entryCount || 0), meta: lastCompleted.title }
+                    : { label: 'Entries in the last round', value: '0', meta: 'No completed rounds yet' },
+                leader
+                    ? { label: 'Leaderboard leader', value: `${leader.cumulativeScore.toFixed(1)} <span class="font-inter font-medium text-[15px] text-text-muted">pts</span>`, meta: leader.name }
+                    : { label: 'Leaderboard leader', value: '—', meta: '' }
+            ];
+            const kpiHtml = kpiTiles.map(t => `
+                <div class="p-[22px] rounded-[20px] bg-surface border border-border flex flex-col gap-1.5">
+                    <span class="font-inter font-medium text-[13px] text-text-muted shell-sentence-case">${t.label}</span>
+                    <span class="font-poppins font-bold text-[34px] text-text-strong">${t.value}</span>
+                    <span class="font-inter text-[13px] text-text-muted shell-sentence-case">${t.meta}</span>
+                </div>`).join('');
+
+            // --- "Our <year> challenge journey" tiles ---
+            const journeyRounds = allRounds.slice().sort((a, b) => a.round - b.round).filter(r => r.round <= round.round);
+            const journeyTiles = journeyRounds.map(r => {
+                const st = Challenges.statusOf(r);
+                let meta, metaColorClass, tileClasses;
+                if (st === 'open') {
+                    meta = 'Open now'; metaColorClass = 'text-green-text';
+                    tileClasses = 'bg-surface-active border-[1.5px] border-green';
+                } else if (st === 'upcoming') {
+                    meta = `Opens ${formatShortDateWAT(r.opensAt)}`; metaColorClass = 'text-gold-text';
+                    tileClasses = 'bg-[#0E1F36] border border-border-muted';
+                } else if (st === 'judging') {
+                    meta = 'Judging'; metaColorClass = 'text-text-muted';
+                    tileClasses = 'bg-surface-2 border border-border';
+                } else {
+                    meta = r.winnerName ? `Winner: ${r.winnerName}` : 'Closed'; metaColorClass = 'text-text-muted';
+                    tileClasses = 'bg-surface-2 border border-border';
+                }
+                return `
+                <a href="${Router.buildHash('challenge', r.slug || `round-${r.round}`)}" class="flex flex-col gap-1.5 p-3.5 rounded-2xl no-underline min-h-[112px] box-border ${tileClasses}">
+                    <span class="font-inter font-semibold text-[11px] tracking-[1.2px] uppercase text-text-muted shell-sentence-case" style="text-transform:uppercase">${r.month} · Round ${r.round}</span>
+                    <span class="font-poppins font-semibold text-[15px] leading-[1.3] text-text-strong">${r.title}</span>
+                    <span class="font-inter font-medium text-xs ${metaColorClass} shell-sentence-case">${meta}</span>
+                </a>`;
+            }).join('');
+            const financeTile = `
+                <a href="${Router.buildHash('challenge')}" class="flex flex-col gap-1.5 p-3.5 rounded-2xl no-underline min-h-[112px] box-border bg-[#0E1F36] border border-dashed border-border-muted">
+                    <span class="font-inter font-semibold text-[11px] tracking-[1.2px] uppercase text-text-muted shell-sentence-case" style="text-transform:uppercase">Dec · Finale</span>
+                    <span class="font-poppins font-semibold text-[15px] leading-[1.3] text-text-strong">Year-end awards</span>
+                    <span class="font-inter font-medium text-xs text-gold-text shell-sentence-case">Coming soon</span>
+                </a>`;
+
+            // --- Leaderboard top 5 ---
+            const medalColors = ['var(--medal-gold)', 'var(--medal-silver)', 'var(--medal-bronze)'];
+            const top5 = state.leaderboard.slice(0, 5);
+            const leaderboardHtml = top5.map((l, i) => `
+                <li class="flex items-center gap-3.5 px-3.5 py-3 rounded-[14px] bg-surface-2">
+                    <span class="w-[30px] h-[30px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-[13px]" style="${i < 3 ? `background:${medalColors[i]};color:#050E1C` : 'background:var(--border);color:var(--text-2)'}">${l.rank}</span>
+                    <span class="flex-1 min-w-0 font-inter font-semibold text-[15px] text-text-strong truncate">${l.name}</span>
+                    <span class="font-poppins font-bold text-base text-text-strong">${l.cumulativeScore.toFixed(1)}</span>
+                </li>`).join('');
+
+            // --- Latest winner card ---
+            const latestWinnerRound = allRounds.find(r => r.winnerName);
+
+            return `
+                <div class="space-y-7 animate-in fade-in">
+                    <section class="relative overflow-hidden rounded-[28px] border border-border p-12 flex flex-wrap gap-10 items-center" style="background: radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 45%, #061A33 100%)">
+                        <div aria-hidden="true" class="absolute inset-0 pointer-events-none overflow-hidden">${generateSnowflakes(24)}</div>
+                        <div class="flex-[999_1_520px] min-w-0 flex flex-col gap-5 relative">
+                            <div class="flex gap-2.5 flex-wrap">${statusBadge}${finaleBadge}</div>
+                            <h1 class="m-0 font-poppins font-bold text-[clamp(32px,5vw,52px)] leading-[1.05] tracking-[-1.2px] text-text-strong shell-sentence-case">${round.month} AI Challenge: ${round.title}</h1>
+                            <p class="m-0 max-w-[560px] font-inter text-lg leading-[1.6] text-text-2">${round.summary || ''}</p>
+                            <div class="flex gap-3 flex-wrap items-center">
+                                <a href="${briefHref}" class="inline-flex items-center h-12 px-6 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-[15px] shell-sentence-case no-underline">Read the brief</a>
+                                ${submitCta}
+                            </div>
+                            ${resourcesHtml}
+                            <div class="flex gap-2.5 items-stretch flex-wrap">${countdownBlock}</div>
+                        </div>
+                        <div class="flex-[1_1_300px] flex justify-center relative">
+                            <div class="relative w-[260px] h-[260px] sm:w-[300px] sm:h-[300px]">
+                                <div class="absolute inset-0 rounded-full border-[6px] border-coral" style="box-shadow:0 0 40px rgba(230,83,60,0.35)"></div>
+                                <img src="${HUB_AVATAR}" alt="Mesca, the AI Innovation Hub mascot" class="absolute inset-3 rounded-full object-cover" style="object-position:50% 22%">
+                                <svg aria-hidden="true" viewBox="0 0 300 300" class="absolute pointer-events-none" style="left:-14px;top:-14px;width:calc(100% + 28px);height:calc(100% + 28px)">
+                                    <path d="M22 92 C10 82, 6 104, 18 112 C28 120, 34 100, 22 92 Z" fill="#2E7D32"></path>
+                                    <path d="M12 104 C2 102, 4 120, 16 122 C26 124, 24 106, 12 104 Z" fill="#1B5E20"></path>
+                                    <circle cx="23" cy="107" r="5" fill="#E6533C"></circle>
+                                    <circle cx="30" cy="112" r="4" fill="#C62828"></circle>
+                                    <path d="M278 92 C290 82, 294 104, 282 112 C272 120, 266 100, 278 92 Z" fill="#2E7D32"></path>
+                                    <path d="M288 104 C298 102, 296 120, 284 122 C274 124, 276 106, 288 104 Z" fill="#1B5E20"></path>
+                                    <circle cx="277" cy="107" r="5" fill="#E6533C"></circle>
+                                    <circle cx="270" cy="112" r="4" fill="#C62828"></circle>
+                                    <path d="M150 6 L152 13 L159 15 L152 17 L150 24 L148 17 L141 15 L148 13 Z" fill="#F2B544"></path>
+                                </svg>
+                                <div class="absolute left-1/2 -bottom-3.5 -translate-x-1/2 whitespace-nowrap px-4 py-2 rounded-[18px] bg-bg border border-border-strong font-poppins font-semibold text-[13px] text-text-strong">Mesca · Hub mascot</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section aria-label="Hub at a glance" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">${kpiHtml}</section>
+
+                    <div class="flex flex-wrap gap-6 items-stretch">
+                        <section class="flex-[999_1_560px] min-w-0 p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-5">
+                            <div class="flex justify-between items-baseline gap-3 flex-wrap">
+                                <h2 class="m-0 font-poppins font-semibold text-[22px] text-text-strong shell-sentence-case">Our ${round.year} challenge journey</h2>
+                                <a href="${Router.buildHash('challenge')}" class="font-inter font-semibold text-sm shell-sentence-case">Browse all challenges</a>
+                            </div>
+                            <div class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">${journeyTiles}${financeTile}</div>
+                        </section>
+
+                        <section class="flex-[1_1_320px] p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-4">
+                            <div class="flex justify-between items-baseline gap-3">
+                                <h2 class="m-0 font-poppins font-semibold text-[22px] text-text-strong shell-sentence-case">Leaderboard</h2>
+                                <a href="${Router.buildHash('leaderboard')}" class="font-inter font-semibold text-sm shell-sentence-case">Full table</a>
+                            </div>
+                            <ol class="list-none m-0 p-0 flex flex-col gap-2.5">${leaderboardHtml}</ol>
+                            <span class="font-inter text-[13px] leading-[1.5] text-text-muted">Positions count for the year-end rewards only when all assigned Alison courses are complete.</span>
+                        </section>
+                    </div>
+
+                    <div class="grid gap-6" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+                        <section class="p-7 rounded-[24px] bg-surface border border-border flex gap-4.5 items-center">
+                            <div aria-hidden="true" class="w-16 h-16 shrink-0 rounded-full flex items-center justify-center" style="background:rgba(242,181,68,0.14);border:1px solid rgba(242,181,68,0.45)">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F2B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"></circle><path d="M8.2 13.3 7 22l5-3 5 3-1.2-8.7"></path></svg>
+                            </div>
+                            <div class="flex flex-col gap-1 min-w-0">
+                                <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">${latestWinnerRound ? `Round ${latestWinnerRound.round} winner` : 'Winners'}</span>
+                                ${latestWinnerRound ? `
+                                    <span class="font-poppins font-semibold text-[22px] text-text-strong">${latestWinnerRound.winnerName}</span>
+                                    <span class="font-inter text-sm text-text-muted">${latestWinnerRound.title} · ${latestWinnerRound.month} ${latestWinnerRound.year}</span>
+                                ` : `<span class="font-inter text-sm text-text-muted">No winners yet</span>`}
+                                <a href="${Router.buildHash('winners')}" class="font-inter font-semibold text-sm mt-1 shell-sentence-case">Hall of Fame</a>
+                            </div>
+                        </section>
+                        <section class="p-7 rounded-[24px] bg-surface flex flex-col gap-2.5" style="border:1px solid rgba(242,181,68,0.45)">
+                            <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Alison LMS</span>
+                            <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Finish your assigned Alison courses</span>
+                            <span class="font-inter text-sm leading-[1.5] text-text-muted">Incomplete courses mean your ${round.year} leaderboard position will not count.</span>
+                            <a href="#alison" class="font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
+                        </section>
+                        <section class="p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-2.5">
+                            <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case" style="text-transform:uppercase">Idea Hub</span>
+                            <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Got an idea that could save time or add value?</span>
+                            <span class="font-inter text-sm leading-[1.5] text-text-muted">Share it, vote on others, and help pick the next challenge.</span>
+                            <a href="${Router.buildHash('ideahub')}" class="font-inter font-semibold text-sm shell-sentence-case">Share an idea</a>
+                        </section>
+                    </div>
+                </div>
+            `;
+        }
+
+        function liveEntryCount(round) {
+            return state.submissions.filter(s => {
+                if (s.hiddenReason === 'test') return false;
+                const effRound = (s.round === undefined || s.round === null) ? 1 : s.round;
+                return effRound === round.round;
+            }).length;
+        }
+
+        function renderChallenge() {
+            const allRounds = Challenges.allRounds(); // newest first already
+            if (!allRounds.length) {
+                return `<div class="text-center py-24 font-inter text-text-muted">Loading challenge data…</div>`;
+            }
+            const current = Challenges.currentRound();
+            const selectedSlug = state.routeSub || (current ? (current.slug || `round-${current.round}`) : allRounds[0].slug);
+            const selected = allRounds.find(r => (r.slug || `round-${r.round}`) === selectedSlug) || current || allRounds[0];
+
+            const monthListHtml = allRounds.map(r => {
+                const slug = r.slug || `round-${r.round}`;
+                const on = slug === (selected.slug || `round-${selected.round}`);
+                const st = Challenges.statusOf(r);
+                const isLive = st === 'open' || st === 'upcoming';
+                const dotStyle = isLive
+                    ? 'background:var(--green);box-shadow:0 0 0 4px rgba(63,166,107,0.22)'
+                    : 'background:var(--border-muted)';
+                const rowClasses = on ? 'bg-surface-active border-[1.5px] border-brand-blue' : 'bg-surface border border-border';
+                return `
+                <button type="button" onclick="navigate('challenge', '${slug}')" aria-pressed="${on}" class="flex items-center gap-3.5 w-full box-border px-4 py-3.5 rounded-2xl text-left cursor-pointer ${rowClasses}">
+                    <span class="w-2.5 h-2.5 shrink-0 rounded-full" style="${dotStyle}"></span>
+                    <span class="flex-1 min-w-0 flex flex-col gap-0.5">
+                        <span class="font-poppins font-semibold text-[15px] text-text-strong shell-sentence-case">${r.month} challenge</span>
+                        <span class="font-inter text-[13px] text-text-muted">Round ${r.round} · ${r.title}</span>
+                    </span>
+                </button>`;
+            }).join('');
+
+            const status = Challenges.statusOf(selected);
+            const isOpen = status === 'open';
+            const isUpcoming = status === 'upcoming';
+
+            let statusLabel, statusClasses;
+            if (isOpen) {
+                statusLabel = 'Open for submissions';
+                statusClasses = 'bg-[rgba(63,166,107,0.18)] text-green-text border border-[rgba(63,166,107,0.5)]';
+            } else if (isUpcoming) {
+                statusLabel = `Opens ${formatWATDateTime(selected.opensAt).weekday}`;
+                statusClasses = 'bg-[rgba(242,181,68,0.14)] text-gold-text border border-[rgba(242,181,68,0.4)]';
+            } else if (status === 'judging') {
+                statusLabel = 'Judging';
+                statusClasses = 'bg-[rgba(159,179,200,0.12)] text-text-2 border border-border-strong';
+            } else {
+                statusLabel = 'Closed';
+                statusClasses = 'bg-[rgba(159,179,200,0.12)] text-text-2 border border-border-strong';
+            }
+
+            const bannerBg = (isOpen || isUpcoming)
+                ? 'background:radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%)'
+                : 'background:linear-gradient(135deg, #10223A 0%, #0B1A2E 100%)';
+
+            let cta, ctaHref, note, noteColorClass;
+            if (isOpen) {
+                cta = 'Submit your entry'; ctaHref = '#submit';
+                note = `Closes ${formatWATDateTime(selected.closesAt).time} WAT, ${formatShortDateWAT(selected.closesAt)}`;
+                noteColorClass = 'text-green-text';
+            } else if (isUpcoming) {
+                cta = formatOpenShort(selected.opensAt); ctaHref = null;
+                note = `Opens ${formatWATDateTime(selected.opensAt).weekday} ${formatShortDateWAT(selected.opensAt)}, ${formatWATDateTime(selected.opensAt).time}`;
+                noteColorClass = 'text-gold-text';
+            } else {
+                cta = 'See the winner'; ctaHref = Router.buildHash('winners');
+                note = 'Submissions closed. This round is read-only.';
+                noteColorClass = 'text-text-muted';
+            }
+            const ctaHtml = ctaHref
+                ? `<a href="${ctaHref}" class="inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">${cta}</a>`
+                : `<span class="inline-flex items-center h-11 px-5 rounded-full border border-border-strong text-text-faint font-inter font-semibold text-sm shell-sentence-case cursor-not-allowed opacity-70">${cta}</span>`;
+            const viewEntriesHtml = `<a href="${Router.buildHash('gallery', selected.slug || `round-${selected.round}`)}" class="inline-flex items-center h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm shell-sentence-case no-underline">View entries</a>`;
+
+            const entriesDisplay = isUpcoming ? `${liveEntryCount(selected)} so far` : String(selected.entryCount != null ? selected.entryCount : liveEntryCount(selected));
+            const archiveNameHtml = selected.archiveName
+                ? `<div class="font-inter text-xs text-text-faint italic">Previously: ${selected.archiveName}</div>` : '';
+
+            const fieldsChips = (selected.requirements || []).map(r =>
+                `<span class="px-3 py-1.5 rounded-xl bg-surface-2 border border-border font-inter font-medium text-[13px] text-text-2">${r.label}</span>`
+            ).join('');
+            const criteriaChips = (selected.criteria && selected.criteria.length) ? `
+                <div class="flex flex-col gap-2">
+                    <h3 class="m-0 font-poppins font-semibold text-[17px] text-text-strong shell-sentence-case">Scoring criteria</h3>
+                    <div class="flex gap-2 flex-wrap">
+                        ${selected.criteria.map(c => `<span class="px-3 py-1.5 rounded-xl bg-surface-2 border border-border font-inter font-medium text-[13px] text-text-2">${c}</span>`).join('')}
+                    </div>
+                </div>` : '';
+
+            // The submission form only renders for the currently open round - same
+            // handleFormSubmit/setSubmissionType/state.formData wiring as before, untouched,
+            // just made round-number-dynamic instead of hardcoded ("Round 8" etc.).
+            const submissionFormHtml = isOpen ? renderSubmissionForm(selected.round) : '';
+
+            return `
+                <div class="space-y-7 animate-in fade-in">
+                    <div class="flex flex-col gap-2">
+                        <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Challenge archive · ${selected.year || new Date().getFullYear()}</span>
+                        <h1 class="m-0 font-poppins font-bold text-4xl leading-[1.1] tracking-[-0.8px] text-text-strong shell-sentence-case">Every challenge, newest first</h1>
+                        <p class="m-0 max-w-[640px] font-inter text-base leading-[1.6] text-text-muted">Pick a month to see the brief, the winner and the entries. Past rounds are read-only; only the open round accepts submissions.</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-6 items-start">
+                        <nav aria-label="Challenge months" class="flex-[1_1_280px] flex flex-col gap-2">${monthListHtml}</nav>
+
+                        <section aria-live="polite" class="flex-[999_1_560px] min-w-0 rounded-[24px] bg-surface border border-border overflow-hidden">
+                            <div class="p-8 flex flex-col gap-3.5" style="${bannerBg}">
+                                <div class="flex gap-2.5 flex-wrap">
+                                    <span class="inline-flex items-center h-7 px-3 rounded-full font-inter font-semibold text-xs shell-sentence-case ${statusClasses}">${statusLabel}</span>
+                                    <span class="inline-flex items-center h-7 px-3 rounded-full bg-[rgba(5,14,28,0.5)] text-text-2 font-inter font-semibold text-xs shell-sentence-case">Round ${selected.round} · ${selected.month} ${selected.year}</span>
+                                </div>
+                                <h2 class="m-0 font-poppins font-bold text-[32px] leading-[1.15] text-text-strong shell-sentence-case">${selected.title}</h2>
+                                ${archiveNameHtml}
+                            </div>
+                            <div class="px-8 pb-8 pt-7 flex flex-col gap-6">
+                                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+                                    <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted shell-sentence-case">Winner</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${selected.winnerName || 'To be announced'}</div></div>
+                                    <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted shell-sentence-case">Entries</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${entriesDisplay}</div></div>
+                                    <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted shell-sentence-case">Window</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${formatWindow(selected)}</div></div>
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <h3 class="m-0 font-poppins font-semibold text-[17px] text-text-strong shell-sentence-case">The brief</h3>
+                                    ${renderBriefHtml(selected)}
+                                </div>
+                                <div class="flex flex-col gap-2">
+                                    <h3 class="m-0 font-poppins font-semibold text-[17px] text-text-strong shell-sentence-case">What entrants submitted</h3>
+                                    <div class="flex gap-2 flex-wrap">${fieldsChips}</div>
+                                </div>
+                                ${criteriaChips}
+                                <div class="flex gap-3 flex-wrap items-center pt-4" style="border-top:1px solid var(--border)">
+                                    ${ctaHtml}
+                                    ${viewEntriesHtml}
+                                    <span class="font-inter font-medium text-[13px] shell-sentence-case ${noteColorClass}">${note}</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    ${submissionFormHtml}
+                </div>
+            `;
+        }
+
+        // Unchanged submission form (same handleFormSubmit/setSubmissionType/state.formData
+        // wiring as the pre-redesign Challenge tab) - only the round number is now dynamic.
+        function renderSubmissionForm(round) {
+            return `
+                <div class="bg-slate-900 border-2 border-blue-500/20 rounded-[3rem] p-12 shadow-2xl">
+                    <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round ${round} Submission</h3>
+                    <div class="flex gap-4 mb-10 bg-slate-950 p-2 rounded-2xl border border-slate-800 max-w-md">
+                        <button onclick="setSubmissionType('individual')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'individual' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Individual</button>
+                        <button onclick="setSubmissionType('group')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'group' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Group (Team of 2)</button>
+                    </div>
+                    <form onsubmit="handleFormSubmit(event)" class="space-y-8">
+                        ${state.submissionType === 'individual' ? `
+                            <div class="grid md:grid-cols-2 gap-6 animate-in fade-in">
+                                <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Full Name</label><input required oninput="handleFormInput('formData', 'name', this.value)" value="${state.formData.name || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
+                                <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Email (@descasio.io)</label><input required oninput="handleFormInput('formData', 'email', this.value)" value="${state.formData.email || ''}" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
+                                <div class="space-y-2 col-span-full"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Department</label><select onchange="handleFormInput('formData', 'dept', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"><option value="">Select Dept</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                            </div>
+                        ` : `
+                            <div class="space-y-8 animate-in slide-in-from-top-2">
+                                <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Team Name</label><input required oninput="handleFormInput('formData', 'teamName', this.value)" value="${state.formData.teamName || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-black uppercase italic" placeholder="THE GUARDIANS"></div>
+                                <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
+                                    <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 01</span></div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
+                                        <input required oninput="handleFormInput('formData', 'member1Name', this.value)" value="${state.formData.member1Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
+                                        <input required oninput="handleFormInput('formData', 'member1Email', this.value)" value="${state.formData.member1Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                    </div>
+                                    <div class="col-span-full space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
+                                        <select onchange="handleFormInput('formData', 'member1Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
+                                            <option value="">Select Dept</option>
+                                            ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
+                                    <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 02</span></div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
+                                        <input required oninput="handleFormInput('formData', 'member2Name', this.value)" value="${state.formData.member2Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
+                                        <input required oninput="handleFormInput('formData', 'member2Email', this.value)" value="${state.formData.member2Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                    </div>
+                                    <div class="col-span-full space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
+                                        <select onchange="handleFormInput('formData', 'member2Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
+                                            <option value="">Select Dept</option>
+                                            ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        `}
+                        <div class="pt-10 border-t border-slate-800 space-y-8">
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase ml-1">1. Submission Document Link</label>
+                                <input required oninput="handleFormInput('formData', 'submissionDocLink', this.value)" value="${state.formData.submissionDocLink || ''}" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="https://gemini.google.com/share/...">
+                                <p class="text-[10px] text-slate-500 italic mt-1 ml-1">Paste your Gemini Canvas share link. Open it in a private window first to check it loads without signing in.</p>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Tools Used</label>
+                                <input required oninput="handleFormInput('formData', 'toolsUsed', this.value)" value="${state.formData.toolsUsed || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="e.g. ChatGPT, Gemini, Claude, Custom Prompt Guardrails">
+                            </div>
+                        </div>
+                        <div id="formStatus" class="hidden text-red-400 text-[10px] font-bold uppercase tracking-wider"></div>
+                        <button type="submit" ${state.challengeClosed ? 'disabled' : ''} class="w-full ${state.challengeClosed ? 'bg-slate-700 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-500'} text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">${state.challengeClosed ? 'Submissions Closed' : `Submit Round ${round} Entry`}</button>
+                    </form>
+                </div>
+            `;
+        }
+
         function renderTabContent() {
             if (state.activeTab === 'dashboard') {
-                const round8Count = state.submissions.filter(s => s.round === 8).length;
-                return `
-                    <div class="space-y-12 animate-in fade-in">
-                        <div class="relative p-10 md:p-14 rounded-[3.5rem] hero-gradient overflow-hidden shadow-[0_0_100px_rgba(30,58,138,0.3)] border border-white/10 group">
-                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
-                            <div class="grid lg:grid-cols-12 gap-12 items-center relative z-10">
-                                <div class="lg:col-span-7 space-y-8">
-                                    <div>
-                                        <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em]">
-                                            <span class="w-2 h-2 rounded-full bg-blue-400"></span> Round 8 Mission: COMPLETED
-                                        </span>
-                                        <h2 class="text-5xl md:text-7xl font-black mt-8 mb-6 text-white leading-[0.9] italic tracking-tighter uppercase">OCTOBER AI CHALLENGE: DESCASIO DECISION INTELLIGENCE PLATFORM (DIP): BUILD THE FRONT DOOR</h2>
-                                        <p class="text-blue-100/80 text-xl leading-relaxed max-w-xl font-medium italic">
-                                            “Design the Future” — create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link.
-                                        </p>
-                                    </div>
-                                    <div class="flex flex-wrap gap-6 items-center">
-                                        <button onclick="navigate('challenge')" class="bg-white text-blue-900 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:scale-105 hover:bg-blue-50 transition-all shadow-2xl active:scale-95">The Brief <i data-lucide="arrow-right" class="inline w-4 h-4 ml-2"></i></button>
-                                        <div class="bg-black/40 backdrop-blur-xl px-8 py-5 rounded-[2rem] border border-white/10 flex items-center gap-6 text-white">
-                                            <div class="text-center">
-                                                <span id="countdown-label" class="block text-[9px] opacity-60 font-black uppercase tracking-widest">${state.timeLeft.label}</span>
-                                                <span id="countdown-timer" class="font-mono text-2xl font-black">${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="lg:col-span-5 flex justify-center">
-                                    <div class="relative w-72 h-72 md:w-96 md:h-96 floating-avatar">
-                                        <div class="absolute inset-0 bg-blue-600/30 blur-[80px] rounded-full scale-75"></div>
-                                        <div class="relative w-full h-full bg-slate-900/60 backdrop-blur-3xl rounded-[4rem] border border-white/20 p-4 shadow-2xl overflow-hidden ring-8 ring-blue-500/10">
-                                            <img src="${HUB_AVATAR}" class="w-full h-full object-cover rounded-[3rem]" alt="Hub Avatar Mesca">
-                                            <div class="absolute bottom-6 left-6 right-6 bg-blue-600/80 backdrop-blur-md p-4 rounded-3xl border border-white/20 text-center">
-                                                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white">Hub Official Identity</p>
-                                                <h4 class="text-xl font-black text-white italic tracking-tighter">MESCA</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid md:grid-cols-2 gap-8">
-                            <!-- Round 8 Winner Box -->
-                            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-emerald-500 transition-transform hover:-translate-y-1">
-                                <div class="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
-                                    <i data-lucide="award" class="text-emerald-500 w-12 h-12"></i>
-                                </div>
-                                <div class="space-y-2">
-                                    <h3 class="text-emerald-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 8 Winner</h3>
-                                    <p class="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">MaryBlessing Umeh</p>
-                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Descasio DIP Front Door Builder</p>
-                                </div>
-                            </div>
-
-                            <!-- Round 8 Activity Box -->
-                            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-blue-600 transition-transform hover:-translate-y-1">
-                                <div class="w-24 h-24 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center shrink-0 border border-blue-500/20 shadow-inner">
-                                    <i data-lucide="activity" class="text-blue-500 w-12 h-12"></i>
-                                </div>
-                                <div class="space-y-1">
-                                    <h3 class="text-blue-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 8 Activity</h3>
-                                    <p class="text-6xl font-black text-white italic tracking-tighter leading-none">${round8Count}</p>
-                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">${round8Count === 1 ? 'Solution' : 'Solutions'} Recorded</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return renderDashboard();
             }
+
             if (state.activeTab === 'ideahub') {
                 return `
                     <div class="max-w-5xl mx-auto space-y-12">
@@ -340,171 +801,7 @@
                 `;
             }
             if (state.activeTab === 'challenge') {
-                return `
-                    <div class="max-w-4xl mx-auto space-y-12 animate-in slide-in-from-bottom duration-500">
-                        <div class="border-b border-slate-800 pb-8 text-center">
-                            <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em] mb-4">
-                                ${state.challengeClosed ? '🔒 Round 8 Challenge • Submissions Closed' : '🏆 Round 8 Challenge • Launch: 6th Oct – Closes: 28th Oct'}
-                            </span>
-                            <h2 class="text-4xl font-black mb-4 text-white uppercase italic tracking-tighter">OCTOBER AI CHALLENGE: DESCASIO DECISION INTELLIGENCE PLATFORM (DIP): BUILD THE FRONT DOOR</h2>
-                            <p class="text-slate-400 text-base max-w-2xl mx-auto italic leading-relaxed">
-                                <strong class="text-blue-400">The Mission:</strong> “Design the Future” — create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link.
-                            </p>
-                        </div>
-
-                        <!-- What You're Building Card -->
-                        <div class="bg-slate-900 border-2 border-blue-500/30 p-10 rounded-[3rem] shadow-2xl space-y-6 relative overflow-hidden">
-                            <div class="flex items-center gap-3 text-blue-400">
-                                <i data-lucide="layout-template" class="w-7 h-7"></i>
-                                <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building</h3>
-                            </div>
-                            <p class="text-slate-300 text-sm leading-relaxed italic">
-                                Design and build a landing page for the <strong>Descasio Decision Intelligence Platform (DIP)</strong> in Gemini Canvas, using your descasio.io account. Gemini Pro is the only approved tool.
-                            </p>
-                            <div class="bg-black/60 p-6 rounded-2xl border-l-4 border-blue-500 text-slate-300 text-xs italic space-y-2">
-                                <p class="font-bold text-slate-400">Your landing page must include:</p>
-                                <ul class="list-disc list-inside space-y-1 not-italic">
-                                    <li>A short intro at the top</li>
-                                    <li>Brand colors and logo</li>
-                                    <li>How It Works</li>
-                                    <li>Who It's For</li>
-                                    <li>A Trust Score section</li>
-                                    <li>A Founding Circle section</li>
-                                </ul>
-                                <p class="font-bold text-slate-400 pt-2">Extras (FAQ, demo quiz, animations, etc.) are welcome.</p>
-                            </div>
-                            <div class="flex flex-wrap gap-4 pt-2 not-italic">
-                                <a href="https://drive.google.com/drive/folders/1Xg80YH3vbROjBYxxtpGsTwyx9zV2BjH6?usp=sharing" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600/30 transition"><i data-lucide="download" class="w-4 h-4"></i> Landing Page Starter Kit</a>
-                            </div>
-                            <p class="text-blue-400 font-bold text-xs uppercase tracking-wider">
-                                ⚠️ Submit your Gemini Canvas share link only — no file upload. Open it in a private window first to confirm it loads without signing in.
-                            </p>
-                        </div>
-
-                        <!-- How to Participate -->
-                        <div class="bg-slate-900 border border-slate-800 p-10 rounded-[3rem] shadow-xl space-y-8">
-                            <h3 class="text-2xl font-black text-white uppercase flex items-center gap-3 italic"><i data-lucide="list-checks" class="text-blue-500"></i> 2. How to Participate</h3>
-                            <div class="grid gap-6">
-                                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
-                                    <div class="w-10 h-10 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-blue-500/30">1</div>
-                                    <div>
-                                        <h4 class="text-white font-bold text-base uppercase mb-1">Build in Gemini Canvas</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Log in to gemini.google.com with your descasio.io account, attach the official Descasio logo and brand colors, and prompt Gemini in Canvas to build the DIP landing page covering every required section.</p>
-                                    </div>
-                                </div>
-                                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
-                                    <div class="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-emerald-500/30">2</div>
-                                    <div>
-                                        <h4 class="text-white font-bold text-base uppercase mb-1">Test Before You Submit</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Open your Canvas share link in a private/incognito window to confirm it loads without signing in.</p>
-                                    </div>
-                                </div>
-                                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
-                                    <div class="w-10 h-10 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-purple-500/30">3</div>
-                                    <div>
-                                        <h4 class="text-white font-bold text-base uppercase mb-1">Submit Your Link</h4>
-                                        <p class="text-slate-400 text-xs leading-relaxed">Paste your Gemini Canvas share link into the submission form below. Deadline: 11:59 PM (WAT), 28 October 2026.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Scoring Criteria -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-blue-500 space-y-2">
-                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Clarity & Accuracy of the Message</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
-                            </div>
-                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-emerald-500 space-y-2">
-                                <p class="text-emerald-400 font-black text-[9px] uppercase tracking-widest">UI/UX & Responsiveness</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
-                            </div>
-                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-purple-500 space-y-2">
-                                <p class="text-purple-400 font-black text-[9px] uppercase tracking-widest">Brand Color & Visual Identity</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
-                            </div>
-                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-amber-500 space-y-2">
-                                <p class="text-amber-400 font-black text-[9px] uppercase tracking-widest">Creativity & Added Features</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
-                            </div>
-                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-blue-500 space-y-2">
-                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Essential Site Features</p>
-                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
-                            </div>
-                        </div>
-
-                        <!-- Live Round 8 Submission Form -->
-                        <div class="bg-slate-900 border-2 border-blue-500/20 rounded-[3rem] p-12 shadow-2xl">
-                            <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round 8 Submission</h3>
-                            <div class="flex gap-4 mb-10 bg-slate-950 p-2 rounded-2xl border border-slate-800 max-w-md">
-                                <button onclick="setSubmissionType('individual')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'individual' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Individual</button>
-                                <button onclick="setSubmissionType('group')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'group' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Group (Team of 2)</button>
-                            </div>
-                            <form onsubmit="handleFormSubmit(event)" class="space-y-8">
-                                ${state.submissionType === 'individual' ? `
-                                    <div class="grid md:grid-cols-2 gap-6 animate-in fade-in">
-                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Full Name</label><input required oninput="handleFormInput('formData', 'name', this.value)" value="${state.formData.name || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
-                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Email (@descasio.io)</label><input required oninput="handleFormInput('formData', 'email', this.value)" value="${state.formData.email || ''}" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
-                                        <div class="space-y-2 col-span-full"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Department</label><select onchange="handleFormInput('formData', 'dept', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"><option value="">Select Dept</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
-                                    </div>
-                                ` : `
-                                    <div class="space-y-8 animate-in slide-in-from-top-2">
-                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Team Name</label><input required oninput="handleFormInput('formData', 'teamName', this.value)" value="${state.formData.teamName || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-black uppercase italic" placeholder="THE GUARDIANS"></div>
-                                        <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
-                                            <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 01</span></div>
-                                            <div class="space-y-2">
-                                                <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
-                                                <input required oninput="handleFormInput('formData', 'member1Name', this.value)" value="${state.formData.member1Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                            </div>
-                                            <div class="space-y-2">
-                                                <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
-                                                <input required oninput="handleFormInput('formData', 'member1Email', this.value)" value="${state.formData.member1Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                            </div>
-                                            <div class="col-span-full space-y-2">
-                                                <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
-                                                <select onchange="handleFormInput('formData', 'member1Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
-                                                    <option value="">Select Dept</option>
-                                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
-                                            <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 02</span></div>
-                                            <div class="space-y-2">
-                                                <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
-                                                <input required oninput="handleFormInput('formData', 'member2Name', this.value)" value="${state.formData.member2Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                            </div>
-                                            <div class="space-y-2">
-                                                <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
-                                                <input required oninput="handleFormInput('formData', 'member2Email', this.value)" value="${state.formData.member2Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                            </div>
-                                            <div class="col-span-full space-y-2">
-                                                <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
-                                                <select onchange="handleFormInput('formData', 'member2Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
-                                                    <option value="">Select Dept</option>
-                                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                `}
-                                <div class="pt-10 border-t border-slate-800 space-y-8">
-                                    <div class="space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">1. Submission Document Link</label>
-                                        <input required oninput="handleFormInput('formData', 'submissionDocLink', this.value)" value="${state.formData.submissionDocLink || ''}" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="https://gemini.google.com/share/...">
-                                        <p class="text-[10px] text-slate-500 italic mt-1 ml-1">Paste your Gemini Canvas share link. Open it in a private window first to check it loads without signing in.</p>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Tools Used</label>
-                                        <input required oninput="handleFormInput('formData', 'toolsUsed', this.value)" value="${state.formData.toolsUsed || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="e.g. ChatGPT, Gemini, Claude, Custom Prompt Guardrails">
-                                    </div>
-                                </div>
-                                <div id="formStatus" class="hidden text-red-400 text-[10px] font-bold uppercase tracking-wider"></div>
-                                <button type="submit" ${state.challengeClosed ? 'disabled' : ''} class="w-full ${state.challengeClosed ? 'bg-slate-700 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-500'} text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">${state.challengeClosed ? 'Submissions Closed' : 'Submit Round 8 Entry'}</button>
-                            </form>
-                        </div>
-                    </div>
-                `;
+                return renderChallenge();
             }
 
             if (state.activeTab === 'gallery') {
@@ -1069,11 +1366,12 @@
             }
             const errEl = document.getElementById('formStatus');
             if (errEl) errEl.classList.add('hidden');
+            const openRound = Challenges.currentRound();
             try {
                 await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
                     ...data,
                     type: state.submissionType,
-                    round: 8,
+                    round: openRound ? openRound.round : null,
                     shortlisted: false,
                     timestamp: new Date().toISOString()
                 });
@@ -1113,7 +1411,7 @@
                 state.user = user;
                 setInterval(() => {
                     updateCountdown();
-                }, 1000);
+                }, 60000); // spec: "Update every minute"
 
                 db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions')
                     .onSnapshot((snapshot) => {

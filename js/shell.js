@@ -22,11 +22,12 @@ const Shell = (() => {
         const status = Challenges.statusOf(round);
         let text;
         if (status === 'upcoming') {
-            text = `Round ${round.round} opens soon: ${round.title}`;
+            const { weekday, day, month, time } = formatWATDateTime(round.opensAt);
+            text = `Round ${round.round} opens ${weekday} ${day} ${month}, ${time}: ${round.title}`;
         } else if (status === 'open') {
-            text = `${round.month} at the AI Innovation Hub · Round ${round.round} is open: ${round.title}`;
+            text = `Round ${round.round} is open: ${round.title}`;
         } else {
-            text = `${round.month} at the AI Innovation Hub · Round ${round.round}: ${round.title}`;
+            text = `Round ${round.round}: ${round.title}`;
         }
 
         return `
