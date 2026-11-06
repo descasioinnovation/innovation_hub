@@ -60,7 +60,10 @@ async function exportCollection(collectionRef, outDir) {
 
 async function main() {
     const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const outDir = path.join(__dirname, '..', 'backups', dateStr);
+    const subfolder = process.argv[2]; // optional, e.g. "before-apply" / "after-apply"
+    const outDir = subfolder
+        ? path.join(__dirname, '..', 'backups', dateStr, subfolder)
+        : path.join(__dirname, '..', 'backups', dateStr);
     fs.mkdirSync(outDir, { recursive: true });
 
     const rootDocRef = db.doc(ROOT_DOC_PATH);
