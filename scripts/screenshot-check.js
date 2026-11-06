@@ -1,7 +1,9 @@
 // Loads the local preview (OTP bypass via ?preview=1), captures console errors, and
-// takes screenshots of Dashboard, Challenges and Submissions at 1440/768/390px, plus
-// Challenges with round-8/round-1 selected, Submissions filtered to round-8, and the
-// submission details modal, into backups/<date>/screens/.
+// takes screenshots of all six tabs (Dashboard, Challenges, Submissions, Idea Hub,
+// Winners, Leaderboard) at 1440/768/390px, plus a few desktop-only extras (Challenges
+// round-8/round-1, Submissions round-8, the details modal, and the forceOpen=9 variant
+// of #submit so the Round 9 form can be seen while it's really still upcoming), into
+// backups/<date>/screens/.
 
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -9,6 +11,26 @@ const path = require('path');
 
 const BASE = 'http://localhost:8080/?preview=1';
 const WIDTHS = [1440, 768, 390];
+
+const PAGES = [
+    { hash: '#dashboard', name: 'dashboard' },
+    { hash: '#challenges', name: 'challenges' },
+    { hash: '#submit', name: 'submit' },
+    { hash: '#submissions/round-8', name: 'submissions-round8' },
+    { hash: '#ideas', name: 'ideahub' },
+    { hash: '#winners', name: 'winners' },
+    { hash: '#leaderboard', name: 'leaderboard' }
+];
+
+async function capture(page, outDir, hash, name, width, errors) {
+    await page.goto(`${BASE}${hash}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
+    const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
+    await page.setViewportSize({ width, height: Math.min(bodyHeight, 6000) });
+    await page.screenshot({ path: path.join(outDir, `${name}-${width}.png`), fullPage: true });
+    const hScroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    if (hScroll) errors.push(`[w${width}] HORIZONTAL SCROLL detected on ${name}`);
+}
 
 async function main() {
     const dateStr = new Date().toISOString().slice(0, 10);
@@ -21,67 +43,32 @@ async function main() {
     for (const width of WIDTHS) {
         const context = await browser.newContext({ viewport: { width, height: 1000 } });
         const page = await context.newPage();
-        page.on('console', msg => {
-            if (msg.type() === 'error') errors.push(`[w${width}] console.error: ${msg.text()}`);
-        });
+        page.on('console', msg => { if (msg.type() === 'error') errors.push(`[w${width}] console.error: ${msg.text()}`); });
         page.on('pageerror', err => errors.push(`[w${width}] pageerror: ${err.message}`));
 
-        // Dashboard
-        await page.goto(`${BASE}#dashboard`, { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1500); // let Firestore listeners settle
-        const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
-        await page.setViewportSize({ width, height: Math.min(bodyHeight, 6000) });
-        await page.screenshot({ path: path.join(outDir, `dashboard-${width}.png`), fullPage: true });
-        const hScroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-        if (hScroll) errors.push(`[w${width}] HORIZONTAL SCROLL detected on dashboard`);
-
-        // Challenges (default = current round)
-        await page.goto(`${BASE}#challenges`, { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1000);
-        const bodyHeight2 = await page.evaluate(() => document.body.scrollHeight);
-        await page.setViewportSize({ width, height: Math.min(bodyHeight2, 6000) });
-        await page.screenshot({ path: path.join(outDir, `challenges-${width}.png`), fullPage: true });
-        const hScroll2 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-        if (hScroll2) errors.push(`[w${width}] HORIZONTAL SCROLL detected on challenges`);
-
-        // Submissions tab: the submission form (#submit)
-        await page.goto(`${BASE}#submit`, { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1000);
-        const bodyHeight3 = await page.evaluate(() => document.body.scrollHeight);
-        await page.setViewportSize({ width, height: Math.min(bodyHeight3, 6000) });
-        await page.screenshot({ path: path.join(outDir, `submit-${width}.png`), fullPage: true });
-        const hScroll3 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-        if (hScroll3) errors.push(`[w${width}] HORIZONTAL SCROLL detected on submit`);
-
-        // Submissions tab: archive feed filtered to Round 8
-        await page.goto(`${BASE}#submissions/round-8`, { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1000);
-        const bodyHeight4 = await page.evaluate(() => document.body.scrollHeight);
-        await page.setViewportSize({ width, height: Math.min(bodyHeight4, 6000) });
-        await page.screenshot({ path: path.join(outDir, `submissions-round8-${width}.png`), fullPage: true });
-        const hScroll4 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-        if (hScroll4) errors.push(`[w${width}] HORIZONTAL SCROLL detected on submissions/round-8`);
+        for (const p of PAGES) {
+            await capture(page, outDir, p.hash, p.name, width, errors);
+        }
 
         await context.close();
     }
 
-    // Round-8 and Round-1 selected, desktop width only (per the task's explicit ask)
+    // Desktop-only extras
     const context = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
     const page = await context.newPage();
     page.on('console', msg => { if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`); });
     page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
 
-    await page.goto(`${BASE}#challenges/round-8`, { waitUntil: 'networkidle' });
+    await capture(page, outDir, '#challenges/round-8', 'challenges-round8', 1440, errors);
+    await capture(page, outDir, '#challenges/round-1', 'challenges-round1', 1440, errors);
+
+    // forceOpen=9 variant of #submit - only reachable on localhost, shows the Round 9
+    // form actually unlocked (?preview=1 alone leaves Round 9 upcoming/disabled today).
+    await page.goto(`${BASE}&forceOpen=9#submit`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
     let h = await page.evaluate(() => document.body.scrollHeight);
     await page.setViewportSize({ width: 1440, height: Math.min(h, 6000) });
-    await page.screenshot({ path: path.join(outDir, 'challenges-round8-1440.png'), fullPage: true });
-
-    await page.goto(`${BASE}#challenges/round-1`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1000);
-    h = await page.evaluate(() => document.body.scrollHeight);
-    await page.setViewportSize({ width: 1440, height: Math.min(h, 6000) });
-    await page.screenshot({ path: path.join(outDir, 'challenges-round1-1440.png'), fullPage: true });
+    await page.screenshot({ path: path.join(outDir, 'submit-forceOpen9-1440.png'), fullPage: true });
 
     // Submission details modal: open the first visible "Details and impact" card on
     // the Round 8 archive feed and screenshot it.

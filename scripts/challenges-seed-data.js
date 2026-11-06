@@ -47,9 +47,9 @@ const CHALLENGES = [
         winnerImage: 'https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/March_png.jpeg',
         winningSubmissionId: 'T2ZwoOtLkTkJHAZ5wYeQ',
         requirements: [
-            { id: 'docLink', label: 'Avatar image/link', type: 'url', required: true, _inferred: true },
-            { id: 'innovationName', label: 'Avatar name', type: 'text', required: true, _inferred: true },
-            { id: 'achievements', label: 'Description', type: 'textarea', required: false, _inferred: true }
+            { id: 'docLink', label: 'Avatar image/link', type: 'url', required: true, _inferred: true, placeholder: 'https://drive.google.com/... or an image link' },
+            { id: 'innovationName', label: 'Avatar name', type: 'text', required: true, _inferred: true, placeholder: 'e.g. Mesca' },
+            { id: 'achievements', label: 'Description', type: 'textarea', required: false, _inferred: true, placeholder: 'Tell us about your avatar (optional)' }
         ],
         checklist: [],
         entryCount: 25, // 26 submissions tagged round 1 (implicit), minus 1 test/sample entry hidden (hiddenReason: "test")
@@ -79,9 +79,9 @@ const CHALLENGES = [
         winnerImage: 'https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/April.jpg',
         winningSubmissionId: '8GTHiDluDnvEjKaav2W4',
         requirements: [
-            { id: 'innovationName', label: 'Solution name', type: 'text', required: true, _inferred: true },
-            { id: 'bugsIdentified', label: 'Bugs identified', type: 'textarea', required: true, _inferred: true },
-            { id: 'productRecommendations', label: 'Product recommendations', type: 'textarea', required: true, _inferred: true }
+            { id: 'innovationName', label: 'Solution name', type: 'text', required: true, _inferred: true, placeholder: 'Name your solution' },
+            { id: 'bugsIdentified', label: 'Bugs identified', type: 'textarea', required: true, _inferred: true, placeholder: 'List any bugs or friction points you found in PlugiQ' },
+            { id: 'productRecommendations', label: 'Product recommendations', type: 'textarea', required: true, _inferred: true, placeholder: 'What should we improve on the roadmap?' }
         ],
         checklist: [],
         entryCount: 6, // 7 submissions, minus 1 test/sample entry hidden (hiddenReason: "test"); the 1 hiddenReason:"duplicate" doc still counts
@@ -111,7 +111,7 @@ const CHALLENGES = [
         winnerImage: 'https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/May_png.jpeg',
         winningSubmissionId: 'YvrX0GE477cIqSaygNuN',
         requirements: [
-            { id: 'canvasLink', label: 'Canvas / website link', type: 'url', required: true, _inferred: true }
+            { id: 'canvasLink', label: 'Canvas / website link', type: 'url', required: true, _inferred: true, placeholder: 'https://gemini.google.com/share/...' }
         ],
         checklist: [],
         entryCount: 6, // 7 submissions, minus 1 test/sample entry hidden (hiddenReason: "test")
@@ -147,10 +147,10 @@ const CHALLENGES = [
         winnerImage: 'https://ik.imagekit.io/vgflfdcic/AI%20INNOVATOR/June.png',
         winningSubmissionId: 'yfzSEBKEQS4vV15LeGbY',
         requirements: [
-            { id: 'problemDefinition', label: 'Problem Definition', type: 'textarea', required: true, _inferred: true, _note: 'Field name matches Round 5\'s real form exactly, suggesting the same form was reused — label itself is not given in the Round 4 launch email, which describes the mission narratively rather than specifying form fields.' },
-            { id: 'toolsUsed', label: 'Tools Used', type: 'text', required: true, _inferred: true },
-            { id: 'operationalimpact', label: 'Operational Impact', type: 'textarea', required: true, _inferred: true, _note: 'Same caveat as Problem Definition.' },
-            { id: 'solutionLink', label: 'Solution Link (App, PDF, or Video)', type: 'url', required: true, _inferred: true }
+            { id: 'problemDefinition', label: 'Problem Definition', type: 'textarea', required: true, _inferred: true, _note: 'Field name matches Round 5\'s real form exactly, suggesting the same form was reused — label itself is not given in the Round 4 launch email, which describes the mission narratively rather than specifying form fields.', placeholder: 'Describe the real bottleneck you identified' },
+            { id: 'toolsUsed', label: 'Tools Used', type: 'text', required: true, _inferred: true, placeholder: 'e.g. Gemini, ChatGPT, Make.com' },
+            { id: 'operationalimpact', label: 'Operational Impact', type: 'textarea', required: true, _inferred: true, _note: 'Same caveat as Problem Definition.', placeholder: 'What time or effort does this save?' },
+            { id: 'solutionLink', label: 'Solution Link (App, PDF, or Video)', type: 'url', required: true, _inferred: true, placeholder: 'https://drive.google.com/... or a video/PDF link' }
         ],
         checklist: [],
         entryCount: 4,
@@ -349,7 +349,7 @@ const CHALLENGES = [
         winnerImage: null,
         winningSubmissionId: null,
         requirements: [
-            { id: 'canvasLink', label: 'Gemini Canvas share link', type: 'url', required: true, _note: 'Renamed from canvasShareLink to canvasLink (scripts/patch-round9-field.js) to reuse Round 3\'s existing field name for the same kind of answer.' },
+            { id: 'canvasLink', label: 'Gemini Canvas share link', type: 'url', required: true, _note: 'Renamed from canvasShareLink to canvasLink (scripts/patch-round9-field.js) to reuse Round 3\'s existing field name for the same kind of answer.', placeholder: 'https://gemini.google.com/share/…' },
             { id: 'toolsUsed', label: 'Tools used', type: 'multiselect', required: true, options: ['Gemini Canvas', 'Claude', 'ChatGPT', 'Canva', 'Figma', 'Other'] }
         ],
         checklist: [

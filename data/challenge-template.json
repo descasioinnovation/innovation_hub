@@ -1,0 +1,36 @@
+{
+  "_comment": "Template for a new challenges/round-N doc. Copy this file, fill in every field, delete this _comment, then run: node scripts/new-challenge.js your-file.json (dry-run) or add --apply to actually create it. Name, work email, department and entry type (individual/group) are ALWAYS collected by the submission form itself - never list them under requirements.",
+  "round": 10,
+  "month": "December",
+  "year": 2026,
+  "slug": "round-10",
+  "title": "Challenge title shown everywhere (cards, hero, brief)",
+  "archiveName": "Optional short label for the archive feed header; omit to reuse title",
+  "summary": "One or two sentences shown on the dashboard hero and challenge list.",
+  "brief": [
+    { "type": "p", "text": "First paragraph of the brief." },
+    { "type": "p", "text": "Second paragraph, if needed." },
+    { "type": "list", "items": ["Step one", "Step two", "Step three"] }
+  ],
+  "criteria": [
+    "Judging criterion one (5 pts)",
+    "Judging criterion two (5 pts)"
+  ],
+  "opensAt": "2026-12-01T08:00:00+01:00",
+  "closesAt": "2026-12-20T23:59:00+01:00",
+  "winnerName": null,
+  "winnerLabel": null,
+  "winnerImage": null,
+  "winningSubmissionId": null,
+  "requirements": [
+    { "id": "exampleLink", "label": "Example link requirement", "type": "url", "required": true, "placeholder": "https://..." },
+    { "id": "exampleShortAnswer", "label": "Example short-text requirement", "type": "text", "required": true, "placeholder": "Short answer" },
+    { "id": "exampleLongAnswer", "label": "Example long-text requirement", "type": "textarea", "required": false, "placeholder": "Longer answer" },
+    { "id": "exampleChips", "label": "Example multiselect requirement", "type": "multiselect", "required": true, "options": ["Option A", "Option B", "Option C"] }
+  ],
+  "checklist": [
+    "Before-you-submit checklist item one.",
+    "Before-you-submit checklist item two."
+  ],
+  "entryCount": 0
+}

@@ -54,6 +54,10 @@
             submitting: false,
             submissionSent: false,
             ideaData: {},
+            ideaSubmitting: false,
+            ideaSent: false,
+            expandedIdeaId: null,
+            leaderboardQuery: '',
             loading: false
         };
 
@@ -529,7 +533,7 @@
                         <section class="p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-2.5">
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case" style="text-transform:uppercase">Idea Hub</span>
                             <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Got an idea that could save time or add value?</span>
-                            <span class="font-inter text-sm leading-[1.5] text-text-muted">Share it, vote on others, and help pick the next challenge.</span>
+                            <span class="font-inter text-sm leading-[1.5] text-text-muted">Share it, read others' ideas, and help shape the next challenge.</span>
                             <a href="${Router.buildHash('ideahub')}" class="font-inter font-semibold text-sm shell-sentence-case">Share an idea</a>
                         </section>
                     </div>
@@ -759,43 +763,7 @@
             }
 
             if (state.activeTab === 'ideahub') {
-                return `
-                    <div class="max-w-5xl mx-auto space-y-12">
-                        <div class="text-center"><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter">Idea Crowdsourcing</h2><p class="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">What solutions should we build next?</p></div>
-                        <div class="bg-slate-900 border border-blue-500/10 rounded-[2.5rem] p-10 max-w-2xl mx-auto shadow-2xl custom-card">
-                            <h3 class="text-2xl font-black text-white mb-8 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="lightbulb" class="text-yellow-400"></i> Pitch a Concept</h3>
-                            <form onsubmit="handleIdeaSubmit(event)" class="space-y-6">
-                                <div class="grid md:grid-cols-2 gap-6">
-                                    <input required oninput="handleFormInput('ideaData', 'name', this.value)" value="${state.ideaData.name || ''}" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Full Name">
-                                    <input required oninput="handleFormInput('ideaData', 'email', this.value)" value="${state.ideaData.email || ''}" type="email" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Work Email (@descasio.io)">
-                                    <select onchange="handleFormInput('ideaData', 'dept', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm">
-                                        <option value="">Select Dept</option>
-                                        ${DEPARTMENTS.map(d => `<option value="${d}" ${state.ideaData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                    </select>
-                                    <input required oninput="handleFormInput('ideaData', 'title', this.value)" value="${state.ideaData.title || ''}" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Idea Title">
-                                </div>
-                                <textarea required oninput="handleFormInput('ideaData', 'description', this.value)" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm" placeholder="Description...">${state.ideaData.description || ''}</textarea>
-                                <div id="ideaStatus"></div>
-                                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-600 text-white font-black p-5 rounded-2xl uppercase tracking-widest text-xs">Share Concept</button>
-                            </form>
-                        </div>
-                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            ${state.ideas.map(idea => `
-                                <div onclick="showIdeaDetails('${idea.id}')" class="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 hover:border-blue-500/40 transition-all group overflow-hidden cursor-pointer shadow-lg hover:shadow-blue-900/10 flex flex-col h-full">
-                                    <div class="flex items-center gap-2 text-blue-500 mb-6"><i data-lucide="lightbulb" class="w-4 h-4"></i> <span class="text-[10px] font-black uppercase tracking-widest">Concept</span></div>
-                                    <h4 class="text-white font-black text-xl mb-4 uppercase leading-tight italic tracking-tighter break-words group-hover:text-blue-400 transition-colors">${idea.title}</h4>
-                                    <p class="text-slate-400 text-sm italic line-clamp-4 break-words leading-relaxed mb-8">"${idea.description}"</p>
-                                    <div class="mt-auto space-y-4">
-                                        <div class="pt-4 border-t border-slate-800/50 flex items-center justify-between">
-                                            <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[150px]">BY ${idea.name || 'Anonymous'}</div>
-                                            <div class="text-blue-500 group-hover:translate-x-1 transition-transform"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
+                return renderIdeaHub();
             }
             if (state.activeTab === 'challenge') {
                 return renderChallenge();
@@ -805,112 +773,10 @@
                 return renderGallery();
             }
             if (state.activeTab === 'winners') {
-                return `
-                    <div class="max-w-6xl mx-auto space-y-12 animate-in zoom-in-95 duration-500">
-                        <div class="text-center">
-                            <h2 class="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Hall of Fame</h2>
-                            <p class="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-4 italic underline underline-offset-8 decoration-blue-500/50">Celebrating the AI Transformation Journey</p>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            ${MONTHLY_RECORDS.map(item => `
-                                <div class="bg-slate-900 rounded-[2.5rem] p-10 border-2 ${item.status === 'active' ? 'border-blue-500 shadow-blue-900/40 shadow-2xl' : 'border-slate-800'} relative overflow-hidden">
-                                    <div class="flex justify-between items-start mb-8"><span class="text-slate-500 font-black text-xs uppercase tracking-[0.2em]">${item.month}</span>${item.status === 'completed' ? '<i data-lucide="medal" class="text-yellow-500 w-8 h-8"></i>' : item.status === 'active' ? '<div class="w-3 h-3 rounded-full bg-blue-500 animate-ping"></div>' : ''}</div>
-                                    <div class="flex flex-col items-center text-center">
-                                        ${item.winner ? `
-                                            <div class="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-white font-black text-2xl mb-6 shadow-xl overflow-hidden border-2 border-white/10">
-                                                ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover">` : item.winner.charAt(0)}
-                                            </div>
-                                            <h4 class="text-white font-black uppercase italic tracking-tighter text-2xl mb-1">${item.winner}</h4>
-                                            <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest text-center">${item.solution}</p>
-                                        ` : `
-                                            <div class="py-16 flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-[2.5rem] w-full">
-                                                <p class="text-slate-700 font-black text-[10px] uppercase tracking-widest italic">${item.status === 'active' ? 'CHALLENGE IN PROGRESS' : 'UPCOMING'}</p>
-                                            </div>
-                                        `}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
+                return renderWinners();
             }
             if (state.activeTab === 'leaderboard') {
-                return `
-                    <div class="space-y-10 animate-in fade-in">
-                        <div class="text-center mb-12">
-                            <h2 class="text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">Innovation Leaderboard</h2>
-                            <p class="text-blue-500 font-black uppercase tracking-[0.3em] text-[10px]">Real-time Performance Standings (Verified)</p>
-                        </div>
-                        <div class="overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 shadow-2xl">
-                            <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800 text-[10px] tracking-widest">
-                                    <tr>
-                                        <th class="p-8 text-center w-24">Rank</th>
-                                        <th class="p-8">Participant Detail</th>
-                                        <th class="p-8 text-center">Round 1</th>
-                                        <th class="p-8 text-center">Round 2</th>
-                                        <th class="p-8 text-center">Round 3</th>
-                                        <th class="p-8 text-center">Round 4</th>
-                                        <th class="p-8 text-center">Round 5</th>
-                                        <th class="p-8 text-center">Round 6</th>
-                                        <th class="p-8 text-center">Round 7</th>
-                                        <th class="p-8 text-center">Round 8</th>
-                                        <th class="p-8 text-right">Cumulative</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-800">
-                                    ${state.leaderboard.map((entry, index) => `
-                                        <tr class="hover:bg-white/5 transition group">
-                                            <td class="p-8 text-center">
-                                                <div class="w-10 h-10 rounded-full mx-auto flex items-center justify-center font-black text-xs ${entry.rank < 4 ? 'rank-badge-' + entry.rank : 'bg-slate-800 text-slate-400'}">
-                                                    ${entry.rank}
-                                                </div>
-                                            </td>
-                                            <td class="p-8">
-                                                <div class="flex flex-col">
-                                                    <span class="text-white font-black uppercase text-sm tracking-tight group-hover:text-blue-400 transition-colors">${entry.name}</span>
-                                                    <span class="text-slate-500 text-[10px] font-medium tracking-tight mt-1 opacity-60">${entry.email || 'descasio.io'}</span>
-                                                </div>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-slate-400 font-bold">${entry.r1 !== undefined ? entry.r1 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-blue-400 font-bold">${entry.r2 !== undefined ? entry.r2 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-indigo-400 font-bold">${entry.r3 !== undefined ? entry.r3 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-purple-400 font-bold">${entry.r4 !== undefined ? entry.r4 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-blue-400 font-black">${entry.r5 !== undefined ? entry.r5 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-emerald-400 font-black">${entry.r6 !== undefined ? entry.r6 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-amber-400 font-black">${entry.r7 !== undefined ? entry.r7 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-center">
-                                                <span class="text-rose-400 font-black">${entry.r8 !== undefined ? entry.r8 : '-'}</span>
-                                            </td>
-                                            <td class="p-8 text-right">
-                                                <div class="flex flex-col items-end">
-                                                    <span class="text-3xl font-black text-white italic tracking-tighter leading-none">${entry.cumulativeScore.toFixed(1)}</span>
-                                                    <span class="text-blue-500 text-[8px] font-black uppercase tracking-[0.2em] mt-2">TOTAL POINTS</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                return renderLeaderboard();
             }
             if (state.activeTab === 'admin') {
                 return `
@@ -1042,7 +908,8 @@
         }
 
         function renderDuplicateNotice(round) {
-            const email = (state.formData.email || '').toLowerCase().trim();
+            const rawEmail = state.submissionType === 'group' ? state.formData.member1Email : state.formData.email;
+            const email = (rawEmail || '').toLowerCase().trim();
             if (!email) return '';
             const hasExisting = state.submissions.some(s => {
                 if (s.hiddenReason) return false;
@@ -1099,19 +966,19 @@
 
         function renderSubmissionFormSection(round) {
             const status = Challenges.statusOf(round);
-            const reqLabels = (round.requirements || []).map(r => r.label.charAt(0).toLowerCase() + r.label.slice(1));
+            const reqLabels = (round.requirements || []).map(r => r.label);
             const needText = reqLabels.length
                 ? `This month you only need ${reqLabels.length === 1 ? 'one thing' : reqLabels.length + ' things'}: ${reqLabels.join(' and ')}.`
                 : '';
             const checklistHtml = (round.checklist || []).map(c => `<span class="font-inter text-sm leading-[1.5] text-text-2">✓ ${c}</span>`).join('');
-            const closeTarget = round.closesAt || round.opensAt;
-            const { time, day, month, weekday } = closeTarget ? formatWATDateTime(closeTarget) : {};
+            const opensInfo = round.opensAt ? formatWATDateTime(round.opensAt) : null;
+            const closesInfo = round.closesAt ? formatWATDateTime(round.closesAt) : null;
 
             let statusBadge;
             if (status === 'open') {
                 statusBadge = `<span class="self-start inline-flex items-center gap-2 h-7 px-3 rounded-full bg-[rgba(63,166,107,0.18)] border border-[rgba(63,166,107,0.5)] text-green-text font-inter font-semibold text-xs shell-sentence-case"><span class="w-2 h-2 rounded-full bg-green"></span>Round ${round.round} · Open</span>`;
             } else if (status === 'upcoming') {
-                statusBadge = `<span class="self-start inline-flex items-center h-7 px-3 rounded-full bg-[rgba(242,181,68,0.14)] border border-[rgba(242,181,68,0.4)] text-gold-text font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · Opens ${weekday || 'soon'}</span>`;
+                statusBadge = `<span class="self-start inline-flex items-center h-7 px-3 rounded-full bg-[rgba(242,181,68,0.14)] border border-[rgba(242,181,68,0.4)] text-gold-text font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · Opens ${opensInfo ? opensInfo.weekday : 'soon'}</span>`;
             } else {
                 statusBadge = `<span class="self-start inline-flex items-center h-7 px-3 rounded-full bg-[rgba(159,179,200,0.12)] border border-border-strong text-text-2 font-inter font-semibold text-xs shell-sentence-case">Round ${round.round} · ${status === 'judging' ? 'Judging' : 'Closed'}</span>`;
             }
@@ -1127,7 +994,7 @@
                     ${checklistHtml}
                 </div>` : ''}
                 <div class="mt-auto flex gap-4 flex-wrap items-center">
-                    ${time ? `<span class="font-inter font-semibold text-sm text-text-strong shell-sentence-case">Closes ${time} WAT, ${day} ${month}</span>` : ''}
+                    ${closesInfo ? `<span class="font-inter font-semibold text-sm text-text-strong shell-sentence-case">Closes ${closesInfo.time} WAT, ${closesInfo.day} ${closesInfo.month}</span>` : ''}
                     <a href="${Router.buildHash('challenge', round.slug || `round-${round.round}`)}" class="font-inter font-semibold text-sm shell-sentence-case">Read the full brief</a>
                 </div>
             </div>`;
@@ -1152,23 +1019,46 @@
                 </div>`;
             } else {
                 const disabled = status === 'upcoming';
-                const memberFieldsHtml = state.submissionType === 'group' ? `
+                const upcomingNotice = disabled && opensInfo
+                    ? `<div class="p-4 rounded-2xl font-inter text-sm shell-sentence-case" style="background:rgba(242,181,68,0.12);border:1px solid rgba(242,181,68,0.4);color:var(--gold-text)">The form unlocks ${opensInfo.weekday} ${formatShortDateWAT(round.opensAt)} at ${opensInfo.time}.</div>`
+                    : '';
+                const memberBlock = (n, label) => `
                     <div class="grid gap-4 p-5 rounded-2xl bg-bg border border-border" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-                        <div class="font-inter font-semibold text-xs text-link uppercase shell-sentence-case" style="grid-column:1/-1;text-transform:uppercase">Additional team member (optional)</div>
-                        <div class="space-y-2"><label class="lbl">Name</label><input ${disabled ? 'disabled' : ''} oninput="handleFormInput('formData','member1Name',this.value)" value="${state.formData.member1Name || ''}" class="fld"></div>
-                        <div class="space-y-2"><label class="lbl">Email</label><input ${disabled ? 'disabled' : ''} type="email" oninput="handleFormInput('formData','member1Email',this.value)" value="${state.formData.member1Email || ''}" class="fld"></div>
-                        <div class="space-y-2"><label class="lbl">Department</label><select ${disabled ? 'disabled' : ''} onchange="handleFormInput('formData','member1Dept',this.value)" class="fld"><option value="">Select department</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                        <div class="font-inter font-semibold text-xs text-link uppercase shell-sentence-case" style="grid-column:1/-1;text-transform:uppercase">${label}</div>
+                        <div class="space-y-2"><label class="lbl">Name</label><input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','member${n}Name',this.value)" value="${state.formData['member' + n + 'Name'] || ''}" class="fld"></div>
+                        <div class="space-y-2"><label class="lbl">Email</label><input ${disabled ? 'disabled' : ''} required type="email" oninput="handleFormInput('formData','member${n}Email',this.value)" value="${state.formData['member' + n + 'Email'] || ''}" class="fld" placeholder="name@descasio.io"></div>
+                        <div class="space-y-2"><label class="lbl">Department</label><select ${disabled ? 'disabled' : ''} required onchange="handleFormInput('formData','member${n}Dept',this.value)" class="fld"><option value="">Select department</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData['member' + n + 'Dept'] === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                    </div>`;
+                const groupFieldsHtml = state.submissionType === 'group' ? `
+                    <div class="space-y-2">
+                        <label class="lbl">Team name</label>
+                        <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','teamName',this.value)" value="${state.formData.teamName || ''}" class="fld" placeholder="e.g. Team DataFlow TS">
                     </div>
-                    <div class="grid gap-4 p-5 rounded-2xl bg-bg border border-border" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
-                        <div class="font-inter font-semibold text-xs text-link uppercase shell-sentence-case" style="grid-column:1/-1;text-transform:uppercase">Another team member (optional)</div>
-                        <div class="space-y-2"><label class="lbl">Name</label><input ${disabled ? 'disabled' : ''} oninput="handleFormInput('formData','member2Name',this.value)" value="${state.formData.member2Name || ''}" class="fld"></div>
-                        <div class="space-y-2"><label class="lbl">Email</label><input ${disabled ? 'disabled' : ''} type="email" oninput="handleFormInput('formData','member2Email',this.value)" value="${state.formData.member2Email || ''}" class="fld"></div>
-                        <div class="space-y-2"><label class="lbl">Department</label><select ${disabled ? 'disabled' : ''} onchange="handleFormInput('formData','member2Dept',this.value)" class="fld"><option value="">Select department</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                    ${memberBlock(1, 'Member 1 (team lead)')}
+                    ${memberBlock(2, 'Member 2')}` : '';
+                const individualFieldsHtml = state.submissionType !== 'group' ? `
+                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                        <div class="space-y-2">
+                            <label class="lbl">Full name</label>
+                            <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','name',this.value)" value="${state.formData.name || ''}" class="fld" placeholder="Your full name">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="lbl">Work email</label>
+                            <input ${disabled ? 'disabled' : ''} required type="email" oninput="handleFormInput('formData','email',this.value)" value="${state.formData.email || ''}" class="fld" placeholder="name@descasio.io">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="lbl">Department</label>
+                            <select ${disabled ? 'disabled' : ''} required onchange="handleFormInput('formData','dept',this.value)" class="fld">
+                                <option value="">Select department</option>
+                                ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                            </select>
+                        </div>
                     </div>` : '';
 
                 formCard = `
                 <div class="flex-[999_1_560px] min-w-0 p-8 rounded-[24px] bg-surface border border-border">
                     <form id="submission-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
+                        ${upcomingNotice}
                         ${renderDuplicateNotice(round)}
                         <div class="space-y-2">
                             <span class="lbl">Entry type</span>
@@ -1177,29 +1067,8 @@
                                 <button type="button" ${disabled ? 'disabled' : ''} aria-pressed="${state.submissionType === 'group'}" onclick="setSubmissionType('group')" class="h-10 px-5 rounded-[10px] border-0 font-inter font-semibold text-sm cursor-pointer ${state.submissionType === 'group' ? 'bg-text text-bg' : 'bg-transparent text-text-2'}">Group</button>
                             </div>
                         </div>
-                        ${state.submissionType === 'group' ? `
-                        <div class="space-y-2">
-                            <label class="lbl">Team name</label>
-                            <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','teamName',this.value)" value="${state.formData.teamName || ''}" class="fld" placeholder="e.g. Team DataFlow TS">
-                        </div>` : ''}
-                        <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
-                            <div class="space-y-2">
-                                <label class="lbl">${state.submissionType === 'group' ? 'Team lead full name' : 'Full name'}</label>
-                                <input ${disabled ? 'disabled' : ''} required oninput="handleFormInput('formData','name',this.value)" value="${state.formData.name || ''}" class="fld" placeholder="Your full name">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="lbl">Work email</label>
-                                <input ${disabled ? 'disabled' : ''} required type="email" oninput="handleFormInput('formData','email',this.value)" value="${state.formData.email || ''}" class="fld" placeholder="name@descasio.io">
-                            </div>
-                            <div class="space-y-2">
-                                <label class="lbl">Department</label>
-                                <select ${disabled ? 'disabled' : ''} required onchange="handleFormInput('formData','dept',this.value)" class="fld">
-                                    <option value="">Select department</option>
-                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                </select>
-                            </div>
-                        </div>
-                        ${memberFieldsHtml}
+                        ${individualFieldsHtml}
+                        ${groupFieldsHtml}
                         <div class="flex items-center gap-3 pt-1">
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case whitespace-nowrap" style="text-transform:uppercase">Round ${round.round} requirements</span>
                             <span class="flex-1 h-px bg-border"></span>
@@ -1266,7 +1135,7 @@
             const totalKnown = selectedKey === 'all' ? null : (roundsToShow[0] && roundsToShow[0].entryCount);
             const countText = selectedKey === 'all'
                 ? `${cards.length} entries`
-                : (totalKnown != null ? `${cards.length} entries${cards.length < totalKnown ? ' shown of ' + totalKnown : ''}` : `${cards.length} entries`);
+                : (totalKnown != null && cards.length < totalKnown ? `${totalKnown} entries · ${cards.length} shown` : `${cards.length} entries`);
 
             const underWraps = isCurrentUpcomingView && selectedKey !== 'all';
 
@@ -1322,6 +1191,302 @@
             </div>`;
         }
 
+        function renderIdeaCard(idea) {
+            const expanded = state.expandedIdeaId === idea.id;
+            const text = idea.description || '';
+            return `
+            <button type="button" onclick="toggleIdeaExpand('${idea.id}')" aria-expanded="${expanded}" class="text-left flex flex-col gap-3 p-6 rounded-[20px] border cursor-pointer transition-transform hover:-translate-y-1" style="min-height:260px;${expanded ? 'background:var(--surface-2);border-color:var(--brand-blue)' : 'background:var(--surface);border-color:var(--border)'}">
+                <span class="flex items-center gap-2 font-inter font-semibold text-[11px] tracking-[1.2px] uppercase text-link" style="text-transform:uppercase"><i data-lucide="lightbulb" class="w-3.5 h-3.5"></i> Concept</span>
+                <span class="font-poppins font-semibold text-[19px] leading-[1.3] text-text-strong">${idea.title}</span>
+                <span class="font-inter italic text-sm leading-[1.6] text-text-muted" style="${expanded ? '' : 'display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden'}">${text}</span>
+                <span class="mt-auto pt-3.5 border-t border-border flex justify-between items-center gap-2.5">
+                    <span class="font-inter font-semibold text-xs text-text-muted truncate">By ${idea.name || 'Anonymous'}</span>
+                    <span class="font-inter font-semibold text-sm text-link shrink-0">${expanded ? 'Show less' : 'Read more →'}</span>
+                </span>
+            </button>`;
+        }
+
+        function renderIdeaHub() {
+            const ideaCount = state.ideas.length;
+            const contributorCount = new Set(state.ideas.map(i => (i.email || i.name || '').toLowerCase().trim()).filter(Boolean)).size;
+
+            const formCard = state.ideaSent ? `
+                <div class="flex flex-col items-center justify-center gap-3 text-center" style="min-height:380px">
+                    <span class="font-poppins font-semibold text-2xl text-text-strong">Thanks, your idea is in</span>
+                    <span class="font-inter text-[15px] leading-[1.6] text-text-muted" style="max-width:380px">It now appears in the concept wall below for everyone to read.</span>
+                    <button type="button" onclick="resetIdeaForm()" class="mt-2 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="height:42px;padding:0 20px">Pitch another</button>
+                </div>` : `
+                <form onsubmit="handleIdeaSubmit(event)" class="space-y-4.5">
+                    <h2 class="m-0 flex items-center gap-2.5 font-poppins font-semibold text-[22px] text-text-strong"><i data-lucide="lightbulb" class="text-gold w-[22px] h-[22px]"></i> Pitch a concept</h2>
+                    <div class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                        <div class="space-y-2"><label class="lbl">Full name</label><input required oninput="handleFormInput('ideaData','name',this.value)" value="${state.ideaData.name || ''}" class="fld" placeholder="Your full name"></div>
+                        <div class="space-y-2"><label class="lbl">Work email</label><input required type="email" oninput="handleFormInput('ideaData','email',this.value)" value="${state.ideaData.email || ''}" class="fld" placeholder="name@descasio.io"></div>
+                        <div class="space-y-2"><label class="lbl">Department</label>
+                            <select required onchange="handleFormInput('ideaData','dept',this.value)" class="fld">
+                                <option value="">Select department</option>
+                                ${DEPARTMENTS.map(d => `<option value="${d}" ${state.ideaData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-2"><label class="lbl">Idea title</label><input required oninput="handleFormInput('ideaData','title',this.value)" value="${state.ideaData.title || ''}" class="fld" placeholder="Give it a short name"></div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="lbl">Description</label>
+                        <textarea required oninput="handleFormInput('ideaData','description',this.value)" rows="5" class="fld" style="height:auto;padding-top:12px;padding-bottom:12px" placeholder="What problem does it solve, who is it for, and how could AI help?">${state.ideaData.description || ''}</textarea>
+                    </div>
+                    <div id="ideaStatus" class="hidden rounded-xl px-4 py-3 text-red-300 text-xs font-semibold" style="background:rgba(230,83,60,0.12);border:1px solid rgba(230,83,60,0.4)"></div>
+                    <button type="submit" ${state.ideaSubmitting ? 'disabled' : ''} class="w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer bg-coral-btn text-text-strong" style="height:52px">${state.ideaSubmitting ? 'Sharing…' : 'Share concept'}</button>
+                </form>`;
+
+            return `
+            <div class="max-w-6xl mx-auto space-y-10 animate-in fade-in">
+                <div class="flex flex-col gap-2 items-center text-center">
+                    <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Idea Hub</span>
+                    <h1 class="m-0 font-poppins font-bold text-[40px] leading-[1.1] text-text-strong shell-sentence-case">Idea crowdsourcing</h1>
+                    <p class="m-0 font-inter text-[17px] leading-[1.6] text-text-muted shell-sentence-case">What solutions should we build next?</p>
+                </div>
+
+                <div class="flex flex-wrap gap-6 items-stretch">
+                    <section class="flex-[999_1_560px] min-w-0 p-8 rounded-[24px] bg-surface border border-border">${formCard}</section>
+                    <aside class="flex-[1_1_280px] p-7 rounded-[24px] border border-border flex flex-col gap-4.5" style="background:linear-gradient(160deg, #003366 0%, var(--surface) 100%)">
+                        <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case" style="text-transform:uppercase">How ideas travel</span>
+                        <div class="flex gap-3.5"><span class="w-[30px] h-[30px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-[13px] text-white" style="background:var(--coral)">1</span><div class="flex flex-col gap-0.5"><span class="font-poppins font-semibold text-[15px] text-text-strong">Pitch it</span><span class="font-inter text-[13px] leading-[1.5] text-text-2">Share a problem worth solving with AI.</span></div></div>
+                        <div class="flex gap-3.5"><span class="w-[30px] h-[30px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-[13px] text-white" style="background:var(--coral)">2</span><div class="flex flex-col gap-0.5"><span class="font-poppins font-semibold text-[15px] text-text-strong">The Hub team reviews</span><span class="font-inter text-[13px] leading-[1.5] text-text-2">Strong concepts are shortlisted.</span></div></div>
+                        <div class="flex gap-3.5"><span class="w-[30px] h-[30px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-[13px] text-white" style="background:var(--coral)">3</span><div class="flex flex-col gap-0.5"><span class="font-poppins font-semibold text-[15px] text-text-strong">It may become a challenge</span><span class="font-inter text-[13px] leading-[1.5] text-text-2">Your idea could be next month's round.</span></div></div>
+                        <div class="mt-auto pt-4 border-t border-border-strong flex gap-5">
+                            <div><div class="font-poppins font-bold text-[28px] text-text-strong">${ideaCount}</div><div class="font-inter font-medium text-xs text-text-muted">concepts shared</div></div>
+                            <div><div class="font-poppins font-bold text-[28px] text-text-strong">${contributorCount}</div><div class="font-inter font-medium text-xs text-text-muted">contributors</div></div>
+                        </div>
+                    </aside>
+                </div>
+
+                <section class="space-y-4.5">
+                    <div class="flex justify-between items-baseline gap-3 flex-wrap">
+                        <h2 class="m-0 font-poppins font-semibold text-2xl text-text-strong">Concept wall</h2>
+                        <span class="font-inter font-medium text-[13px] text-text-muted">Click a card to read the full pitch</span>
+                    </div>
+                    <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+                        ${state.ideas.length ? state.ideas.map(idea => renderIdeaCard(idea)).join('') : `<div class="col-span-full p-14 rounded-[24px] border border-dashed border-border-strong bg-surface text-center font-poppins font-semibold text-text-strong">No ideas yet - be the first to pitch one.</div>`}
+                    </div>
+                </section>
+            </div>`;
+        }
+
+        function winnerInfoForMonth(monthName) {
+            const round = Challenges.allRounds().find(r => r.month === monthName);
+            const record = MONTHLY_RECORDS.find(m => m.month === monthName);
+            if (round && round.winnerName) {
+                return {
+                    month: monthName, round,
+                    name: round.winnerName, label: round.winnerLabel, image: round.winnerImage,
+                    challengeTitle: round.title, winningSubmissionId: round.winningSubmissionId
+                };
+            }
+            return {
+                month: monthName, round: round || null,
+                name: record ? record.winner : null, label: record ? record.solution : null,
+                image: record ? record.image : null,
+                challengeTitle: round ? round.title : (record ? record.solution : ''),
+                winningSubmissionId: round ? round.winningSubmissionId : null
+            };
+        }
+
+        function renderWinners() {
+            const monthOrder = MONTHLY_RECORDS.map(m => m.month);
+            const infos = monthOrder.map(winnerInfoForMonth);
+            const decided = infos.filter(i => i.name);
+            const latest = decided[decided.length - 1] || null;
+
+            const roundsTotal = Challenges.allRounds().length;
+            const roundsDecided = decided.filter(i => i.round).length || decided.length;
+            const nameCounts = {};
+            decided.forEach(i => { nameCounts[i.name] = (nameCounts[i.name] || 0) + 1; });
+            const repeatWinners = Object.keys(nameCounts).filter(n => nameCounts[n] >= 2);
+            const differentWinners = Object.keys(nameCounts).length;
+
+            const current = Challenges.currentRound();
+            const currentStatus = current ? Challenges.statusOf(current) : null;
+            const upNext = (current && (currentStatus === 'open' || currentStatus === 'upcoming' || currentStatus === 'judging')) ? current : null;
+
+            const spotlightHtml = latest ? `
+            <section class="relative overflow-hidden rounded-[28px] p-9 border flex flex-wrap gap-8 items-center" style="background:radial-gradient(circle at 85% 20%, rgba(242,181,68,0.22) 0%, #003366 45%, #061A33 100%);border-color:rgba(242,181,68,0.4)">
+                <div class="w-[180px] h-[180px] shrink-0 rounded-3xl border-[3px] flex flex-col items-center justify-center gap-2 overflow-hidden" style="border-color:var(--gold);background:linear-gradient(160deg, var(--surface-2), var(--bg));box-shadow:0 0 40px rgba(242,181,68,0.25)">
+                    ${latest.image
+                        ? `<img src="${latest.image}" class="w-full h-full object-cover">`
+                        : `<span class="font-inter font-bold text-[10px] tracking-[1px] uppercase text-gold-text text-center px-2">AI Innovator of the Month</span><span class="font-poppins font-bold text-[44px] text-text-strong">${initialsOf(latest.name)}</span>`}
+                </div>
+                <div class="flex-[1_1_360px] flex flex-col gap-2.5">
+                    <span class="self-start px-3 py-1.5 rounded-[14px] font-inter font-semibold text-xs text-gold-text" style="background:rgba(242,181,68,0.16);border:1px solid rgba(242,181,68,0.45)">Latest winner · ${latest.month}${latest.round ? ' ' + latest.round.year : ''}</span>
+                    <h2 class="m-0 font-poppins font-bold text-[36px] leading-[1.15] text-text-strong">${latest.name}</h2>
+                    <p class="m-0 font-inter font-medium text-base text-link">${latest.round ? `Round ${latest.round.round} · ${latest.label || ''}` : (latest.label || '')}</p>
+                    <div class="flex gap-3 flex-wrap mt-2">
+                        ${latest.winningSubmissionId ? `<button type="button" onclick="showDetails('${latest.winningSubmissionId}')" class="inline-flex items-center h-11 px-5 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-sm border-0 cursor-pointer">See the winning entry</button>` : ''}
+                        ${latest.round ? `<a href="${Router.buildHash('challenge', latest.round.slug || `round-${latest.round.round}`)}" class="inline-flex items-center h-11 px-5 rounded-full border-[1.5px] font-inter font-semibold text-sm" style="border-color:#7FA9D6">View the challenge</a>` : ''}
+                    </div>
+                </div>
+            </section>` : '';
+
+            const highlightsHtml = `
+            <section aria-label="Highlights" class="grid gap-4" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+                <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Rounds decided</div><div class="font-poppins font-bold text-[30px] text-text-strong mt-1">${roundsDecided} <span class="font-inter font-medium text-sm text-text-muted">of ${roundsTotal}</span></div></div>
+                <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Two-time winners</div><div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">${repeatWinners.length ? repeatWinners.join('<br>') : 'None yet'}</div></div>
+                <div class="p-5 rounded-[18px] bg-surface border border-border"><div class="font-inter font-medium text-[13px] text-text-muted">Different winners</div><div class="font-poppins font-bold text-[30px] text-text-strong mt-1">${differentWinners}</div></div>
+                <div class="p-5 rounded-[18px] bg-surface border" style="border-color:rgba(63,166,107,0.5)"><div class="font-inter font-medium text-[13px] text-text-muted">Up next</div>${upNext ? `<div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">Round ${upNext.round} · ${upNext.month}</div><a href="#submit" class="font-inter font-semibold text-[13px]">Enter now</a>` : `<div class="font-poppins font-semibold text-base leading-[1.4] text-text-strong mt-1.5">All rounds complete</div>`}</div>
+            </section>`;
+
+            const gridHtml = infos.map(info => {
+                const isCurrentRound = !!(info.round && current && info.round.round === current.round);
+                const isCurrentOpen = isCurrentRound && currentStatus === 'open';
+
+                if (info.name) {
+                    return `
+                    <article class="p-6 rounded-3xl flex flex-col gap-4.5 bg-surface border border-border">
+                        <div class="flex justify-between items-center">
+                            <span class="font-inter font-semibold text-xs tracking-[1.6px] uppercase text-text-muted" style="text-transform:uppercase">${info.month}</span>
+                            <i data-lucide="medal" class="text-gold w-[22px] h-[22px]"></i>
+                        </div>
+                        <div class="flex flex-col items-center gap-3.5 text-center">
+                            <div class="w-[104px] h-[104px] rounded-[18px] border-2 flex items-center justify-center overflow-hidden" style="border-color:var(--brand-blue);background:linear-gradient(160deg, var(--surface-2), var(--bg))">
+                                ${info.image ? `<img src="${info.image}" class="w-full h-full object-cover">` : `<span class="font-poppins font-bold text-[28px] text-text-strong">${initialsOf(info.name)}</span>`}
+                            </div>
+                            <span class="font-poppins font-bold text-[21px] leading-[1.2] text-text-strong">${info.name}</span>
+                            <span class="font-inter font-semibold text-[13px] text-link">${info.label || ''}</span>
+                            <span class="font-inter text-[13px] text-text-muted">Challenge: ${info.challengeTitle || ''}</span>
+                            ${info.round ? `<a href="${Router.buildHash('challenge', info.round.slug || `round-${info.round.round}`)}" class="font-inter font-semibold text-[13px]">View challenge →</a>` : ''}
+                        </div>
+                    </article>`;
+                }
+
+                const roundStatus = info.round ? Challenges.statusOf(info.round) : null;
+                let pendingLabel, pendingColor;
+                if (isCurrentOpen) {
+                    pendingLabel = `Round ${info.round.round} · In progress`; pendingColor = 'var(--green-text)';
+                } else if (isCurrentRound && roundStatus === 'judging') {
+                    pendingLabel = `Round ${info.round.round} · Judging`; pendingColor = 'var(--text-muted)';
+                } else if (info.round && roundStatus === 'upcoming') {
+                    pendingLabel = `Opens ${formatShortDateWAT(info.round.opensAt)}`; pendingColor = 'var(--text-muted)';
+                } else {
+                    pendingLabel = 'Upcoming'; pendingColor = 'var(--text-muted)';
+                }
+                const pendingNote = info.round ? info.round.title : 'Year-end finale';
+
+                return `
+                <article class="p-6 rounded-3xl flex flex-col gap-4.5 bg-surface border" style="border-color:${isCurrentOpen ? 'rgba(63,166,107,0.5)' : 'var(--border)'}">
+                    <div class="flex justify-between items-center">
+                        <span class="font-inter font-semibold text-xs tracking-[1.6px] uppercase text-text-muted" style="text-transform:uppercase">${info.month}</span>
+                    </div>
+                    <div class="flex flex-col items-center justify-center gap-2 text-center rounded-[18px] border-[1.5px] border-dashed border-border-strong" style="height:210px;padding:16px">
+                        <span class="font-poppins font-semibold text-sm" style="color:${pendingColor}">${pendingLabel}</span>
+                        <span class="font-inter text-[13px] text-text-muted">${pendingNote}</span>
+                        ${isCurrentOpen ? `<a href="#submit" class="font-inter font-semibold text-[13px]">Enter Round ${info.round.round} →</a>` : ''}
+                    </div>
+                </article>`;
+            }).join('');
+
+            return `
+            <div class="max-w-6xl mx-auto space-y-10 animate-in fade-in">
+                <div class="flex flex-col gap-2 items-center text-center">
+                    <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Winners</span>
+                    <h1 class="m-0 font-poppins font-bold text-[44px] leading-[1.1] text-text-strong shell-sentence-case">Hall of Fame</h1>
+                    <p class="m-0 font-inter text-[17px] leading-[1.6] text-text-muted shell-sentence-case">Celebrating the AI transformation journey</p>
+                </div>
+                ${spotlightHtml}
+                ${highlightsHtml}
+                <div class="grid gap-5" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">${gridHtml}</div>
+            </div>`;
+        }
+
+        function leaderboardBadgeHtml(rank) {
+            const medalBg = { 1: 'var(--medal-gold)', 2: 'var(--medal-silver)', 3: 'var(--medal-bronze)' };
+            const bg = medalBg[rank];
+            return `<span class="inline-flex items-center justify-center rounded-full font-poppins font-bold text-[13px]" style="width:34px;height:34px;${bg ? `background:${bg};color:#050E1C` : 'background:var(--border-strong);color:var(--text-2)'}">${rank}</span>`;
+        }
+
+        function renderLeaderboardResults() {
+            const current = Challenges.currentRound();
+            const maxRound = current ? current.round : 9;
+            const roundCols = Challenges.allRounds().filter(r => r.round <= maxRound).sort((a, b) => a.round - b.round);
+            const roundColorVars = ['var(--r1)', 'var(--r2)', 'var(--r3)', 'var(--r4)', 'var(--r5)', 'var(--r6)', 'var(--r7)', 'var(--r8)', 'var(--r9)'];
+
+            const rows = leaderboardFilteredRows();
+
+            const podiumOrder = [rows[1], rows[0], rows[2]].filter(Boolean);
+            const podiumHtml = podiumOrder.map(e => {
+                const h = e.rank === 1 ? 210 : (e.rank === 2 ? 186 : 170);
+                const medalBg = { 1: 'var(--medal-gold)', 2: 'var(--medal-silver)', 3: 'var(--medal-bronze)' };
+                return `
+                <div class="flex flex-col items-center gap-2.5 text-center rounded-[22px] bg-surface border-[1.5px] justify-end box-border" style="width:220px;padding:22px;min-height:${h}px;border-color:${medalBg[e.rank] || 'var(--border)'};${e.rank === 1 ? 'box-shadow:0 0 40px rgba(242,181,68,0.22)' : ''}">
+                    ${leaderboardBadgeHtml(e.rank)}
+                    <span class="font-poppins font-semibold text-[17px] leading-[1.25] text-text-strong">${e.name}</span>
+                    <span class="font-poppins font-bold text-[28px] text-text-strong">${e.cumulativeScore.toFixed(1)} <span class="font-inter font-medium text-[13px] text-text-muted">pts</span></span>
+                </div>`;
+            }).join('');
+
+            const headCols = roundCols.map(r => `<th class="p-4 text-center font-inter font-semibold text-[11px] tracking-[1px] uppercase text-text-muted" style="text-transform:uppercase">R${r.round}<br><span class="font-medium normal-case" style="letter-spacing:0">${(r.month || '').slice(0, 3)}</span></th>`).join('');
+
+            const rowsHtml = rows.map(entry => {
+                const cells = roundCols.map(r => {
+                    const v = entry['r' + r.round];
+                    const has = v !== undefined && v !== null;
+                    const color = has ? roundColorVars[r.round - 1] : 'var(--text-faint)';
+                    const opacity = has && v === 0 ? 'opacity:0.55' : '';
+                    return `<td class="p-3.5 text-center font-poppins font-bold text-[15px]" style="color:${color};${opacity}">${has ? v : '–'}</td>`;
+                }).join('');
+                return `
+                <tr class="hover:bg-surface-2 transition">
+                    <td class="p-3.5 text-center">${leaderboardBadgeHtml(entry.rank)}</td>
+                    <td class="p-3.5 text-left">
+                        <div class="font-poppins font-semibold text-[15px] text-text-strong">${entry.name}</div>
+                        <div class="font-inter text-xs text-text-faint mt-0.5">${entry.email || ''}</div>
+                    </td>
+                    ${cells}
+                    <td class="p-3.5 text-center font-poppins font-bold text-[17px] text-text-strong" style="background:var(--surface-2)">${entry.cumulativeScore.toFixed(1)}</td>
+                </tr>`;
+            }).join('');
+
+            return `
+            <section aria-label="Top three" class="flex justify-center items-end gap-4 flex-wrap mb-7">${podiumHtml}</section>
+            <section class="rounded-3xl bg-surface border border-border overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="border-collapse w-full" style="min-width:1080px">
+                        <thead>
+                            <tr style="background:var(--surface-2)">
+                                <th class="p-4 font-inter font-semibold text-[11px] tracking-[1px] uppercase text-text-muted" style="width:70px;text-transform:uppercase">Rank</th>
+                                <th class="p-4 text-left font-inter font-semibold text-[11px] tracking-[1px] uppercase text-text-muted" style="min-width:220px;text-transform:uppercase">Participant detail</th>
+                                ${headCols}
+                                <th class="p-4 font-inter font-semibold text-[11px] tracking-[1px] uppercase text-gold-text" style="background:var(--surface-2);text-transform:uppercase">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+            </section>`;
+        }
+
+        function renderLeaderboard() {
+            const lastClosed = Challenges.allRounds().find(r => Challenges.statusOf(r) === 'closed');
+            const eyebrowText = lastClosed ? `Leaderboard · after Round ${lastClosed.round}` : 'Leaderboard';
+
+            return `
+            <div class="max-w-6xl mx-auto space-y-7 animate-in fade-in">
+                <div class="flex flex-col gap-2 items-center text-center">
+                    <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">${eyebrowText}</span>
+                    <h1 class="m-0 font-poppins font-bold text-[44px] leading-[1.1] text-text-strong shell-sentence-case">Innovation leaderboard</h1>
+                    <p class="m-0 font-inter font-medium text-[15px] text-link shell-sentence-case">Real-time performance standings (verified)</p>
+                </div>
+                <div class="flex justify-between items-center gap-4 flex-wrap">
+                    <label class="flex items-center gap-2.5">
+                        <span class="font-inter font-semibold text-[13px] text-text-2">Find a name</span>
+                        <input class="fld" style="width:240px;height:44px" value="${state.leaderboardQuery || ''}" oninput="handleLeaderboardSearch(this.value)" placeholder="Type to filter…">
+                    </label>
+                    <span id="leaderboard-count" class="font-inter font-medium text-[13px] text-text-muted">${leaderboardCountText()}</span>
+                </div>
+                <div id="leaderboard-results">${renderLeaderboardResults()}</div>
+                <div class="px-5 py-4.5 rounded-2xl bg-surface border flex gap-3 flex-wrap items-center justify-between" style="border-color:rgba(242,181,68,0.45)">
+                    <span class="font-inter font-medium text-sm leading-[1.5] text-text-2"><strong class="text-gold-text">Heads up:</strong> positions count for the year-end rewards only when all assigned Alison courses are complete.</span>
+                    <a href="${Router.buildHash('winners')}" class="font-inter font-semibold text-sm">See monthly winners →</a>
+                </div>
+            </div>`;
+        }
         function renderSubmissionCard(item, round) {
             const [c1, c2] = deptColorsFor(item);
             const name = getSubmissionDisplayName(item);
@@ -1551,22 +1716,29 @@
                 return;
             }
             const data = state.formData;
+            const isGroup = state.submissionType === 'group';
 
-            if (!data.email || !data.email.toLowerCase().trim().endsWith('@descasio.io')) {
-                showFormError('Work email must be a @descasio.io address.');
-                return;
+            function isDescasioEmail(v) {
+                return !!v && v.toLowerCase().trim().endsWith('@descasio.io');
             }
-            if (!data.name) {
-                showFormError(state.submissionType === 'group' ? 'Team lead full name is required.' : 'Full name is required.');
-                return;
-            }
-            if (!data.dept) {
-                showFormError('Department is required.');
-                return;
-            }
-            if (state.submissionType === 'group' && !data.teamName) {
-                showFormError('Team name is required.');
-                return;
+
+            if (isGroup) {
+                if (!data.teamName) { showFormError('Team name is required.'); return; }
+                if (!data.member1Name) { showFormError('Member 1 (team lead) name is required.'); return; }
+                if (!isDescasioEmail(data.member1Email)) { showFormError('Member 1 (team lead) email must be a @descasio.io address.'); return; }
+                if (!data.member1Dept) { showFormError('Member 1 (team lead) department is required.'); return; }
+                if (!data.member2Name) { showFormError('Member 2 name is required.'); return; }
+                if (!isDescasioEmail(data.member2Email)) { showFormError('Member 2 email must be a @descasio.io address.'); return; }
+                if (!data.member2Dept) { showFormError('Member 2 department is required.'); return; }
+                // The feed and the duplicate check always read name/email/dept, so the
+                // team lead (member 1) doubles as those fields for group entries too.
+                data.name = data.member1Name;
+                data.email = data.member1Email;
+                data.dept = data.member1Dept;
+            } else {
+                if (!data.name) { showFormError('Full name is required.'); return; }
+                if (!isDescasioEmail(data.email)) { showFormError('Work email must be a @descasio.io address.'); return; }
+                if (!data.dept) { showFormError('Department is required.'); return; }
             }
 
             for (const req of (round.requirements || [])) {
@@ -1620,19 +1792,75 @@
             }
         }
 
+        function showIdeaFormError(msg) {
+            const errEl = document.getElementById('ideaStatus');
+            if (errEl) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function resetIdeaForm() {
+            state.ideaSent = false;
+            updateUI();
+        }
+
+        function toggleIdeaExpand(id) {
+            state.expandedIdeaId = state.expandedIdeaId === id ? null : id;
+            updateUI();
+        }
+
         async function handleIdeaSubmit(e) {
             e.preventDefault();
             const data = state.ideaData;
+            if (!data.name) { showIdeaFormError('Full name is required.'); return; }
+            if (!data.email || !data.email.toLowerCase().trim().endsWith('@descasio.io')) { showIdeaFormError('Work email must be a @descasio.io address.'); return; }
+            if (!data.dept) { showIdeaFormError('Department is required.'); return; }
+            if (!data.title) { showIdeaFormError('Idea title is required.'); return; }
+            if (!data.description) { showIdeaFormError('Description is required.'); return; }
+
+            const errEl = document.getElementById('ideaStatus');
+            if (errEl) errEl.classList.add('hidden');
+
+            state.ideaSubmitting = true;
+            updateUI();
             try {
                 await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('ideas').add({
                     ...data,
                     timestamp: new Date().toISOString()
                 });
                 state.ideaData = {};
+                state.ideaSubmitting = false;
+                state.ideaSent = true;
                 updateUI();
             } catch (err) {
                 console.error(err);
+                state.ideaSubmitting = false;
+                showIdeaFormError('Something went wrong - please try again.');
+                updateUI();
             }
+        }
+
+        function leaderboardFilteredRows() {
+            const q = (state.leaderboardQuery || '').trim().toLowerCase();
+            return q ? state.leaderboard.filter(e => (e.name || '').toLowerCase().includes(q)) : state.leaderboard;
+        }
+
+        function leaderboardCountText() {
+            const q = (state.leaderboardQuery || '').trim().toLowerCase();
+            if (!q) return 'Ties share a rank';
+            const n = leaderboardFilteredRows().length;
+            return `${n} match${n === 1 ? '' : 'es'}`;
+        }
+
+        // Direct DOM patch (not updateUI()) so typing in the search box isn't blocked by
+        // updateUI()'s focused-input guard - see js/app.js's updateUI() for that guard.
+        function handleLeaderboardSearch(value) {
+            state.leaderboardQuery = value;
+            const resultsEl = document.getElementById('leaderboard-results');
+            const countEl = document.getElementById('leaderboard-count');
+            if (resultsEl) resultsEl.innerHTML = renderLeaderboardResults();
+            if (countEl) countEl.innerText = leaderboardCountText();
         }
 
         Router.onRouteChange((route) => {
