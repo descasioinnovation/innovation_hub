@@ -1,10 +1,16 @@
-// Loads the local preview (OTP bypass via ?preview=1), captures console errors, and
-// takes screenshots of all six tabs (Dashboard, Challenges, Submissions, Idea Hub,
-// Winners, Leaderboard) at 1440/768/390px, plus a few desktop-only extras (Challenges
-// round-8/round-1, Submissions round-8, the details modal, the forceOpen=9 variant
-// of #submit so the Round 9 form can be seen while it's really still upcoming, and the
-// hover state of a few representative links/buttons/cards from the polish pass), into
-// backups/<date>/screens/.
+// Captures console errors and takes screenshots of all six tabs (Dashboard,
+// Challenges, Submissions, Idea Hub, Winners, Leaderboard) at 1440/768/390px, plus a
+// few desktop-only extras (Challenges round-8/round-1, Submissions round-8, the
+// details modal, the forceOpen=9 variant of #submit so the Round 9 form can be seen
+// while it's really still upcoming, and the hover state of a few representative
+// links/buttons/cards from the polish pass), into backups/<date>/screens/.
+//
+// Step 7A removed the ?preview=1 OTP-gate bypass from the app itself, so this script
+// now authenticates the same way the real login flow would leave a visitor logged in:
+// it seeds localStorage's descasio_hub_auth entry directly (what verifyOtp() writes
+// on a real successful code check), via context.addInitScript so it's in place before
+// the app's own JS runs on every navigation. ?preview=1 is still required for the
+// forceOpen/now dev-only overrides (unrelated to login) - see js/challenges.js.
 
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -12,6 +18,17 @@ const path = require('path');
 
 const BASE = 'http://localhost:8080/?preview=1';
 const WIDTHS = [1440, 768, 390];
+
+function seedAuth(context) {
+    return context.addInitScript(() => {
+        try {
+            localStorage.setItem('descasio_hub_auth', JSON.stringify({
+                email: 'qa.screenshot@descasio.io',
+                expiry: Date.now() + (24 * 60 * 60 * 1000)
+            }));
+        } catch (e) { /* ignore */ }
+    });
+}
 
 const PAGES = [
     { hash: '#dashboard', name: 'dashboard' },
@@ -43,6 +60,7 @@ async function main() {
 
     for (const width of WIDTHS) {
         const context = await browser.newContext({ viewport: { width, height: 1000 } });
+        await seedAuth(context);
         const page = await context.newPage();
         page.on('console', msg => { if (msg.type() === 'error') errors.push(`[w${width}] console.error: ${msg.text()}`); });
         page.on('pageerror', err => errors.push(`[w${width}] pageerror: ${err.message}`));
@@ -56,6 +74,7 @@ async function main() {
 
     // Desktop-only extras
     const context = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
+    await seedAuth(context);
     const page = await context.newPage();
     page.on('console', msg => { if (msg.type() === 'error') errors.push(`console.error: ${msg.text()}`); });
     page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));

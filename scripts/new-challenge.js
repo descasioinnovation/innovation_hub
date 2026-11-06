@@ -50,6 +50,12 @@ async function main() {
     const data = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
     delete data._comment;
 
+    // Firestore rules can't parse an ISO-8601 string into a Timestamp, so the open-round
+    // submission rule compares against plain epoch-millisecond numbers - derived here
+    // automatically, never hand-typed in the source JSON.
+    if (data.opensAt) data.opensAtMs = new Date(data.opensAt).getTime();
+    if (data.closesAt) data.closesAtMs = new Date(data.closesAt).getTime();
+
     const errors = validate(data);
     if (errors.length) {
         console.error('Validation failed:');

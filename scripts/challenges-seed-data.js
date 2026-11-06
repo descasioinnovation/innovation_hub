@@ -363,4 +363,13 @@ const CHALLENGES = [
     }
 ];
 
+// Firestore security rules can't parse an ISO-8601 string into a Timestamp, so the
+// open-round submission rule (Step 7D) compares against plain epoch-millisecond
+// numbers instead. Derived automatically from opensAt/closesAt here so every round
+// (present and future) gets them for free - never hand-typed.
+for (const ch of CHALLENGES) {
+    if (ch.opensAt) ch.opensAtMs = new Date(ch.opensAt).getTime();
+    if (ch.closesAt) ch.closesAtMs = new Date(ch.closesAt).getTime();
+}
+
 module.exports = { CHALLENGES };

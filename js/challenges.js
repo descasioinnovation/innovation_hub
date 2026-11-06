@@ -72,9 +72,9 @@ const Challenges = (() => {
     }
 
     // DEV-ONLY testing override: on localhost with ?preview=1&forceOpen=N in the URL,
-    // round N is treated as "open" regardless of its real dates. Both the localhost check
-    // and the ?preview=1 flag are required, same structural guarantee as app.js's OTP
-    // bypass - impossible on the live domain, whose hostname is never localhost/127.0.0.1.
+    // round N is treated as "open" regardless of its real dates. Both the exact-match
+    // localhost/127.0.0.1 hostname check and the ?preview=1 flag are required -
+    // structurally impossible on the live domain, whose hostname is never either of those.
     function getForcedOpenRound() {
         try {
             const host = location.hostname;
@@ -92,8 +92,8 @@ const Challenges = (() => {
     // DEV-ONLY testing override: on localhost with ?preview=1&now=<ISO date> in the URL,
     // every "current time" calculation in this module (and app.js's countdown, via
     // Challenges.previewNow()) uses that date instead of the real clock, so the whole
-    // round lifecycle can be exercised at any simulated moment. Same localhost+preview
-    // guarantee as getForcedOpenRound() - structurally impossible on the live domain.
+    // round lifecycle can be exercised at any simulated moment. Same exact-match
+    // localhost/127.0.0.1 + ?preview=1 guarantee as getForcedOpenRound() above.
     function previewNow() {
         try {
             const host = location.hostname;

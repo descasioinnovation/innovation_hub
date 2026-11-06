@@ -21,8 +21,6 @@
             'Unknown': ['#1C3150', '#4A6488']
         };
 
-        let ADMIN_HASH = "e28f7db64cfc2056566ea88b8100b9969be70080f868590301d4f0005c536d30";
-
         const MONTHLY_RECORDS = [{
                 month: "March",
                 winner: "Michael Oredunni",

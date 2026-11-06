@@ -1,10 +1,10 @@
 // Sets a round's winner on its challenges doc, deriving winnerName from the given
-// submission (teamName for a group entry, name for an individual one). Dry-run by
-// default; pass --apply to write. Only ever updates winnerName, winningSubmissionId,
-// winnerImage and winnerLabel - nothing else on the doc, and never touches the
-// submissions collection.
+// submission (teamName for a group entry, name for an individual one) unless --name
+// overrides it with a specific display name. Dry-run by default; pass --apply to
+// write. Only ever updates winnerName, winningSubmissionId, winnerImage and
+// winnerLabel - nothing else on the doc, and never touches the submissions collection.
 //
-// Usage: node scripts/set-winner.js <round> <submissionId> [winnerImageUrl] [winnerLabel] [--apply]
+// Usage: node scripts/set-winner.js <round> <submissionId> [winnerImageUrl] [winnerLabel] [--name "<display name>"] [--apply]
 const admin = require('firebase-admin');
 
 const PROJECT_ID = 'ai-innovation-hub-submissions';
@@ -16,12 +16,24 @@ function getAdminApp() {
 }
 
 async function main() {
-    const args = process.argv.slice(2).filter(a => a !== '--apply');
-    const apply = process.argv.includes('--apply');
+    const rawArgs = process.argv.slice(2);
+    const apply = rawArgs.includes('--apply');
+
+    let nameOverride = null;
+    const nameIdx = rawArgs.indexOf('--name');
+    if (nameIdx !== -1) {
+        nameOverride = rawArgs[nameIdx + 1];
+        if (!nameOverride) {
+            console.error('--name requires a value, e.g. --name "MaryBlessing Umeh"');
+            process.exit(1);
+        }
+    }
+
+    const args = rawArgs.filter((a, i) => a !== '--apply' && a !== '--name' && i !== nameIdx + 1);
     const [roundArg, submissionId, winnerImageArg, winnerLabelArg] = args;
 
     if (!roundArg || !submissionId) {
-        console.error('Usage: node scripts/set-winner.js <round> <submissionId> [winnerImageUrl] [winnerLabel] [--apply]');
+        console.error('Usage: node scripts/set-winner.js <round> <submissionId> [winnerImageUrl] [winnerLabel] [--name "<display name>"] [--apply]');
         process.exit(1);
     }
     const round = Number(roundArg);
@@ -54,7 +66,7 @@ async function main() {
     }
     const challenge = challengeSnap.data();
 
-    const winnerName = submission.type === 'group' ? submission.teamName : submission.name;
+    const winnerName = nameOverride || (submission.type === 'group' ? submission.teamName : submission.name);
     if (!winnerName) {
         console.error(`Submission ${submissionId} has no usable name/teamName field.`);
         process.exit(1);

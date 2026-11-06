@@ -8,30 +8,15 @@
             }
         })();
 
-        // DEV-ONLY: skips the OTP login gate for Playwright screenshots. Active only when
-        // BOTH location.hostname is localhost/127.0.0.1 AND ?preview=1 is in the URL - both
-        // conditions fail together on the live site (ai.innovation-hub.com.ng has a real
-        // hostname, so this is structurally impossible in production, not just unlikely).
-        // Remove this block (and the isAuthenticated line below reverts to `!!persistedAuth`)
-        // once the redesign no longer needs local screenshot runs.
-        const isLocalPreviewBypass = (() => {
-            try {
-                const host = location.hostname;
-                const isLocalHost = host === 'localhost' || host === '127.0.0.1';
-                const hasPreviewFlag = new URLSearchParams(location.search).get('preview') === '1';
-                return isLocalHost && hasPreviewFlag;
-            } catch (e) {
-                return false;
-            }
-        })();
-
         let state = {
             user: null,
-            isAuthenticated: !!persistedAuth || isLocalPreviewBypass,
+            isAuthenticated: !!persistedAuth,
             gatewayView: 'email',
             authEmail: persistedAuth ? persistedAuth.email : '',
-            generatedOtp: null,
+            otpHash: null,
+            otpSalt: null,
             otpExpiry: null,
+            otpUsed: false,
             activeTab: 'dashboard',
             routeSub: null,
             submissionType: 'individual',
@@ -42,6 +27,8 @@
             selectedIdea: null,
             isAdmin: false,
             showAdminLogin: false,
+            adminSignInError: null,
+            adminSigningIn: false,
             challengeClosed: false,
             timeLeft: {
                 days: 0,
@@ -78,6 +65,7 @@
             state.loading = true;
             updateUI();
             const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const salt = crypto.randomUUID();
             const expiry = Date.now() + (60 * 60 * 1000);
             try {
                 await emailjs.send("service_v9ysmxt", "template_20x7ujf", {
@@ -85,8 +73,12 @@
                     otp_code: otp
                 });
                 state.authEmail = email;
-                state.generatedOtp = otp;
+                // Only a salted hash of the code is kept in memory - never the plain code
+                // itself (interim hardening; see SECURITY_NOTES.md for the full fix).
+                state.otpHash = await hashString(salt + otp);
+                state.otpSalt = salt;
                 state.otpExpiry = expiry;
+                state.otpUsed = false;
                 state.gatewayView = 'otp';
                 state.loading = false;
                 updateUI();
@@ -100,12 +92,18 @@
 
         async function verifyOtp() {
             const entered = document.getElementById('gatewayOtp').value.trim();
+            if (state.otpUsed) {
+                showGatewayError("This code has already been used. Please request a new one.");
+                return;
+            }
             if (Date.now() > state.otpExpiry) {
                 showGatewayError("Code has expired. Please request a new one.");
                 return;
             }
-            if (entered === state.generatedOtp) {
+            const enteredHash = await hashString(state.otpSalt + entered);
+            if (enteredHash === state.otpHash) {
                 state.isAuthenticated = true;
+                state.otpUsed = true; // single-use: this hash cannot be matched again
                 try {
                     localStorage.setItem('descasio_hub_auth', JSON.stringify({
                         email: state.authEmail,
@@ -684,82 +682,6 @@
             `;
         }
 
-        // Unchanged submission form (same handleFormSubmit/setSubmissionType/state.formData
-        // wiring as the pre-redesign Challenge tab) - only the round number is now dynamic.
-        function renderSubmissionForm(round) {
-            return `
-                <div class="bg-slate-900 border-2 border-blue-500/20 rounded-[3rem] p-12 shadow-2xl">
-                    <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round ${round} Submission</h3>
-                    <div class="flex gap-4 mb-10 bg-slate-950 p-2 rounded-2xl border border-slate-800 max-w-md">
-                        <button onclick="setSubmissionType('individual')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'individual' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Individual</button>
-                        <button onclick="setSubmissionType('group')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'group' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Group (Team of 2)</button>
-                    </div>
-                    <form onsubmit="handleFormSubmit(event)" class="space-y-8">
-                        ${state.submissionType === 'individual' ? `
-                            <div class="grid md:grid-cols-2 gap-6 animate-in fade-in">
-                                <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Full Name</label><input required oninput="handleFormInput('formData', 'name', this.value)" value="${state.formData.name || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
-                                <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Email (@descasio.io)</label><input required oninput="handleFormInput('formData', 'email', this.value)" value="${state.formData.email || ''}" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
-                                <div class="space-y-2 col-span-full"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Department</label><select onchange="handleFormInput('formData', 'dept', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"><option value="">Select Dept</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
-                            </div>
-                        ` : `
-                            <div class="space-y-8 animate-in slide-in-from-top-2">
-                                <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Team Name</label><input required oninput="handleFormInput('formData', 'teamName', this.value)" value="${state.formData.teamName || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-black uppercase italic" placeholder="THE GUARDIANS"></div>
-                                <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
-                                    <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 01</span></div>
-                                    <div class="space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
-                                        <input required oninput="handleFormInput('formData', 'member1Name', this.value)" value="${state.formData.member1Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
-                                        <input required oninput="handleFormInput('formData', 'member1Email', this.value)" value="${state.formData.member1Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                    </div>
-                                    <div class="col-span-full space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
-                                        <select onchange="handleFormInput('formData', 'member1Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
-                                            <option value="">Select Dept</option>
-                                            ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
-                                    <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 02</span></div>
-                                    <div class="space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
-                                        <input required oninput="handleFormInput('formData', 'member2Name', this.value)" value="${state.formData.member2Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
-                                        <input required oninput="handleFormInput('formData', 'member2Email', this.value)" value="${state.formData.member2Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
-                                    </div>
-                                    <div class="col-span-full space-y-2">
-                                        <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
-                                        <select onchange="handleFormInput('formData', 'member2Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
-                                            <option value="">Select Dept</option>
-                                            ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        `}
-                        <div class="pt-10 border-t border-slate-800 space-y-8">
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase ml-1">1. Submission Document Link</label>
-                                <input required oninput="handleFormInput('formData', 'submissionDocLink', this.value)" value="${state.formData.submissionDocLink || ''}" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="https://gemini.google.com/share/...">
-                                <p class="text-[10px] text-slate-500 italic mt-1 ml-1">Paste your Gemini Canvas share link. Open it in a private window first to check it loads without signing in.</p>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Tools Used</label>
-                                <input required oninput="handleFormInput('formData', 'toolsUsed', this.value)" value="${state.formData.toolsUsed || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="e.g. ChatGPT, Gemini, Claude, Custom Prompt Guardrails">
-                            </div>
-                        </div>
-                        <div id="formStatus" class="hidden text-red-400 text-[10px] font-bold uppercase tracking-wider"></div>
-                        <button type="submit" ${state.challengeClosed ? 'disabled' : ''} class="w-full ${state.challengeClosed ? 'bg-slate-700 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-500'} text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">${state.challengeClosed ? 'Submissions Closed' : `Submit Round ${round} Entry`}</button>
-                    </form>
-                </div>
-            `;
-        }
-
         function renderTabContent() {
             if (state.activeTab === 'dashboard') {
                 return renderDashboard();
@@ -782,6 +704,13 @@
                 return renderLeaderboard();
             }
             if (state.activeTab === 'admin') {
+                if (!state.isAdmin) {
+                    return `
+                        <div class="text-center py-24">
+                            <h2 class="text-2xl font-black text-white italic uppercase tracking-tighter mb-4">Not an admin</h2>
+                            <p class="text-slate-500 text-sm">This area is restricted. Use the Admin button to sign in with an admin Google account.</p>
+                        </div>`;
+                }
                 return `
                     <div class="space-y-6">
                         <div class="flex justify-between items-end border-b border-slate-800 pb-10"><div><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Admin Control</h2></div><button onclick="logoutAdmin()" class="bg-red-600/10 text-red-500 text-[10px] font-black uppercase px-6 py-3 rounded-xl border border-red-500/20 hover:bg-red-600 hover:text-white transition-all">Sign Out</button></div>
@@ -1602,13 +1531,15 @@
             return `
                 <div class="fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in duration-300">
                     <div class="bg-slate-900 max-md w-full p-12 rounded-[3rem] border-2 border-slate-800 shadow-2xl text-center custom-card">
-                        <div class="w-24 h-24 bg-blue-600/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-blue-500/20 shadow-inner"><i data-lucide="lock" class="text-blue-500 w-12 h-12"></i></div>
-                        <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-10">Admin Access Restricted</h3>
-                        <input type="password" id="adminCode" class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:border-blue-600 transition-all font-mono tracking-[1em] mb-6" placeholder="••••">
-                        <div id="adminCodeError" class="hidden text-red-500 text-[10px] font-bold uppercase mb-6"></div>
-                        <div class="flex gap-4">
-                            <button onclick="toggleAdminLogin()" class="flex-1 p-5 rounded-2xl border border-slate-800 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition">ABORT</button>
-                            <button onclick="authorizeAdmin()" class="flex-1 p-5 rounded-2xl bg-blue-600 text-white font-black text-[11px] uppercase tracking-[0.2em] hover:bg-blue-500 shadow-2xl transition">VERIFY</button>
+                        <div class="w-24 h-24 bg-blue-600/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-blue-500/20 shadow-inner"><i data-lucide="shield-check" class="text-blue-500 w-12 h-12"></i></div>
+                        <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-6">Admin Access</h3>
+                        <p class="text-slate-400 text-sm italic mb-10 px-4 leading-relaxed">Sign in with your Descasio Google account. Only accounts granted admin access will see the Admin tab.</p>
+                        ${state.adminSignInError ? `<div class="text-red-500 text-[10px] font-bold uppercase mb-6">${state.adminSignInError}</div>` : ''}
+                        <div class="flex flex-col gap-4">
+                            <button onclick="signInAdminWithGoogle()" ${state.adminSigningIn ? 'disabled' : ''} class="w-full bg-white text-black font-black py-5 rounded-2xl uppercase tracking-widest text-[11px] hover:bg-blue-50 transition shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed">
+                                ${state.adminSigningIn ? '<div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>' : 'Sign in with Google'}
+                            </button>
+                            <button onclick="toggleAdminLogin()" class="w-full p-4 rounded-2xl border border-slate-800 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition">Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -1621,32 +1552,46 @@
 
         function toggleAdminLogin() {
             state.showAdminLogin = !state.showAdminLogin;
+            state.adminSignInError = null;
             updateUI();
         }
-        function showAdminError(msg) {
-            const errEl = document.getElementById('adminCodeError');
-            if (errEl) {
-                errEl.innerText = msg;
-                errEl.classList.remove('hidden');
+
+        // Admin access is now a Google Sign-In + custom claim (set via scripts/set-admin.js),
+        // not a client-side password - see Step 7B. Anyone can sign in with Google; only an
+        // account with the admin claim actually gets the Admin tab. A non-admin signer is
+        // told politely and dropped back to the normal anonymous session.
+        async function signInAdminWithGoogle() {
+            state.adminSignInError = null;
+            state.adminSigningIn = true;
+            updateUI();
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                await auth.signInWithPopup(provider);
+                const tokenResult = await auth.currentUser.getIdTokenResult(true); // force-refresh: custom claims aren't in a cached token
+                if (tokenResult.claims && tokenResult.claims.admin === true) {
+                    state.isAdmin = true;
+                    state.showAdminLogin = false;
+                    state.activeTab = 'admin';
+                } else {
+                    state.adminSignInError = 'This Google account is not an admin.';
+                    await auth.signOut(); // onAuthStateChanged below re-establishes the anonymous session
+                }
+            } catch (e) {
+                console.error(e);
+                state.adminSignInError = 'Google sign-in failed. Please try again.';
             }
+            state.adminSigningIn = false;
+            updateUI();
         }
 
-        async function authorizeAdmin() {
-            const code = document.getElementById('adminCode').value;
-            const hashed = await hashString(code);
-            if (hashed === ADMIN_HASH) {
-                state.isAdmin = true;
-                state.showAdminLogin = false;
-                state.activeTab = 'admin';
-                updateUI();
-            } else {
-                showAdminError("Incorrect code.");
-            }
-        }
-
-        function logoutAdmin() {
+        async function logoutAdmin() {
             state.isAdmin = false;
             state.activeTab = 'dashboard';
+            try {
+                await auth.signOut(); // onAuthStateChanged below re-establishes the anonymous session
+            } catch (e) {
+                console.error(e);
+            }
             updateUI();
         }
 
@@ -1874,11 +1819,30 @@
             updateUI();
         });
 
+        // Fires on every auth transition - initial anonymous sign-in, Google sign-in for
+        // admin, and signing back out of Google into a fresh anonymous session. The
+        // Firestore listeners/Challenges/router wiring must only ever run ONCE (guarded by
+        // listenersWired below); re-running it on every admin sign-in/out would re-register
+        // duplicate onSnapshot listeners. The admin-claim check, by contrast, must run on
+        // EVERY transition, since that's exactly how an admin session starts/ends.
+        let listenersWired = false;
         auth.onAuthStateChanged(async (user) => {
             if (!user) {
                 await auth.signInAnonymously();
-            } else {
-                state.user = user;
+                return; // the resulting call with a real (anonymous) user handles the rest
+            }
+
+            state.user = user;
+            try {
+                const tokenResult = await user.getIdTokenResult();
+                state.isAdmin = !!(tokenResult.claims && tokenResult.claims.admin === true);
+            } catch (e) {
+                state.isAdmin = false;
+            }
+
+            if (!listenersWired) {
+                listenersWired = true;
+
                 setInterval(() => {
                     updateCountdown();
                 }, 60000); // spec: "Update every minute"
@@ -1926,6 +1890,7 @@
                 });
 
                 Router.onRoute(); // sync state.activeTab/routeSub from the current URL hash
-                updateUI();
             }
+
+            updateUI();
         });
