@@ -1,0 +1,242 @@
+/* ===== Design tokens (redesign/DESIGN_SPEC.md) ===== */
+:root {
+    --bg: #050E1C;
+    --surface: #0B1A2E;
+    --surface-2: #10223A;
+    --surface-active: #12345C;
+    --border: #1C3150;
+    --border-strong: #2A4466;
+    --border-muted: #4A6488;
+    --text: #EAF1F8;
+    --text-strong: #FFFFFF;
+    --text-2: #C9D8E8;
+    --text-muted: #9FB3C8;
+    --text-faint: #8197AE;
+    --navy: #003366;
+    --coral: #E6533C;
+    --coral-btn: #C8432D;
+    --brand-blue: #00AEEF;
+    --link: #7FD6F7;
+    --gold: #F2B544;
+    --gold-text: #F6CD7F;
+    --green: #3FA66B;
+    --green-text: #8FE0B0;
+    --medal-gold: #F2B544;
+    --medal-silver: #C9D3DF;
+    --medal-bronze: #E08A5A;
+    --round-1: #C9D3DF;
+    --round-2: #5AA9F0;
+    --round-3: #8E8CF2;
+    --round-4: #C084F5;
+    --round-5: #4FB4F0;
+    --round-6: #3ECF8E;
+    --round-7: #F2B544;
+    --round-8: #F2667A;
+    --round-9: #8197AE;
+}
+
+/* ===== Fonts & focus / motion (DESIGN_SPEC.md "Design system") ===== */
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-poppins {
+    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+}
+
+/* New shell elements use sentence case per the spec; existing tab-content headings
+   (still italic/uppercase in their own markup) are untouched for now. */
+.shell-sentence-case {
+    text-transform: none;
+    font-style: normal;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid var(--brand-blue);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* No horizontal page scroll at any width; only the leaderboard table scrolls sideways
+   inside its own card (existing .overflow-x-auto wrapper there already handles that). */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+
+/* ===== Legacy rules, unchanged - still used throughout the existing (untouched) tab
+   content bodies. Do not remove without first rebuilding that content. ===== */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #e2e8f0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-4 {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .custom-card {
+            background: linear-gradient(145deg, #0f172a, #020617);
+            border: 1px solid #1e293b;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 50%, #020617 100%);
+        }
+
+        .btn-shiny {
+            background: linear-gradient(-45deg, #4f46e5, #7c3aed, #2563eb, #4f46e5);
+            background-size: 400% 400%;
+            animation: gradient-flow 3s ease infinite, pulse-glow 2s infinite;
+        }
+
+        @keyframes gradient-flow {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(124, 58, 237, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+            }
+        }
+
+        .highlight-text {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .rank-badge-1 {
+            background: linear-gradient(to bottom, #fde047, #ca8a04);
+            color: #422006;
+        }
+
+        .rank-badge-2 {
+            background: linear-gradient(to bottom, #e2e8f0, #94a3b8);
+            color: #0f172a;
+        }
+
+        .rank-badge-3 {
+            background: linear-gradient(to bottom, #fb923c, #c2410c);
+            color: #431407;
+        }
+
+        .floating-avatar {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+/* ===== New shell (header / nav / footer / announcement bar) ===== */
+a {
+    color: var(--link);
+}
+a:hover {
+    color: var(--text-strong);
+}
+
+.shell-nav-link {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+.shell-nav-link:hover {
+    color: var(--text-strong);
+}
+.shell-nav-link--active {
+    background: var(--surface-2);
+    color: var(--text-strong);
+}
+
+/* Phone (<=768px): nav drops to its own full-width row and scrolls horizontally
+   instead of wrapping - "no hidden hamburger" per the spec. */
+.shell-nav {
+    order: 3;
+    flex-basis: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.shell-admin-btn {
+    order: 2;
+    margin-left: auto;
+}
+@media (min-width: 768px) {
+    .shell-nav {
+        order: 2;
+        flex-basis: auto;
+        flex-wrap: wrap;
+        overflow-x: visible;
+    }
+    .shell-admin-btn {
+        order: 3;
+        margin-left: 0;
+    }
+}
+
+/* Final override: new design-token background/text wins over the legacy body rule
+   above (same selector specificity - last rule in the cascade applies). */
+body {
+    background-color: var(--bg);
+    color: var(--text);
+}

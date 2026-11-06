@@ -1,0 +1,1163 @@
+        // --- Safe persistedAuth evaluation to avoid execution halt ReferenceErrors ---
+        const persistedAuth = (() => {
+            try {
+                const data = localStorage.getItem('descasio_hub_auth');
+                return data ? JSON.parse(data) : null;
+            } catch (e) {
+                return null;
+            }
+        })();
+
+        let state = {
+            user: null,
+            isAuthenticated: !!persistedAuth,
+            gatewayView: 'email',
+            authEmail: persistedAuth ? persistedAuth.email : '',
+            generatedOtp: null,
+            otpExpiry: null,
+            activeTab: 'dashboard',
+            routeSub: null,
+            submissionType: 'individual',
+            submissions: [],
+            ideas: [],
+            leaderboard: [...FINAL_STANDINGS],
+            selectedInnovation: null,
+            selectedIdea: null,
+            isAdmin: false,
+            showAdminLogin: false,
+            challengeClosed: false,
+            timeLeft: {
+                days: 0,
+                hours: 0,
+                mins: 0,
+                label: "HUNT ENDS"
+            },
+            formData: {},
+            ideaData: {},
+            loading: false
+        };
+
+        async function hashString(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function requestOtp() {
+            const email = document.getElementById('gatewayEmail').value.trim().toLowerCase();
+            if (!email.endsWith('@descasio.io')) {
+                showGatewayError("Access restricted to @descasio.io email addresses.");
+                return;
+            }
+            state.loading = true;
+            updateUI();
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiry = Date.now() + (60 * 60 * 1000);
+            try {
+                await emailjs.send("service_v9ysmxt", "template_20x7ujf", {
+                    to_email: email,
+                    otp_code: otp
+                });
+                state.authEmail = email;
+                state.generatedOtp = otp;
+                state.otpExpiry = expiry;
+                state.gatewayView = 'otp';
+                state.loading = false;
+                updateUI();
+            } catch (err) {
+                console.error(err);
+                showGatewayError("Failed to send code. Please check your connection.");
+                state.loading = false;
+                updateUI();
+            }
+        }
+
+        async function verifyOtp() {
+            const entered = document.getElementById('gatewayOtp').value.trim();
+            if (Date.now() > state.otpExpiry) {
+                showGatewayError("Code has expired. Please request a new one.");
+                return;
+            }
+            if (entered === state.generatedOtp) {
+                state.isAuthenticated = true;
+                try {
+                    localStorage.setItem('descasio_hub_auth', JSON.stringify({
+                        email: state.authEmail,
+                        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000)
+                    }));
+                } catch (e) {}
+                updateUI();
+                if (state.user) {
+                    try {
+                        await db.collection('artifacts').doc(STABLE_APP_ID)
+                            .collection('users').doc(state.user.uid)
+                            .collection('profile').doc('session').set({
+                                email: state.authEmail,
+                                authenticated: true,
+                                timestamp: new Date().getTime()
+                            });
+                    } catch (e) {
+                        console.error("Firestore persistence failed", e);
+                    }
+                }
+            } else {
+                showGatewayError("Invalid access code.");
+            }
+        }
+
+        function showGatewayError(msg) {
+            const errEl = document.getElementById('gatewayError');
+            if (errEl) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function formatWATDateTime(isoDate) {
+            const d = new Date(isoDate);
+            return {
+                weekday: d.toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Africa/Lagos' }),
+                day: d.toLocaleDateString('en-GB', { day: 'numeric', timeZone: 'Africa/Lagos' }),
+                month: d.toLocaleDateString('en-GB', { month: 'short', timeZone: 'Africa/Lagos' }),
+                time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Africa/Lagos' })
+            };
+        }
+
+        // Countdown is driven by the challenges collection (js/challenges.js) instead of a
+        // hand-edited target date. Targets the current round's closesAt, or its opensAt when
+        // the round hasn't opened yet (e.g. Round 9 before Mon 9 Nov 08:00 WAT).
+        function updateCountdown() {
+            const now = new Date();
+            const round = (typeof Challenges !== 'undefined') ? Challenges.currentRound(now) : null;
+
+            if (!round) {
+                // No challenges data yet (listener hasn't fired, fallback hasn't loaded) -
+                // leave existing state.timeLeft/challengeClosed as-is rather than guessing.
+                return;
+            }
+
+            const status = Challenges.statusOf(round, now);
+
+            if (status === 'upcoming') {
+                state.challengeClosed = true;
+                const { weekday, day, month, time } = formatWATDateTime(round.opensAt);
+                state.timeLeft = { days: 0, hours: 0, mins: 0, label: `Opens ${weekday} ${day} ${month}, ${time}` };
+            } else {
+                const closesAt = round.closesAt ? new Date(round.closesAt) : null;
+                const diff = closesAt ? (closesAt - now) : -1;
+                const closed = diff <= 0;
+                if (closed !== state.challengeClosed) {
+                    state.challengeClosed = closed;
+                    updateUI();
+                }
+                if (closed) {
+                    state.timeLeft = { days: 0, hours: 0, mins: 0, label: "Submissions closed" };
+                } else {
+                    const { day, month, time } = formatWATDateTime(round.closesAt);
+                    state.timeLeft = {
+                        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+                        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+                        mins: Math.floor((diff / 1000 / 60) % 60),
+                        label: `Closes ${time} WAT, ${day} ${month}`
+                    };
+                }
+            }
+
+            const labelEl = document.getElementById('countdown-label');
+            const timerEl = document.getElementById('countdown-timer');
+            if (labelEl) labelEl.innerText = state.timeLeft.label;
+            if (timerEl) timerEl.innerText = `${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m`;
+        }
+
+        function updateUI() {
+            if (document.activeElement &&
+                (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) {
+                return;
+            }
+
+            const app = document.getElementById('app');
+            if (!state.user) return;
+            if (!state.isAuthenticated) {
+                app.innerHTML = renderLoginGateway();
+                lucide.createIcons();
+                return;
+            }
+            app.innerHTML = `
+                ${Shell.renderAnnouncementBar(state)}
+                ${Shell.renderHeader(state)}
+                <main class="max-w-7xl mx-auto p-6 md:p-8 min-h-[70vh]">
+                    ${renderTabContent()}
+                </main>
+                ${state.selectedInnovation ? renderModal() : ''}
+                ${state.selectedIdea ? renderIdeaModal() : ''}
+                ${state.showAdminLogin ? renderAdminLogin() : ''}
+                ${Shell.renderFooter()}
+            `;
+            lucide.createIcons();
+            updateCountdown();
+        }
+
+        function renderLoginGateway() {
+            return `
+                <div class="min-h-screen bg-[#020617] flex items-center justify-center p-6 relative overflow-hidden">
+                    <div class="absolute -top-20 -left-20 w-96 h-96 bg-blue-900/20 blur-[120px] rounded-full"></div>
+                    <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-indigo-900/20 blur-[120px] rounded-full"></div>
+                    <div class="w-full max-w-md bg-[#0f172a] rounded-[2.5rem] border border-slate-800 p-12 shadow-2xl relative z-10 text-center">
+                        <div class="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-10 shadow-lg shadow-blue-500/20">
+                            <i data-lucide="zap" class="text-white w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-white text-4xl font-black italic tracking-tighter uppercase mb-2">DESCASIO</h2>
+                        <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mb-12">Innovation Hub Gateway</p>
+                        ${state.gatewayView === 'email' ? `
+                            <p class="text-slate-400 text-sm italic mb-10 px-4 leading-relaxed">Enter your @descasio.io email to receive an access code.</p>
+                            <input id="gatewayEmail" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:ring-2 ring-blue-600 font-bold mb-6" placeholder="name@descasio.io" value="${state.authEmail}">
+                            <div id="gatewayError" class="hidden text-red-500 text-[10px] font-bold uppercase mb-6"></div>
+                            <button onclick="requestOtp()" class="w-full bg-white text-black font-black py-5 rounded-2xl uppercase tracking-widest text-[11px] hover:bg-blue-50 transition shadow-xl active:scale-[0.98] flex items-center justify-center gap-3">
+                                ${state.loading ? '<div class="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></div>' : 'REQUEST ACCESS CODE'}
+                            </button>
+                        ` : `
+                            <p class="text-slate-400 text-sm italic mb-10 px-4 leading-relaxed">Enter the 6-digit code sent to <br><b class="text-blue-400">${state.authEmail}</b></p>
+                            <input id="gatewayOtp" type="text" maxlength="6" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:ring-2 ring-blue-600 font-mono tracking-[0.5em] text-2xl font-bold mb-6" placeholder="000000">
+                            <div id="gatewayError" class="hidden text-red-500 text-[10px] font-bold uppercase mb-6"></div>
+                            <button onclick="verifyOtp()" class="w-full bg-blue-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-[11px] hover:bg-blue-500 transition shadow-xl active:scale-[0.98] mb-4">VERIFY & ENTER</button>
+                            <button onclick="state.gatewayView = 'email'; updateUI();" class="text-slate-500 text-[10px] font-black uppercase tracking-widest hover:text-white transition">Back to Email</button>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderTabContent() {
+            if (state.activeTab === 'dashboard') {
+                const round8Count = state.submissions.filter(s => s.round === 8).length;
+                return `
+                    <div class="space-y-12 animate-in fade-in">
+                        <div class="relative p-10 md:p-14 rounded-[3.5rem] hero-gradient overflow-hidden shadow-[0_0_100px_rgba(30,58,138,0.3)] border border-white/10 group">
+                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>
+                            <div class="grid lg:grid-cols-12 gap-12 items-center relative z-10">
+                                <div class="lg:col-span-7 space-y-8">
+                                    <div>
+                                        <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em]">
+                                            <span class="w-2 h-2 rounded-full bg-blue-400"></span> Round 8 Mission: COMPLETED
+                                        </span>
+                                        <h2 class="text-5xl md:text-7xl font-black mt-8 mb-6 text-white leading-[0.9] italic tracking-tighter uppercase">OCTOBER AI CHALLENGE: DESCASIO DECISION INTELLIGENCE PLATFORM (DIP): BUILD THE FRONT DOOR</h2>
+                                        <p class="text-blue-100/80 text-xl leading-relaxed max-w-xl font-medium italic">
+                                            “Design the Future” — create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link.
+                                        </p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-6 items-center">
+                                        <button onclick="navigate('challenge')" class="bg-white text-blue-900 px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest hover:scale-105 hover:bg-blue-50 transition-all shadow-2xl active:scale-95">The Brief <i data-lucide="arrow-right" class="inline w-4 h-4 ml-2"></i></button>
+                                        <div class="bg-black/40 backdrop-blur-xl px-8 py-5 rounded-[2rem] border border-white/10 flex items-center gap-6 text-white">
+                                            <div class="text-center">
+                                                <span id="countdown-label" class="block text-[9px] opacity-60 font-black uppercase tracking-widest">${state.timeLeft.label}</span>
+                                                <span id="countdown-timer" class="font-mono text-2xl font-black">${state.timeLeft.days}d : ${state.timeLeft.hours}h : ${state.timeLeft.mins}m</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="lg:col-span-5 flex justify-center">
+                                    <div class="relative w-72 h-72 md:w-96 md:h-96 floating-avatar">
+                                        <div class="absolute inset-0 bg-blue-600/30 blur-[80px] rounded-full scale-75"></div>
+                                        <div class="relative w-full h-full bg-slate-900/60 backdrop-blur-3xl rounded-[4rem] border border-white/20 p-4 shadow-2xl overflow-hidden ring-8 ring-blue-500/10">
+                                            <img src="${HUB_AVATAR}" class="w-full h-full object-cover rounded-[3rem]" alt="Hub Avatar Mesca">
+                                            <div class="absolute bottom-6 left-6 right-6 bg-blue-600/80 backdrop-blur-md p-4 rounded-3xl border border-white/20 text-center">
+                                                <p class="text-[10px] font-black uppercase tracking-[0.3em] text-white">Hub Official Identity</p>
+                                                <h4 class="text-xl font-black text-white italic tracking-tighter">MESCA</h4>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-8">
+                            <!-- Round 8 Winner Box -->
+                            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-emerald-500 transition-transform hover:-translate-y-1">
+                                <div class="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-inner">
+                                    <i data-lucide="award" class="text-emerald-500 w-12 h-12"></i>
+                                </div>
+                                <div class="space-y-2">
+                                    <h3 class="text-emerald-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 8 Winner</h3>
+                                    <p class="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">MaryBlessing Umeh</p>
+                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Descasio DIP Front Door Builder</p>
+                                </div>
+                            </div>
+
+                            <!-- Round 8 Activity Box -->
+                            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-800 rounded-[3.5rem] p-10 flex items-center gap-10 shadow-xl border-l-8 border-l-blue-600 transition-transform hover:-translate-y-1">
+                                <div class="w-24 h-24 bg-blue-600/10 rounded-[2.5rem] flex items-center justify-center shrink-0 border border-blue-500/20 shadow-inner">
+                                    <i data-lucide="activity" class="text-blue-500 w-12 h-12"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <h3 class="text-blue-500 font-black text-[10px] uppercase tracking-[0.4em]">Round 8 Activity</h3>
+                                    <p class="text-6xl font-black text-white italic tracking-tighter leading-none">${round8Count}</p>
+                                    <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">${round8Count === 1 ? 'Solution' : 'Solutions'} Recorded</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'ideahub') {
+                return `
+                    <div class="max-w-5xl mx-auto space-y-12">
+                        <div class="text-center"><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter">Idea Crowdsourcing</h2><p class="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">What solutions should we build next?</p></div>
+                        <div class="bg-slate-900 border border-blue-500/10 rounded-[2.5rem] p-10 max-w-2xl mx-auto shadow-2xl custom-card">
+                            <h3 class="text-2xl font-black text-white mb-8 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="lightbulb" class="text-yellow-400"></i> Pitch a Concept</h3>
+                            <form onsubmit="handleIdeaSubmit(event)" class="space-y-6">
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <input required oninput="handleFormInput('ideaData', 'name', this.value)" value="${state.ideaData.name || ''}" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Full Name">
+                                    <input required oninput="handleFormInput('ideaData', 'email', this.value)" value="${state.ideaData.email || ''}" type="email" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Work Email (@descasio.io)">
+                                    <select onchange="handleFormInput('ideaData', 'dept', this.value)" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm">
+                                        <option value="">Select Dept</option>
+                                        ${DEPARTMENTS.map(d => `<option value="${d}" ${state.ideaData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                    </select>
+                                    <input required oninput="handleFormInput('ideaData', 'title', this.value)" value="${state.ideaData.title || ''}" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold text-sm" placeholder="Idea Title">
+                                </div>
+                                <textarea required oninput="handleFormInput('ideaData', 'description', this.value)" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm" placeholder="Description...">${state.ideaData.description || ''}</textarea>
+                                <div id="ideaStatus"></div>
+                                <button type="submit" class="w-full bg-blue-700 hover:bg-blue-600 text-white font-black p-5 rounded-2xl uppercase tracking-widest text-xs">Share Concept</button>
+                            </form>
+                        </div>
+                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            ${state.ideas.map(idea => `
+                                <div onclick="showIdeaDetails('${idea.id}')" class="bg-slate-900 p-8 rounded-[2rem] border border-slate-800 hover:border-blue-500/40 transition-all group overflow-hidden cursor-pointer shadow-lg hover:shadow-blue-900/10 flex flex-col h-full">
+                                    <div class="flex items-center gap-2 text-blue-500 mb-6"><i data-lucide="lightbulb" class="w-4 h-4"></i> <span class="text-[10px] font-black uppercase tracking-widest">Concept</span></div>
+                                    <h4 class="text-white font-black text-xl mb-4 uppercase leading-tight italic tracking-tighter break-words group-hover:text-blue-400 transition-colors">${idea.title}</h4>
+                                    <p class="text-slate-400 text-sm italic line-clamp-4 break-words leading-relaxed mb-8">"${idea.description}"</p>
+                                    <div class="mt-auto space-y-4">
+                                        <div class="pt-4 border-t border-slate-800/50 flex items-center justify-between">
+                                            <div class="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[150px]">BY ${idea.name || 'Anonymous'}</div>
+                                            <div class="text-blue-500 group-hover:translate-x-1 transition-transform"><i data-lucide="arrow-right" class="w-4 h-4"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'challenge') {
+                return `
+                    <div class="max-w-4xl mx-auto space-y-12 animate-in slide-in-from-bottom duration-500">
+                        <div class="border-b border-slate-800 pb-8 text-center">
+                            <span class="inline-flex items-center gap-2 bg-blue-500/20 text-blue-400 border border-blue-500/30 px-4 py-1.5 rounded-full text-[10px] uppercase font-black tracking-[0.2em] mb-4">
+                                ${state.challengeClosed ? '🔒 Round 8 Challenge • Submissions Closed' : '🏆 Round 8 Challenge • Launch: 6th Oct – Closes: 28th Oct'}
+                            </span>
+                            <h2 class="text-4xl font-black mb-4 text-white uppercase italic tracking-tighter">OCTOBER AI CHALLENGE: DESCASIO DECISION INTELLIGENCE PLATFORM (DIP): BUILD THE FRONT DOOR</h2>
+                            <p class="text-slate-400 text-base max-w-2xl mx-auto italic leading-relaxed">
+                                <strong class="text-blue-400">The Mission:</strong> “Design the Future” — create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link.
+                            </p>
+                        </div>
+
+                        <!-- What You're Building Card -->
+                        <div class="bg-slate-900 border-2 border-blue-500/30 p-10 rounded-[3rem] shadow-2xl space-y-6 relative overflow-hidden">
+                            <div class="flex items-center gap-3 text-blue-400">
+                                <i data-lucide="layout-template" class="w-7 h-7"></i>
+                                <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">1. What You're Building</h3>
+                            </div>
+                            <p class="text-slate-300 text-sm leading-relaxed italic">
+                                Design and build a landing page for the <strong>Descasio Decision Intelligence Platform (DIP)</strong> in Gemini Canvas, using your descasio.io account. Gemini Pro is the only approved tool.
+                            </p>
+                            <div class="bg-black/60 p-6 rounded-2xl border-l-4 border-blue-500 text-slate-300 text-xs italic space-y-2">
+                                <p class="font-bold text-slate-400">Your landing page must include:</p>
+                                <ul class="list-disc list-inside space-y-1 not-italic">
+                                    <li>A short intro at the top</li>
+                                    <li>Brand colors and logo</li>
+                                    <li>How It Works</li>
+                                    <li>Who It's For</li>
+                                    <li>A Trust Score section</li>
+                                    <li>A Founding Circle section</li>
+                                </ul>
+                                <p class="font-bold text-slate-400 pt-2">Extras (FAQ, demo quiz, animations, etc.) are welcome.</p>
+                            </div>
+                            <div class="flex flex-wrap gap-4 pt-2 not-italic">
+                                <a href="https://drive.google.com/drive/folders/1Xg80YH3vbROjBYxxtpGsTwyx9zV2BjH6?usp=sharing" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-blue-600/20 text-blue-400 border border-blue-500/30 px-5 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-blue-600/30 transition"><i data-lucide="download" class="w-4 h-4"></i> Landing Page Starter Kit</a>
+                            </div>
+                            <p class="text-blue-400 font-bold text-xs uppercase tracking-wider">
+                                ⚠️ Submit your Gemini Canvas share link only — no file upload. Open it in a private window first to confirm it loads without signing in.
+                            </p>
+                        </div>
+
+                        <!-- How to Participate -->
+                        <div class="bg-slate-900 border border-slate-800 p-10 rounded-[3rem] shadow-xl space-y-8">
+                            <h3 class="text-2xl font-black text-white uppercase flex items-center gap-3 italic"><i data-lucide="list-checks" class="text-blue-500"></i> 2. How to Participate</h3>
+                            <div class="grid gap-6">
+                                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-blue-600/20 text-blue-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-blue-500/30">1</div>
+                                    <div>
+                                        <h4 class="text-white font-bold text-base uppercase mb-1">Build in Gemini Canvas</h4>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Log in to gemini.google.com with your descasio.io account, attach the official Descasio logo and brand colors, and prompt Gemini in Canvas to build the DIP landing page covering every required section.</p>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-emerald-600/20 text-emerald-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-emerald-500/30">2</div>
+                                    <div>
+                                        <h4 class="text-white font-bold text-base uppercase mb-1">Test Before You Submit</h4>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Open your Canvas share link in a private/incognito window to confirm it loads without signing in.</p>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-950 p-6 rounded-2xl border border-slate-800 flex items-start gap-4">
+                                    <div class="w-10 h-10 bg-purple-600/20 text-purple-400 rounded-xl flex items-center justify-center font-black shrink-0 border border-purple-500/30">3</div>
+                                    <div>
+                                        <h4 class="text-white font-bold text-base uppercase mb-1">Submit Your Link</h4>
+                                        <p class="text-slate-400 text-xs leading-relaxed">Paste your Gemini Canvas share link into the submission form below. Deadline: 11:59 PM (WAT), 28 October 2026.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scoring Criteria -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-blue-500 space-y-2">
+                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Clarity & Accuracy of the Message</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-emerald-500 space-y-2">
+                                <p class="text-emerald-400 font-black text-[9px] uppercase tracking-widest">UI/UX & Responsiveness</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-purple-500 space-y-2">
+                                <p class="text-purple-400 font-black text-[9px] uppercase tracking-widest">Brand Color & Visual Identity</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-amber-500 space-y-2">
+                                <p class="text-amber-400 font-black text-[9px] uppercase tracking-widest">Creativity & Added Features</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center shadow-xl border-l-4 border-l-blue-500 space-y-2">
+                                <p class="text-blue-400 font-black text-[10px] uppercase tracking-widest">Essential Site Features</p>
+                                <p class="text-4xl font-black text-white italic tracking-tighter">4 Pts</p>
+                            </div>
+                        </div>
+
+                        <!-- Live Round 8 Submission Form -->
+                        <div class="bg-slate-900 border-2 border-blue-500/20 rounded-[3rem] p-12 shadow-2xl">
+                            <h3 class="text-3xl font-black text-white mb-10 italic uppercase tracking-tighter flex items-center gap-3"><i data-lucide="plus-circle" class="text-blue-500"></i> Share Round 8 Submission</h3>
+                            <div class="flex gap-4 mb-10 bg-slate-950 p-2 rounded-2xl border border-slate-800 max-w-md">
+                                <button onclick="setSubmissionType('individual')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'individual' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Individual</button>
+                                <button onclick="setSubmissionType('group')" class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-all ${state.submissionType === 'group' ? 'bg-blue-600 text-white' : 'text-slate-500'}">Group (Team of 2)</button>
+                            </div>
+                            <form onsubmit="handleFormSubmit(event)" class="space-y-8">
+                                ${state.submissionType === 'individual' ? `
+                                    <div class="grid md:grid-cols-2 gap-6 animate-in fade-in">
+                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Full Name</label><input required oninput="handleFormInput('formData', 'name', this.value)" value="${state.formData.name || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
+                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Email (@descasio.io)</label><input required oninput="handleFormInput('formData', 'email', this.value)" value="${state.formData.email || ''}" type="email" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"></div>
+                                        <div class="space-y-2 col-span-full"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Department</label><select onchange="handleFormInput('formData', 'dept', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-bold"><option value="">Select Dept</option>${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.dept === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>
+                                    </div>
+                                ` : `
+                                    <div class="space-y-8 animate-in slide-in-from-top-2">
+                                        <div class="space-y-2"><label class="text-[10px] font-black text-slate-500 uppercase ml-1">Team Name</label><input required oninput="handleFormInput('formData', 'teamName', this.value)" value="${state.formData.teamName || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 font-black uppercase italic" placeholder="THE GUARDIANS"></div>
+                                        <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
+                                            <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 01</span></div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
+                                                <input required oninput="handleFormInput('formData', 'member1Name', this.value)" value="${state.formData.member1Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
+                                                <input required oninput="handleFormInput('formData', 'member1Email', this.value)" value="${state.formData.member1Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="col-span-full space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
+                                                <select onchange="handleFormInput('formData', 'member1Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
+                                                    <option value="">Select Dept</option>
+                                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member1Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="grid md:grid-cols-2 gap-6 p-8 bg-slate-950 rounded-3xl border border-slate-800">
+                                            <div class="col-span-full border-b border-slate-800 pb-3 mb-3"><span class="text-[10px] font-black text-blue-500 uppercase">Team Member 02</span></div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Name</label>
+                                                <input required oninput="handleFormInput('formData', 'member2Name', this.value)" value="${state.formData.member2Name || ''}" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Email</label>
+                                                <input required oninput="handleFormInput('formData', 'member2Email', this.value)" value="${state.formData.member2Email || ''}" type="email" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-1 ring-blue-600">
+                                            </div>
+                                            <div class="col-span-full space-y-2">
+                                                <label class="text-[10px] font-black text-slate-500 uppercase">Department</label>
+                                                <select onchange="handleFormInput('formData', 'member2Dept', this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-white outline-none">
+                                                    <option value="">Select Dept</option>
+                                                    ${DEPARTMENTS.map(d => `<option value="${d}" ${state.formData.member2Dept === d ? 'selected' : ''}>${d}</option>`).join('')}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `}
+                                <div class="pt-10 border-t border-slate-800 space-y-8">
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">1. Submission Document Link</label>
+                                        <input required oninput="handleFormInput('formData', 'submissionDocLink', this.value)" value="${state.formData.submissionDocLink || ''}" type="url" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="https://gemini.google.com/share/...">
+                                        <p class="text-[10px] text-slate-500 italic mt-1 ml-1">Paste your Gemini Canvas share link. Open it in a private window first to check it loads without signing in.</p>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-[10px] font-black text-slate-500 uppercase ml-1">Tools Used</label>
+                                        <input required oninput="handleFormInput('formData', 'toolsUsed', this.value)" value="${state.formData.toolsUsed || ''}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white outline-none focus:ring-2 ring-blue-600 text-sm font-medium" placeholder="e.g. ChatGPT, Gemini, Claude, Custom Prompt Guardrails">
+                                    </div>
+                                </div>
+                                <div id="formStatus" class="hidden text-red-400 text-[10px] font-bold uppercase tracking-wider"></div>
+                                <button type="submit" ${state.challengeClosed ? 'disabled' : ''} class="w-full ${state.challengeClosed ? 'bg-slate-700 cursor-not-allowed opacity-60' : 'bg-blue-600 hover:bg-blue-500'} text-white font-black py-6 rounded-2xl transition shadow-2xl uppercase tracking-[0.2em] active:scale-[0.98]">${state.challengeClosed ? 'Submissions Closed' : 'Submit Round 8 Entry'}</button>
+                            </form>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (state.activeTab === 'gallery') {
+                const shortlisted = state.submissions.filter(s => s.shortlisted);
+                const round8Submissions = state.submissions.filter(s => s.round === 8);
+                const round7Submissions = state.submissions.filter(s => s.round === 7);
+                const round6Submissions = state.submissions.filter(s => s.round === 6);
+                const round5Submissions = state.submissions.filter(s => s.round === 5);
+                const round4Submissions = state.submissions.filter(s => s.round === 4);
+                const round3Submissions = state.submissions.filter(s => s.round === 3);
+                const round2Submissions = state.submissions.filter(s => s.round === 2);
+                const round1Submissions = state.submissions.filter(s => s.round === 1 || !s.round);
+
+                return `
+                    <div class="space-y-20 animate-in fade-in">
+                        <section class="space-y-8">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-4xl font-black text-white italic tracking-tighter uppercase underline decoration-blue-500 decoration-8 underline-offset-8">Shortlisted for Voting</h2>
+                                </div>
+                                <a href="${EXTERNAL_VOTING_URL}" target="_blank" class="btn-shiny text-white px-12 py-6 rounded-[2rem] font-black uppercase text-sm tracking-[0.1em] shadow-2xl transition hover:scale-110 flex items-center justify-center gap-4">
+                                    <i data-lucide="vote" class="w-6 h-6"></i> CAST OFFICIAL VOTE
+                                </a>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-8">
+                                ${shortlisted.map(item => renderSubmissionCard(item)).join('')}
+                                ${shortlisted.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">Admin verification in progress...</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8">
+                            <div class="flex items-center gap-4 border-b border-blue-500/20 pb-10">
+                                <i data-lucide="users" class="text-blue-500 w-8 h-8"></i>
+                                <div>
+                                    <h2 class="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Submission Feed</h2>
+                                    <p class="text-blue-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Current: Round 8 DIP: Build the Front Door entries</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round8Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round8Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No Round 8 submissions recorded yet. Be the first!</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-70 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
+                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 7 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Descasio Security Trainer Entries</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round7Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round7Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 7.</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
+                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 6 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Rogue AI Case Study & Recovery Plan Entries</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round6Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round6Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 6.</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex items-center gap-4 border-b border-slate-800 pb-10">
+                                <i data-lucide="archive" class="text-blue-500 w-8 h-8"></i>
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 5 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: The Optimizer 2.0 Entries</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round5Submissions.map(item => renderSubmissionCard(item)).join('')}
+                                ${round5Submissions.length === 0 ? '<div class="col-span-full py-24 text-center border-2 border-dashed border-slate-800 rounded-[3rem] italic text-slate-600 font-black uppercase tracking-[0.2em]">No entries recorded for Round 5.</div>' : ''}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 4 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: The Optimizer 1.0</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round4Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-60 hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 3 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Build a Website with AI</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round3Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-50 grayscale transition-all duration-500">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 2 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Efficiency at Descasio</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round2Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+
+                        <section class="space-y-8 opacity-40 grayscale transition-all duration-500">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-slate-800 pb-10">
+                                <div>
+                                    <h2 class="text-2xl font-black text-slate-400 italic tracking-tighter uppercase leading-none">Round 1 Archive</h2>
+                                    <p class="text-slate-600 text-[10px] font-black uppercase tracking-[0.3em] mt-2 italic">Completed: Descasio Avatar Challenge</p>
+                                </div>
+                            </div>
+                            <div class="grid md:grid-cols-3 gap-6">
+                                ${round1Submissions.map(item => renderSubmissionCard(item)).join('')}
+                            </div>
+                        </section>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'winners') {
+                return `
+                    <div class="max-w-6xl mx-auto space-y-12 animate-in zoom-in-95 duration-500">
+                        <div class="text-center">
+                            <h2 class="text-5xl font-black text-white italic tracking-tighter uppercase leading-none">Hall of Fame</h2>
+                            <p class="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-4 italic underline underline-offset-8 decoration-blue-500/50">Celebrating the AI Transformation Journey</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            ${MONTHLY_RECORDS.map(item => `
+                                <div class="bg-slate-900 rounded-[2.5rem] p-10 border-2 ${item.status === 'active' ? 'border-blue-500 shadow-blue-900/40 shadow-2xl' : 'border-slate-800'} relative overflow-hidden">
+                                    <div class="flex justify-between items-start mb-8"><span class="text-slate-500 font-black text-xs uppercase tracking-[0.2em]">${item.month}</span>${item.status === 'completed' ? '<i data-lucide="medal" class="text-yellow-500 w-8 h-8"></i>' : item.status === 'active' ? '<div class="w-3 h-3 rounded-full bg-blue-500 animate-ping"></div>' : ''}</div>
+                                    <div class="flex flex-col items-center text-center">
+                                        ${item.winner ? `
+                                            <div class="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-white font-black text-2xl mb-6 shadow-xl overflow-hidden border-2 border-white/10">
+                                                ${item.image ? `<img src="${item.image}" class="w-full h-full object-cover">` : item.winner.charAt(0)}
+                                            </div>
+                                            <h4 class="text-white font-black uppercase italic tracking-tighter text-2xl mb-1">${item.winner}</h4>
+                                            <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest text-center">${item.solution}</p>
+                                        ` : `
+                                            <div class="py-16 flex flex-col items-center justify-center border-2 border-dashed border-slate-800 rounded-[2.5rem] w-full">
+                                                <p class="text-slate-700 font-black text-[10px] uppercase tracking-widest italic">${item.status === 'active' ? 'CHALLENGE IN PROGRESS' : 'UPCOMING'}</p>
+                                            </div>
+                                        `}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'leaderboard') {
+                return `
+                    <div class="space-y-10 animate-in fade-in">
+                        <div class="text-center mb-12">
+                            <h2 class="text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-4">Innovation Leaderboard</h2>
+                            <p class="text-blue-500 font-black uppercase tracking-[0.3em] text-[10px]">Real-time Performance Standings (Verified)</p>
+                        </div>
+                        <div class="overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 shadow-2xl">
+                            <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800 text-[10px] tracking-widest">
+                                    <tr>
+                                        <th class="p-8 text-center w-24">Rank</th>
+                                        <th class="p-8">Participant Detail</th>
+                                        <th class="p-8 text-center">Round 1</th>
+                                        <th class="p-8 text-center">Round 2</th>
+                                        <th class="p-8 text-center">Round 3</th>
+                                        <th class="p-8 text-center">Round 4</th>
+                                        <th class="p-8 text-center">Round 5</th>
+                                        <th class="p-8 text-center">Round 6</th>
+                                        <th class="p-8 text-center">Round 7</th>
+                                        <th class="p-8 text-center">Round 8</th>
+                                        <th class="p-8 text-right">Cumulative</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    ${state.leaderboard.map((entry, index) => `
+                                        <tr class="hover:bg-white/5 transition group">
+                                            <td class="p-8 text-center">
+                                                <div class="w-10 h-10 rounded-full mx-auto flex items-center justify-center font-black text-xs ${entry.rank < 4 ? 'rank-badge-' + entry.rank : 'bg-slate-800 text-slate-400'}">
+                                                    ${entry.rank}
+                                                </div>
+                                            </td>
+                                            <td class="p-8">
+                                                <div class="flex flex-col">
+                                                    <span class="text-white font-black uppercase text-sm tracking-tight group-hover:text-blue-400 transition-colors">${entry.name}</span>
+                                                    <span class="text-slate-500 text-[10px] font-medium tracking-tight mt-1 opacity-60">${entry.email || 'descasio.io'}</span>
+                                                </div>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-slate-400 font-bold">${entry.r1 !== undefined ? entry.r1 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-blue-400 font-bold">${entry.r2 !== undefined ? entry.r2 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-indigo-400 font-bold">${entry.r3 !== undefined ? entry.r3 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-purple-400 font-bold">${entry.r4 !== undefined ? entry.r4 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-blue-400 font-black">${entry.r5 !== undefined ? entry.r5 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-emerald-400 font-black">${entry.r6 !== undefined ? entry.r6 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-amber-400 font-black">${entry.r7 !== undefined ? entry.r7 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-center">
+                                                <span class="text-rose-400 font-black">${entry.r8 !== undefined ? entry.r8 : '-'}</span>
+                                            </td>
+                                            <td class="p-8 text-right">
+                                                <div class="flex flex-col items-end">
+                                                    <span class="text-3xl font-black text-white italic tracking-tighter leading-none">${entry.cumulativeScore.toFixed(1)}</span>
+                                                    <span class="text-blue-500 text-[8px] font-black uppercase tracking-[0.2em] mt-2">TOTAL POINTS</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            if (state.activeTab === 'admin') {
+                return `
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-end border-b border-slate-800 pb-10"><div><h2 class="text-4xl font-black text-white italic uppercase tracking-tighter leading-none">Admin Control</h2></div><button onclick="logoutAdmin()" class="bg-red-600/10 text-red-500 text-[10px] font-black uppercase px-6 py-3 rounded-xl border border-red-500/20 hover:bg-red-600 hover:text-white transition-all">Sign Out</button></div>
+                        <div class="overflow-hidden rounded-[2.5rem] border border-slate-800 bg-slate-900 shadow-2xl">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-950 text-slate-500 uppercase font-black border-b border-slate-800"><tr><th class="p-6">Origin / Team</th><th class="p-6">Submission Detail</th><th class="p-6">Round</th><th class="p-6">Preview</th><th class="p-6 text-center">Shortlist</th><th class="p-6 text-center">Delete</th></tr></thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    ${state.submissions.map(sub => `
+                                        <tr class="hover:bg-white/5 transition">
+                                            <td class="p-6"><b class="text-white uppercase tracking-tight">${sub.type === 'group' ? sub.teamName : sub.name}</b><br><span class="opacity-50 italic text-[10px] uppercase tracking-widest font-black text-blue-400">${sub.type === 'group' ? 'Group' : (sub.dept || 'Indiv')}</span></td>
+                                            <td class="p-6 font-black uppercase text-blue-100 italic">${sub.round === 7 ? 'Descasio Security Trainer' : (sub.round === 6 ? 'Rogue AI Recovery Plan' : (sub.round === 5 ? 'The Optimizer 2 App' : (sub.round === 4 ? 'The Optimizer App' : (sub.round === 3 ? (sub.canvasLink ? 'Shared Link' : 'Website') : (sub.innovationName || 'Entry')))))}</td>
+                                            <td class="p-6 font-black text-blue-500">R${sub.round || 1}</td>
+                                            <td class="p-6">${sub.docLink ? `<img src="${sub.docLink}" class="w-10 h-10 rounded-lg object-cover">` : sub.round >= 4 ? (sub.solutionLink ? `<a href="${sub.solutionLink}" target="_blank" class="text-blue-500 underline text-[10px]">View Link</a>` : '-') : (sub.canvasLink ? `<a href="${sub.canvasLink}" target="_blank" class="text-blue-500 underline text-[10px]">View Link</a>` : '-')}</td>
+                                            <td class="p-6 text-center"><button onclick="toggleShortlist('${sub.id}', ${sub.shortlisted})" class="p-4 rounded-2xl ${sub.shortlisted ? 'bg-yellow-500 text-black' : 'bg-slate-800 text-slate-500'} hover:scale-110 transition-all"><i data-lucide="star" class="w-6 h-6 ${sub.shortlisted ? 'fill-black' : ''}"></i></button></td>
+                                            <td class="p-6 text-center"><button onclick="deleteSubmission('${sub.id}')" class="p-4 rounded-2xl bg-slate-800 text-red-500 hover:bg-red-600 hover:text-white hover:scale-110 transition-all"><i data-lucide="trash-2" class="w-6 h-6"></i></button></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderSubmissionCard(item) {
+            const isRound3 = item.round === 3;
+            const isRound4 = item.round === 4;
+            const isRound5 = item.round === 5;
+            const isRound6 = item.round === 6;
+            const isRound7 = item.round === 7;
+            const isRound8 = item.round === 8;
+            let title = item.innovationName || 'Submission';
+            if (isRound8) {
+                title = 'DIP: Build the Front Door';
+            } else if (isRound7) {
+                title = 'Descasio Security Trainer';
+            } else if (isRound6) {
+                title = 'Rogue AI Recovery Plan';
+            } else if (isRound4 || isRound5) {
+                title = item.problemDefinition ? (isRound5 ? 'Department Optimizer 2' : 'Department Optimizer') : 'AI Optimization';
+            } else if (isRound3) {
+                title = item.canvasLink ? 'Gemini Canvas Entry' : 'AI Website Entry';
+            }
+            return `
+                <div class="bg-slate-900/30 border border-slate-800/50 rounded-[2rem] p-6 flex flex-col h-full hover:border-blue-500/30 transition-all overflow-hidden group shadow-xl">
+                    <div class="aspect-square bg-slate-950 rounded-2xl mb-6 overflow-hidden border border-slate-800 flex items-center justify-center">
+                        ${item.docLink ? `<img src="${item.docLink}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">` : `<div class="w-full h-full flex items-center justify-center text-slate-800"><i data-lucide="zap" class="w-12 h-12"></i></div>`}
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-[9px] font-black uppercase text-blue-500 tracking-widest">${item.type === 'group' ? 'TEAM' : (item.dept || 'CORE')}</span>
+                        <span class="text-[8px] font-black uppercase px-2 py-1 rounded bg-slate-800 text-slate-400">Round ${item.round || 1}</span>
+                    </div>
+                    <h3 class="text-xl font-black text-white mb-2 uppercase italic tracking-tighter truncate break-words">${title}</h3>
+                    <p class="text-slate-500 text-[10px] uppercase tracking-[0.2em] font-black mb-8 truncate">
+                        BY ${item.type === 'group' ? item.teamName : `${item.name}`}
+                    </p>
+                    <button onclick="showDetails('${item.id}')" class="mt-auto w-full bg-slate-950 p-4 rounded-xl border border-white/5 text-[9px] font-black text-blue-400 uppercase tracking-widest hover:text-white transition">Details & Impact</button>
+                </div>
+            `;
+        }
+
+        function renderModal() {
+            const item = state.selectedInnovation;
+            if (!item) return '';
+            const isR8 = item.round === 8;
+            const isR7 = item.round === 7;
+            const isR6 = item.round === 6;
+            const isR5 = item.round === 5;
+            const isR4 = item.round === 4;
+            const isOptimizer = isR4 || isR5;
+            const titleText = isR8 ? 'DIP: Build the Front Door' : (isR7 ? 'Descasio Security Trainer' : (isR6 ? 'Rogue AI Case Study & Recovery Plan' : (isR5 ? 'Operational Optimizer 2' : (isR4 ? 'Operational Optimizer' : (item.round === 3 ? 'AI Built Fashion Landing Page' : (item.innovationName || 'Submission'))))));
+            return `
+                <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div class="bg-slate-900 max-w-2xl w-full p-12 rounded-[4rem] border-2 border-blue-500/30 shadow-[0_0_100px_rgba(37,99,235,0.2)] relative max-h-[90vh] overflow-y-auto custom-card">
+                        <button onclick="closeModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
+                        <span class="bg-blue-600/20 text-blue-400 border border-blue-400/30 px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] italic">ROUND ${item.round || 1} ENTRY DETAIL</span>
+                        <h3 class="text-4xl font-black text-white italic tracking-tighter uppercase leading-tight mt-8 mb-6 break-words">${titleText}</h3>
+                        ${item.docLink ? `<img src="${item.docLink}" class="w-full aspect-square object-cover rounded-[2rem] border-2 border-blue-500/20 mb-10 shadow-2xl">` : ''}
+                        <div class="space-y-4 mb-12">
+                            ${item.type === 'group' ? `
+                                <div class="flex items-center gap-3 text-slate-200 text-xs font-black uppercase tracking-widest truncate"><i data-lucide="shield" class="text-blue-500 w-4 h-4"></i> ${item.teamName}</div>
+                                <div class="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-3">
+                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member1Name || ''} • ${item.member1Dept || ''}</div>
+                                    <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest truncate"><i data-lucide="user" class="w-3 h-3"></i> ${item.member2Name || ''} • ${item.member2Dept || ''}</div>
+                                </div>
+                            ` : `
+                                <div class="flex items-center gap-3 text-slate-300 text-sm font-black uppercase tracking-widest truncate"><i data-lucide="user" class="text-blue-500 w-4 h-4"></i> ${item.name || 'Anonymous'} • ${item.email || ''}</div>
+                                <div class="flex items-center gap-3 text-slate-400 text-[10px] font-black uppercase tracking-widest px-1"><i data-lucide="briefcase" class="w-3 h-3"></i> ${item.dept || 'CORE'}</div>
+                            `}
+                        </div>
+                        ${isR7 ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="link" class="w-4 h-4"></i> Submission Document</h4>
+                                <a href="${item.submissionDocLink || '#'}" target="_blank" class="text-blue-100 text-base leading-relaxed italic break-all underline decoration-blue-500/50">${item.submissionDocLink || 'None provided.'}</a>
+                            </div>
+                            ${item.toolsUsed ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed}</p>
+                            </div>
+                            ` : ''}
+                        ` : isR6 ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="search" class="w-4 h-4"></i> Root Cause Analysis</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.rootCauseAnalysis || 'None reported.'}</p>
+                            </div>
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="mail" class="w-4 h-4"></i> Client Recovery Email</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.recoveryEmail || 'None provided.'}</p>
+                            </div>
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-purple-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="shield-check" class="w-4 h-4"></i> Guardrail System Rules</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.guardrailRules || 'None provided.'}</p>
+                            </div>
+                            ${item.toolsUsed ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed}</p>
+                            </div>
+                            ` : ''}
+                            ${item.solutionLink ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Solution Link</h4>
+                                    <a href="${item.solutionLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.solutionLink}</a>
+                                </div>
+                            ` : ''}
+                        ` : isOptimizer ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="alert-circle" class="w-4 h-4"></i> Problem Definition</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.problemDefinition || 'None reported.'}</p>
+                            </div>
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="cpu" class="w-4 h-4"></i> Tools Used</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.toolsUsed || 'None suggested.'}</p>
+                            </div>
+                            ${item.operationalimpact ? `
+                            <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="activity" class="w-4 h-4"></i> Operational Impact</h4>
+                                <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.operationalimpact}</p>
+                            </div>
+                            ` : ''}
+                            ${item.solutionLink ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Solution Link</h4>
+                                    <a href="${item.solutionLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.solutionLink}</a>
+                                </div>
+                            ` : ''}
+                        ` : `
+                            ${item.canvasLink ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="external-link" class="w-4 h-4"></i> Shared Website Link</h4>
+                                    <a href="${item.canvasLink}" target="_blank" class="text-blue-100 text-sm leading-relaxed italic break-all underline decoration-blue-500/50">${item.canvasLink}</a>
+                                </div>
+                            ` : ''}
+                            ${item.round === 2 ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-6 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-emerald-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="bug" class="w-4 h-4"></i> Bugs Identified</h4>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.bugsIdentified || 'None reported.'}</p>
+                                </div>
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-4"><i data-lucide="zap" class="w-4 h-4"></i> Recommendations</h4>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">${item.productRecommendations || 'None suggested.'}</p>
+                                </div>
+                            ` : item.round === 1 ? `
+                                <div class="bg-black/60 rounded-[2.5rem] p-10 border border-white/5 mb-12 shadow-inner">
+                                    <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-8"><i data-lucide="zap" class="w-4 h-4 fill-blue-400"></i> Prompt Used</h4>
+                                    <p class="text-slate-200 text-base leading-relaxed italic break-words whitespace-pre-wrap">"${item.achievements || ''}"</p>
+                                </div>
+                            ` : ''}
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderIdeaModal() {
+            const idea = state.selectedIdea;
+            if (!idea) return '';
+            return `
+                <div class="fixed inset-0 z-[110] bg-slate-950/98 backdrop-blur-3xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div class="bg-slate-900 max-w-3xl w-full p-12 rounded-[4rem] border-2 border-yellow-500/30 shadow-[0_0_100px_rgba(234,179,8,0.1)] relative max-h-[90vh] overflow-y-auto custom-card">
+                        <button onclick="closeIdeaModal()" class="absolute top-10 right-10 text-slate-500 hover:text-white transition-all hover:rotate-90"><i data-lucide="x" class="w-10 h-10"></i></button>
+                        <div class="flex items-center gap-3 text-yellow-500 mb-8"><i data-lucide="lightbulb" class="w-6 h-6"></i> <span class="text-xs font-black uppercase tracking-[0.3em] italic">Concept Detail</span></div>
+                        <h3 class="text-5xl font-black text-white italic tracking-tighter uppercase leading-none mb-10 break-words">${idea.title}</h3>
+                        <div class="bg-black/60 rounded-[3rem] p-12 border border-white/5 shadow-inner">
+                            <h4 class="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mb-10 flex items-center gap-3"><i data-lucide="align-left" class="w-4 h-4"></i> Detailed Description</h4>
+                            <p class="text-slate-100 text-xl leading-[1.8] italic font-medium break-words whitespace-pre-wrap">"${idea.description}"</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAdminLogin() {
+            return `
+                <div class="fixed inset-0 z-[100] bg-slate-950/98 backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in duration-300">
+                    <div class="bg-slate-900 max-md w-full p-12 rounded-[3rem] border-2 border-slate-800 shadow-2xl text-center custom-card">
+                        <div class="w-24 h-24 bg-blue-600/10 rounded-[2rem] flex items-center justify-center mx-auto mb-10 border border-blue-500/20 shadow-inner"><i data-lucide="lock" class="text-blue-500 w-12 h-12"></i></div>
+                        <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-10">Admin Access Restricted</h3>
+                        <input type="password" id="adminCode" class="w-full bg-slate-950 border-2 border-slate-800 rounded-2xl p-5 text-center text-white outline-none focus:border-blue-600 transition-all font-mono tracking-[1em] mb-6" placeholder="••••">
+                        <div id="adminCodeError" class="hidden text-red-500 text-[10px] font-bold uppercase mb-6"></div>
+                        <div class="flex gap-4">
+                            <button onclick="toggleAdminLogin()" class="flex-1 p-5 rounded-2xl border border-slate-800 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-slate-800 transition">ABORT</button>
+                            <button onclick="authorizeAdmin()" class="flex-1 p-5 rounded-2xl bg-blue-600 text-white font-black text-[11px] uppercase tracking-[0.2em] hover:bg-blue-500 shadow-2xl transition">VERIFY</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function navigate(tab, sub) {
+            Router.go(tab, sub || null);
+        }
+
+        function toggleAdminLogin() {
+            state.showAdminLogin = !state.showAdminLogin;
+            updateUI();
+        }
+        function showAdminError(msg) {
+            const errEl = document.getElementById('adminCodeError');
+            if (errEl) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        async function authorizeAdmin() {
+            const code = document.getElementById('adminCode').value;
+            const hashed = await hashString(code);
+            if (hashed === ADMIN_HASH) {
+                state.isAdmin = true;
+                state.showAdminLogin = false;
+                state.activeTab = 'admin';
+                updateUI();
+            } else {
+                showAdminError("Incorrect code.");
+            }
+        }
+
+        function logoutAdmin() {
+            state.isAdmin = false;
+            state.activeTab = 'dashboard';
+            updateUI();
+        }
+
+        function closeModal() {
+            state.selectedInnovation = null;
+            updateUI();
+        }
+
+        function closeIdeaModal() {
+            state.selectedIdea = null;
+            updateUI();
+        }
+
+        function showDetails(id) {
+            state.selectedInnovation = state.submissions.find(s => String(s.id) === String(id));
+            updateUI();
+        }
+
+        function showIdeaDetails(id) {
+            state.selectedIdea = state.ideas.find(i => String(i.id) === String(id));
+            updateUI();
+        }
+
+        function handleFormInput(stateKey, field, value) {
+            state[stateKey][field] = value;
+        }
+
+        function setSubmissionType(type) {
+            state.submissionType = type;
+            updateUI();
+        }
+
+        async function toggleShortlist(id, current) {
+            try {
+                const docRef = db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').doc(id);
+                await docRef.update({
+                    shortlisted: !current
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function deleteSubmission(id) {
+            const confirmed = confirm('Permanently delete this submission? This removes it everywhere on the Hub and cannot be undone.');
+            if (!confirmed) return;
+            try {
+                const docRef = db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').doc(id);
+                await docRef.delete();
+            } catch (e) {
+                console.error(e);
+                alert('Failed to delete submission. Check console for details.');
+            }
+        }
+
+        function showFormError(msg) {
+            const errEl = document.getElementById('formStatus');
+            if (errEl) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (state.challengeClosed) {
+                showFormError('Submissions are closed for this round.');
+                return;
+            }
+            const data = state.formData;
+            if (!data.submissionDocLink || !data.submissionDocLink.startsWith('https://')) {
+                showFormError('Submission link must start with https://');
+                return;
+            }
+            const errEl = document.getElementById('formStatus');
+            if (errEl) errEl.classList.add('hidden');
+            try {
+                await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add({
+                    ...data,
+                    type: state.submissionType,
+                    round: 8,
+                    shortlisted: false,
+                    timestamp: new Date().toISOString()
+                });
+                state.formData = {};
+                state.activeTab = 'gallery';
+                updateUI();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function handleIdeaSubmit(e) {
+            e.preventDefault();
+            const data = state.ideaData;
+            try {
+                await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('ideas').add({
+                    ...data,
+                    timestamp: new Date().toISOString()
+                });
+                state.ideaData = {};
+                updateUI();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        Router.onRouteChange((route) => {
+            state.activeTab = route.tab;
+            state.routeSub = route.sub;
+            updateUI();
+        });
+
+        auth.onAuthStateChanged(async (user) => {
+            if (!user) {
+                await auth.signInAnonymously();
+            } else {
+                state.user = user;
+                setInterval(() => {
+                    updateCountdown();
+                }, 1000);
+
+                db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions')
+                    .onSnapshot((snapshot) => {
+                        state.submissions = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        state.submissions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        updateUI();
+                    });
+
+                db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('ideas')
+                    .onSnapshot((snapshot) => {
+                        state.ideas = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        state.ideas.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                        updateUI();
+                    });
+
+                db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('leaderboard')
+                    .onSnapshot((snapshot) => {
+                        const firestoreData = snapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        }));
+                        const combined = [...FINAL_STANDINGS];
+                        firestoreData.forEach(item => {
+                            const existingIdx = combined.findIndex(e => e.name === item.name);
+                            if (existingIdx > -1) combined[existingIdx] = item;
+                            else combined.push(item);
+                        });
+                        state.leaderboard = combined.sort((a, b) => (b.cumulativeScore || 0) - (a.cumulativeScore || 0));
+                        updateUI();
+                    });
+
+                Challenges.init(db, STABLE_APP_ID);
+                Challenges.onUpdate(() => {
+                    updateCountdown();
+                    updateUI();
+                });
+
+                Router.onRoute(); // sync state.activeTab/routeSub from the current URL hash
+                updateUI();
+            }
+        });
