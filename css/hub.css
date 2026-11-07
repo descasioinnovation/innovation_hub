@@ -635,10 +635,22 @@ button:disabled {
 /* Print (Step 10 fix 5): a completely separate, pre-rendered light document
    (#print-brief, js/app.js renderPrintBrief()) - never the dark on-screen layout.
    Everything else is hidden; #print-brief carries its own inline styles throughout,
-   since it's meant to look like a plain document, not a themed page. */
+   since it's meant to look like a plain document, not a themed page.
+   It must stay hidden on screen (it's a sibling of .rich-challenge-root, always
+   rendered, only meant to be shown by the print media query below). */
+@media screen {
+    #print-brief {
+        display: none !important;
+    }
+}
+
+/* @page margin:0 (Step 10 fix 4) removes the space Chrome reserves for its own
+   date/URL header and page-number footer, so they don't render; #print-brief
+   supplies its own 14mm padding instead (box-sizing:border-box keeps the content
+   width - and so the ~4 page length - the same as the old @page margin:14mm). */
 @page {
     size: A4;
-    margin: 14mm;
+    margin: 0;
 }
 @media print {
     body {
@@ -653,6 +665,8 @@ button:disabled {
     }
     #print-brief {
         display: block !important;
+        padding: 14mm;
+        box-sizing: border-box;
     }
     #print-brief * {
         print-color-adjust: exact;

@@ -66,7 +66,7 @@ const Shell = (() => {
         })() : '';
 
         return `
-        <header class="border-b border-border bg-bg/[0.92] sticky top-0 z-40">
+        <header class="border-b border-border sticky top-0 z-[60]" style="background:#050E1C">
             <div class="shell-header-inner max-w-[1240px] mx-auto px-6 py-4">
                 <div class="shell-logo-group">
                     <a href="${Router.buildHash('dashboard')}" class="flex items-center gap-3.5 no-underline min-w-0">

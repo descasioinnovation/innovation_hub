@@ -763,11 +763,11 @@
             const p = (html) => `<p style="${bodyFont};margin:0 0 8pt">${html}</p>`;
             const closes = formatWATDateTime(round.closesAt);
 
-            const whyBullets = `<ul style="margin:0 0 4pt;padding-left:16pt;${bodyFont}">
+            const whyBullets = `<ul style="margin:0 0 4pt;padding-left:18pt;list-style:disc;list-style-position:outside;${bodyFont}">
                 ${page.why.points.map(pt => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${pt.title}</strong> ${pt.text}</li>`).join('')}
             </ul>`;
 
-            const mustHavesHtml = `<ol style="margin:0;padding-left:16pt;${bodyFont}">
+            const mustHavesHtml = `<ol style="margin:0;padding-left:18pt;list-style:decimal;list-style-position:outside;${bodyFont}">
                 ${page.brief.mustHaves.map(m => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${m.lead}</strong> ${m.text}</li>`).join('')}
             </ol>`;
 
@@ -786,15 +786,15 @@
                 return `<tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};font-weight:700;color:${navy};width:130pt;vertical-align:top">${a.label}</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${details}</td></tr>`;
             }).join('');
 
-            const ideasList = `<ol style="margin:0 0 4pt;padding-left:16pt;${bodyFont}">
+            const ideasList = `<ol style="margin:0 0 4pt;padding-left:18pt;list-style:decimal;list-style-position:outside;${bodyFont}">
                 ${page.makeItYours.ideas.map(i => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${i.title}.</strong> ${i.text}</li>`).join('')}
             </ol>`;
 
-            const rulesList = `<ol style="margin:0;padding-left:16pt;${bodyFont}">
+            const rulesList = `<ol style="margin:0;padding-left:18pt;list-style:decimal;list-style-position:outside;${bodyFont}">
                 ${page.rules.map(r => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${r.lead}</strong> ${r.text}</li>`).join('')}
             </ol>`;
 
-            const stepsList = `<ol style="margin:0;padding-left:16pt;${bodyFont}">
+            const stepsList = `<ol style="margin:0;padding-left:18pt;list-style:decimal;list-style-position:outside;${bodyFont}">
                 ${page.howToSubmit.steps.map(s => `<li style="break-inside:avoid;margin-bottom:6pt">${s.text}</li>`).join('')}
             </ol>`;
 
@@ -933,7 +933,7 @@
                 ['how', 'How to submit'], ['scoring', 'Scoring']
             ];
             const jumpNav = `
-            <nav aria-label="On this page" class="no-print jump-nav sticky z-[2] p-2.5 rounded-2xl flex gap-2" style="background:rgba(8,21,39,0.92);border:1px solid var(--border);backdrop-filter:blur(6px)">
+            <nav aria-label="On this page" class="no-print jump-nav sticky z-[10] p-2.5 rounded-2xl flex gap-2" style="background:#081527;border:1px solid var(--border)">
                 ${jumpLinks.map(([id, label]) => `<button type="button" onclick="scrollToChallengeSection('${id}')" data-target="${id}" class="jump-link px-3.5 py-2 rounded-full border border-border-strong bg-transparent font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap cursor-pointer">${label}</button>`).join('')}
             </nav>`;
             const backToTopBtn = `<button type="button" id="back-to-top-btn" onclick="scrollChallengeToTop()" aria-label="Back to top" class="no-print back-to-top-btn hidden"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M5 12l7-7 7 7"></path></svg></button>`;
