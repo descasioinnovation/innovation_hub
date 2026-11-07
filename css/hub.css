@@ -548,7 +548,7 @@ button:disabled {
     pointer-events: none;
 }
 
-/* ===== Rich challenge page (Step 8, js/app.js renderRichChallengeContent) ===== */
+/* ===== Rich challenge page (Step 8/9, js/app.js renderRichChallengeContent) ===== */
 .jump-link:hover {
     border-color: var(--link) !important;
     color: var(--text-strong) !important;
@@ -559,38 +559,70 @@ button:disabled {
     font: inherit;
     color: inherit;
 }
+/* Month navigator: a 3-per-row chip grid below 1024px, the sticky row-list at/above it
+   (Step 9 fix 1). Both are always rendered; only one is ever visible at a given width. */
+.month-chips-mobile {
+    display: grid;
+}
+.month-list-desktop {
+    display: none;
+}
+@media (min-width: 1024px) {
+    .month-chips-mobile {
+        display: none;
+    }
+    .month-list-desktop {
+        display: flex;
+        flex: 1 1 280px;
+        max-width: 280px;
+        position: sticky;
+        top: 90px;
+    }
+}
+
+/* jump-nav's sticky top and each .sec's scroll-margin-top are sized to clear the
+   header (which gets taller as nav wraps to more rows) plus the jump-nav itself, so a
+   scrolled-to heading never hides underneath either sticky bar. Approximate - the
+   header's real height isn't measurable without a browser; verify in DevTools. */
 .jump-nav {
-    top: 64px;
+    top: 72px;
 }
 .sec {
-    scroll-margin-top: 130px;
+    scroll-margin-top: 140px;
 }
 @media (max-width: 1279px) {
     .jump-nav { top: 120px; }
     .sec { scroll-margin-top: 190px; }
 }
 @media (max-width: 640px) {
-    .jump-nav { top: 160px; }
-    .sec { scroll-margin-top: 230px; }
+    .jump-nav { top: 180px; }
+    .sec { scroll-margin-top: 250px; }
 }
-.print-only {
+.print-only, .print-footer {
     display: none;
 }
 
-/* Print stylesheet for the rich challenge page only (Step 8C) - "Download as PDF"
+/* Print stylesheet for the rich challenge page only (Step 9C) - "Download as PDF"
    calls window.print(). Everything outside .rich-challenge-root is hidden; sections
-   switch to a plain white/navy sheet and never break across a page mid-card. */
+   flow across pages naturally (break-inside: avoid only on small items, never on a
+   whole section, so one tall section doesn't force a half-empty page before it). */
+@page {
+    size: A4;
+    margin: 0;
+}
 @media print {
-    body, main {
+    body {
         background: #FFFFFF !important;
         color: #00336A !important;
-    }
-    header, footer, .ticker-wrap, .no-print {
-        display: none !important;
+        padding: 14mm !important;
+        margin: 0 !important;
     }
     main {
         max-width: 100% !important;
         padding: 0 !important;
+    }
+    header, footer, .ticker-wrap, .no-print {
+        display: none !important;
     }
     .rich-challenge-root .btn-coral,
     .rich-challenge-root .btn-outline,
@@ -604,13 +636,28 @@ button:disabled {
         display: block !important;
         margin-bottom: 20px;
     }
+
+    /* Whole sections flow across pages; only small items stay intact, and a heading
+       never ends up alone at the bottom of a page. */
     .rich-sec {
         background: #FFFFFF !important;
         border: 1px solid #CCCCCC !important;
         box-shadow: none !important;
+    }
+    .musthave-tile, .idea-tile, .yourcall-tile, .rule-row, .scoring-row,
+    .asset-tile, .step-item {
         page-break-inside: avoid;
         break-inside: avoid;
     }
+    .rich-h2 {
+        break-after: avoid;
+    }
+    /* Explicit re-assertion: these two tiles' text was found touching the card border
+       in print without this (Step 9 fix 5). */
+    .yourcall-tile, .idea-tile {
+        padding: 16px !important;
+    }
+
     .rich-sec, .rich-sec * {
         color: #00336A !important;
     }
@@ -618,5 +665,24 @@ button:disabled {
         font-size: 13px;
         margin: 4px 0;
         color: #00336A;
+    }
+
+    /* Swatches, logo tiles, number badges, accent borders and the Mesca ring all rely
+       on a background-color or border-color to mean something - without this, some
+       print engines strip "unnecessary" colours/backgrounds entirely. */
+    .rich-challenge-root,
+    .rich-challenge-root * {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .print-footer {
+        display: block !important;
+        margin-top: 24px;
+        padding-top: 12px;
+        border-top: 1px solid #CCCCCC;
+        font-size: 11px;
+        color: #00336A;
+        text-align: center;
     }
 }

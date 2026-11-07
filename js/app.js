@@ -629,6 +629,20 @@
                 </button>`;
             }).join('');
 
+            // Compact chip grid shown instead of the row list below 1024px (Step 9 fix 1).
+            const monthChipsHtml = allRounds.map(r => {
+                const slug = r.slug || `round-${r.round}`;
+                const on = slug === (selected.slug || `round-${selected.round}`);
+                const st = Challenges.statusOf(r);
+                const isLive = st === 'open' || st === 'upcoming';
+                const chipClasses = on ? 'bg-surface-active border-[1.5px] border-[#00AEEF]' : 'bg-surface border border-border';
+                return `
+                <button type="button" onclick="navigate('challenge', '${slug}')" aria-pressed="${on}" class="card-hover flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-center ${chipClasses}">
+                    ${isLive ? '<span class="w-1.5 h-1.5 shrink-0 rounded-full bg-green"></span>' : ''}
+                    <span class="font-inter font-semibold text-[12px] text-text-strong whitespace-nowrap">${r.month.slice(0, 3)} · R${r.round}</span>
+                </button>`;
+            }).join('');
+
             const status = Challenges.statusOf(selected);
             const isOpen = status === 'open';
             const isUpcoming = status === 'upcoming';
@@ -695,14 +709,16 @@
                         <p class="m-0 max-w-[640px] font-inter text-base leading-[1.6] text-text-muted">Pick a month to see the brief, the winner and the entries. Past rounds are read-only; only the open round accepts submissions.</p>
                     </div>
 
-                    <div class="flex flex-wrap gap-6 items-start">
-                        <nav aria-label="Challenge months" class="no-print flex-[1_1_280px] flex flex-col gap-2">${monthListHtml}</nav>
+                    <div class="challenge-layout flex flex-wrap gap-6 items-start">
+                        <div class="no-print month-chips-mobile grid gap-2" style="grid-template-columns:repeat(3,1fr)">${monthChipsHtml}</div>
+                        <nav aria-label="Challenge months" class="no-print month-list-desktop flex-col gap-2">${monthListHtml}</nav>
 
+                        <div class="flex-[999_1_560px] min-w-0">
                         ${selected.page ? renderRichChallengeContent(selected, {
-                            ctaHtml, note, noteColorClass, statusLabel,
+                            note, noteColorClass, statusLabel,
                             statusClasses: statusClasses.replace('shell-sentence-case', ''),
                             statusDot: isOpen ? '<span class="w-2 h-2 rounded-full bg-green"></span>' : '',
-                            entriesDisplay
+                            entriesDisplay, isUpcoming
                         }) : `
                         <section aria-live="polite" class="flex-[999_1_560px] min-w-0 rounded-[24px] bg-surface border border-border overflow-hidden">
                             <div class="p-8 flex flex-col gap-3.5" style="${bannerBg}">
@@ -735,22 +751,28 @@
                                 </div>
                             </div>
                         </section>`}
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        // --- Rich challenge page (Step 8) - only rendered when the round has a `page`
+        // --- Rich challenge page (Step 8/9) - only rendered when the round has a `page`
         // object (currently just Round 9). Mirrors redesign/mockups/Challenges.dc.html's
-        // November view section-for-section. ctaHtml/note/noteColorClass/entriesDisplay
-        // are passed in from renderChallenge() so the CTA/status logic is identical to
-        // the simple panel's (same "closed" behaviour, same disabled-while-upcoming state).
+        // November view section-for-section. note/noteColorClass/entriesDisplay are
+        // passed in from renderChallenge() so the status-line text is identical to the
+        // simple panel's. The submit button itself is always clickable here (Step 9 fix
+        // 2) - it no longer reuses the simple panel's disabled-while-upcoming ctaHtml.
         function renderRichChallengeContent(round, ctx) {
             const page = round.page;
             const status = Challenges.statusOf(round);
             const isOpen = status === 'open';
-            const isUpcoming = status === 'upcoming';
+            const isUpcoming = ctx.isUpcoming;
 
+            const submitBtn = `<a href="#submit" class="btn-coral inline-flex items-center h-12 px-6 rounded-full bg-coral-btn text-text-strong font-inter font-semibold text-[15px] no-underline">Submit your entry</a>`;
+            const upcomingNoteHtml = isUpcoming
+                ? `<span class="no-print font-inter font-semibold text-[13px]" style="color:var(--gold-text)">Opens ${formatWATDateTime(round.opensAt).weekday} ${formatShortDateWAT(round.opensAt)}, ${formatWATDateTime(round.opensAt).time}</span>`
+                : '';
             const sampleBtn = `<a href="${page.sampleUrl}" target="_blank" rel="noopener" class="btn-outline inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm no-underline">See a sample ↗</a>`;
             const packBtn = `<a href="${page.designPack.url}" target="_blank" rel="noopener" class="btn-outline inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm no-underline">Design pack ↗</a>`;
             const pdfBtn = `<button type="button" onclick="triggerChallengePdf('${round.month}', '${round.title.replace(/'/g, "\\'")}')" class="btn-outline no-print inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>Download as PDF</button>`;
@@ -768,7 +790,7 @@
                     </div>
                     <div class="flex-[1_1_150px] flex justify-center">
                         <div class="relative" style="width:150px;height:150px">
-                            <div class="absolute inset-0 rounded-full border-[4px] border-coral" style="box-shadow:0 0 30px rgba(230,83,60,0.35)"></div>
+                            <div class="mesca-ring absolute inset-0 rounded-full border-[4px] border-coral" style="box-shadow:0 0 30px rgba(230,83,60,0.35)"></div>
                             <div class="absolute rounded-full overflow-hidden" style="inset:8px;background:#0B1F38">
                                 <img src="${HUB_AVATAR}" alt="Mesca, the AI Innovation Hub mascot" class="w-full h-full object-contain">
                             </div>
@@ -782,7 +804,8 @@
                     <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted">Window</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${formatWindow(round)}</div></div>
                 </div>
                 <div class="px-6 pb-6 flex gap-3 flex-wrap items-center">
-                    ${ctx.ctaHtml}
+                    ${submitBtn}
+                    ${upcomingNoteHtml}
                     ${sampleBtn}
                     ${packBtn}
                     ${pdfBtn}
@@ -790,14 +813,18 @@
                 </div>
             </section>`;
 
+            // Step 9 fix 3: these are plain buttons, not hash-changing anchors - the
+            // router treats any unrecognized hash (#why etc.) as "go to Dashboard", so a
+            // real <a href="#why"> would hijack navigation. scrollToChallengeSection()
+            // scrolls in place instead; see its definition below.
             const jumpLinks = [
-                ['#why', 'Why this challenge'], ['#brief', 'The brief'], ['#call', 'Your call'],
-                ['#pack', 'Design pack'], ['#yours', 'Make it yours'], ['#rules', 'Rules'],
-                ['#how', 'How to submit'], ['#scoring', 'Scoring']
+                ['why', 'Why this challenge'], ['brief', 'The brief'], ['call', 'Your call'],
+                ['pack', 'Design pack'], ['yours', 'Make it yours'], ['rules', 'Rules'],
+                ['how', 'How to submit'], ['scoring', 'Scoring']
             ];
             const jumpNav = `
             <nav aria-label="On this page" class="no-print jump-nav sticky top-0 z-[2] p-2.5 rounded-2xl flex gap-2 overflow-x-auto" style="background:rgba(8,21,39,0.92);border:1px solid var(--border);backdrop-filter:blur(6px)">
-                ${jumpLinks.map(([href, label]) => `<a href="${href}" class="jump-link px-3.5 py-2 rounded-full border border-border-strong font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap no-underline">${label}</a>`).join('')}
+                ${jumpLinks.map(([id, label]) => `<button type="button" onclick="scrollToChallengeSection('${id}')" class="jump-link px-3.5 py-2 rounded-full border border-border-strong bg-transparent font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap cursor-pointer">${label}</button>`).join('')}
             </nav>`;
 
             // 01 Why this challenge
@@ -813,7 +840,7 @@
                 <p class="m-0 font-inter text-[17px] leading-[1.65] text-text-strong max-w-[720px]">${page.why.lead}</p>
                 <div class="grid gap-3.5" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
                     ${page.why.points.map((pt, i) => `
-                    <div class="p-5 rounded-[18px] bg-surface-2 flex flex-col gap-2.5" style="border-top:3px solid ${pt.accent}">
+                    <div class="accent-border p-5 rounded-[18px] bg-surface-2 flex flex-col gap-2.5" style="border-top:3px solid ${pt.accent}">
                         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="${pt.accent}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${whyPointIcons[i % 3]}</svg>
                         <span class="font-poppins font-semibold text-base text-text-strong">${pt.title}</span>
                         <span class="font-inter text-sm leading-[1.65] text-text-2">${pt.text}</span>
@@ -826,14 +853,14 @@
             <section id="brief" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
                 <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">02</span>
                 <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">The brief</h3>
-                <div class="px-5.5 py-4.5 rounded-2xl" style="background:linear-gradient(135deg, #003366, #0B2A4D);border-left:4px solid var(--coral)">
+                <div class="accent-border px-5.5 py-4.5 rounded-2xl" style="background:linear-gradient(135deg, #003366, #0B2A4D);border-left:4px solid var(--coral)">
                     <p class="m-0 font-inter font-medium text-[17px] leading-[1.6] text-text-strong">${page.brief.statement}</p>
                 </div>
                 <span class="font-poppins font-semibold text-[17px] text-text-strong mt-1">Your card must include</span>
                 <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))">
                     ${page.brief.mustHaves.map((mh, i) => `
-                    <div class="flex gap-3.5 p-4 rounded-2xl bg-surface-2 border border-border">
-                        <span class="w-8 h-8 shrink-0 rounded-full bg-coral text-text-strong flex items-center justify-center font-poppins font-bold text-sm">${i + 1}</span>
+                    <div class="musthave-tile flex gap-3.5 p-4 rounded-2xl bg-surface-2 border border-border">
+                        <span class="num-badge w-8 h-8 shrink-0 rounded-full bg-coral text-text-strong flex items-center justify-center font-poppins font-bold text-sm">${i + 1}</span>
                         <span class="font-inter text-[14.5px] leading-[1.65] text-text-2"><strong class="text-text-strong">${mh.lead}</strong> ${mh.text}</span>
                     </div>`).join('')}
                 </div>
@@ -846,7 +873,7 @@
                 <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Your call</h3>
                 <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))">
                     ${page.yourCall.map(c => `
-                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                    <div class="yourcall-tile p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
                         <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-link" style="text-transform:uppercase">${c.label}</span>
                         <span class="font-inter text-[14.5px] leading-[1.65] text-text-2">${c.text}</span>
                     </div>`).join('')}
@@ -861,7 +888,7 @@
             const assetTile = (a) => {
                 if (a.kind === 'mesca') {
                     return `
-                    <div class="p-4.5 rounded-2xl bg-surface-2 border flex gap-4 items-center" style="border-color:rgba(230,83,60,0.5)">
+                    <div class="asset-tile p-4.5 rounded-2xl bg-surface-2 border flex gap-4 items-center" style="border-color:rgba(230,83,60,0.5)">
                         <img src="${a.imageUrl}" alt="Official Mesca image" class="w-16 h-16 rounded-[14px] object-cover shrink-0" style="background:#0B1F38">
                         <div class="flex flex-col gap-1">
                             <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label} ${a.compulsory ? '<span class="font-inter font-semibold text-[11px] uppercase tracking-[1px]" style="color:#F08A78">compulsory</span>' : ''}</span>
@@ -873,8 +900,8 @@
                     const isDark = a.kind === 'logo-dark';
                     const logo = isDark ? Shell.LOGO_SVG_WHITE : Shell.LOGO_SVG_COLOR;
                     return `
-                    <div class="p-4.5 rounded-2xl bg-surface-2 flex gap-4 items-center">
-                        <div class="w-[110px] h-16 shrink-0 rounded-xl flex items-center justify-center" style="background:${isDark ? '#003366' : '#F5F7FA'}">
+                    <div class="asset-tile p-4.5 rounded-2xl bg-surface-2 flex gap-4 items-center">
+                        <div class="logo-tile-swatch w-[110px] h-16 shrink-0 rounded-xl flex items-center justify-center" style="background:${isDark ? '#003366' : '#F5F7FA'}">
                             <span style="width:88px;height:22px;display:inline-block;overflow:hidden">${logo.replace(/class="[^"]*"/, 'style="width:88px;height:22px;display:block"')}</span>
                         </div>
                         <div class="flex flex-col gap-1"><span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span><span class="font-inter text-sm text-text-2">${a.text}</span></div>
@@ -883,12 +910,12 @@
                 if (a.kind === 'brand-swatches' || a.kind === 'seasonal-swatches') {
                     const round_ = a.kind === 'seasonal-swatches';
                     return `
-                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-3">
+                    <div class="asset-tile p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-3">
                         <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
                         <div class="flex gap-2.5 flex-wrap">
                             ${a.swatches.map(s => round_
-                                ? `<span title="${s.name}" class="w-6.5 h-6.5 rounded-full" style="width:26px;height:26px;background:${s.hex};${s.hex === '#FFFFFF' ? 'border:1px solid var(--border-muted)' : ''}"></span>`
-                                : `<span class="flex items-center gap-2 font-inter font-medium text-[13px] text-text-2"><span style="width:26px;height:26px;border-radius:8px;background:${s.hex};border:1px solid var(--border-muted)"></span>${s.name} ${s.hex}</span>`
+                                ? `<span title="${s.name}" class="swatch-chip w-6.5 h-6.5 rounded-full" style="width:26px;height:26px;background:${s.hex};${s.hex === '#FFFFFF' ? 'border:1px solid var(--border-muted)' : ''}"></span>`
+                                : `<span class="flex items-center gap-2 font-inter font-medium text-[13px] text-text-2"><span class="swatch-chip" style="width:26px;height:26px;border-radius:8px;background:${s.hex};border:1px solid var(--border-muted)"></span>${s.name} ${s.hex}</span>`
                             ).join('')}
                         </div>
                         ${a.text ? `<span class="font-inter text-sm text-text-2">${a.text}</span>` : ''}
@@ -896,7 +923,7 @@
                 }
                 if (a.kind === 'fonts') {
                     return `
-                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                    <div class="asset-tile p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
                         <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
                         <span class="font-poppins font-bold text-[22px] text-text-strong">Aa Poppins <span class="font-inter text-base text-text-2">· Aa Inter</span></span>
                         <span class="font-inter text-sm text-text-2">${a.text}</span>
@@ -904,13 +931,13 @@
                 }
                 if (a.kind === 'tagline') {
                     return `
-                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                    <div class="asset-tile p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
                         <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
                         <span class="font-poppins italic font-semibold text-lg leading-[1.4]" style="color:#F08A78">"${a.text}"</span>
                     </div>`;
                 }
                 return `
-                <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                <div class="asset-tile p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
                     <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
                     <span class="font-inter text-sm text-text-2">${a.text}</span>
                 </div>`;
@@ -939,8 +966,8 @@
                 <p class="m-0 font-inter text-[15px] leading-[1.65] text-text-2">${page.makeItYours.intro}</p>
                 <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))">
                     ${page.makeItYours.ideas.map((idea, i) => `
-                    <div class="px-4.5 py-4 rounded-2xl flex flex-col gap-1.5" style="background:linear-gradient(160deg, var(--surface-2), var(--surface));border:1px solid var(--border)">
-                        <span class="flex items-center gap-2 font-poppins font-semibold text-[15px] text-text-strong"><span class="w-2 h-2 rounded-full" style="background:${ideaDotColors[i % ideaDotColors.length]}"></span>${idea.title}</span>
+                    <div class="idea-tile px-4.5 py-4 rounded-2xl flex flex-col gap-1.5" style="background:linear-gradient(160deg, var(--surface-2), var(--surface));border:1px solid var(--border)">
+                        <span class="flex items-center gap-2 font-poppins font-semibold text-[15px] text-text-strong"><span class="accent-dot w-2 h-2 rounded-full" style="background:${ideaDotColors[i % ideaDotColors.length]}"></span>${idea.title}</span>
                         <span class="font-inter text-sm leading-[1.65] text-text-2">${idea.text}</span>
                     </div>`).join('')}
                 </div>
@@ -957,7 +984,7 @@
                 <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Rules</h3>
                 <div class="grid gap-2.5" style="grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
                     ${page.rules.map(r => `
-                    <div class="flex gap-3 p-3.5 rounded-[14px] bg-surface-2">
+                    <div class="rule-row flex gap-3 p-3.5 rounded-[14px] bg-surface-2">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0 mt-0.5"><path d="M20 6 9 17l-5-5"></path></svg>
                         <span class="font-inter text-[14.5px] leading-[1.65] text-text-2"><strong class="text-text-strong">${r.lead}</strong> ${r.text}</span>
                     </div>`).join('')}
@@ -985,9 +1012,9 @@
                         </div>
                     </div>` : '';
                 return `
-                <li class="flex gap-4">
+                <li class="step-item flex gap-4">
                     <div class="flex flex-col items-center">
-                        <span class="w-[34px] h-[34px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-sm" style="background:var(--brand-blue);color:#050E1C">${i + 1}</span>
+                        <span class="num-badge w-[34px] h-[34px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-sm" style="background:var(--brand-blue);color:#050E1C">${i + 1}</span>
                         ${!isLast ? `<span class="flex-1 my-1" style="width:2px;background:var(--border)"></span>` : ''}
                     </div>
                     <div class="${isLast ? '' : 'pb-5'} flex flex-col gap-2 min-w-0">
@@ -1042,11 +1069,11 @@
                     ${page.scoring.criteria.map((c, i) => {
                         const col = scoringColors[i % scoringColors.length];
                         return `
-                        <div class="flex flex-wrap gap-3.5 items-center p-4 rounded-2xl bg-surface-2" style="border-left:4px solid ${col}">
+                        <div class="scoring-row accent-border flex flex-wrap gap-3.5 items-center p-4 rounded-2xl bg-surface-2" style="border-left:4px solid ${col}">
                             <div class="flex-[1_1_200px] flex flex-col gap-2">
                                 <span class="font-poppins font-semibold text-base text-text-strong">${c.name}</span>
                                 <span class="flex gap-1 items-center">
-                                    ${Array.from({ length: c.points }).map(() => `<span class="w-5.5 rounded" style="width:22px;height:6px;background:${col}"></span>`).join('')}
+                                    ${Array.from({ length: c.points }).map(() => `<span class="swatch-chip w-5.5 rounded" style="width:22px;height:6px;background:${col}"></span>`).join('')}
                                     <span class="font-poppins font-bold text-[13px] text-text-strong ml-1.5">${c.points} pts</span>
                                 </span>
                             </div>
@@ -1061,10 +1088,11 @@
             <section class="rich-sec relative overflow-hidden p-8 rounded-[24px] border border-border flex flex-wrap gap-5 items-center justify-between" style="background:radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 50%, #061A33 100%)">
                 <div class="flex flex-col gap-1.5">
                     <span class="font-poppins font-bold text-2xl text-text-strong">Ready to send some season's greetings?</span>
-                    <span class="font-inter font-medium text-sm text-text-2">Closes ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
+                    <span class="no-print font-inter font-medium text-sm text-text-2">Closes ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
+                    <span class="print-only" style="display:none">Submit at ai.innovation-hub.com.ng before ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
                 </div>
-                <div class="flex gap-3 flex-wrap">
-                    ${ctx.ctaHtml}
+                <div class="no-print flex gap-3 flex-wrap">
+                    ${submitBtn}
                     ${packBtn}
                     ${pdfBtn}
                 </div>
@@ -1090,7 +1118,18 @@
                 ${howSection}
                 ${scoringSection}
                 ${closingSection}
+                <div class="print-footer">Descasio AI Innovation Hub · ai.innovation-hub.com.ng · Empowering Your Digital Future</div>
             </div>`;
+        }
+
+        // Step 9 fix 3: scrolls to a rich-challenge-page section without ever touching
+        // location.hash, so the router never mistakes it for a real route.
+        function scrollToChallengeSection(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let reduceMotion = false;
+            try { reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+            el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
         }
 
         function toggleRichChecklistItem(i) {
