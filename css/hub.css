@@ -547,3 +547,76 @@ button:disabled {
     animation-iteration-count: infinite;
     pointer-events: none;
 }
+
+/* ===== Rich challenge page (Step 8, js/app.js renderRichChallengeContent) ===== */
+.jump-link:hover {
+    border-color: var(--link) !important;
+    color: var(--text-strong) !important;
+}
+.chk {
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+}
+.jump-nav {
+    top: 64px;
+}
+.sec {
+    scroll-margin-top: 130px;
+}
+@media (max-width: 1279px) {
+    .jump-nav { top: 120px; }
+    .sec { scroll-margin-top: 190px; }
+}
+@media (max-width: 640px) {
+    .jump-nav { top: 160px; }
+    .sec { scroll-margin-top: 230px; }
+}
+.print-only {
+    display: none;
+}
+
+/* Print stylesheet for the rich challenge page only (Step 8C) - "Download as PDF"
+   calls window.print(). Everything outside .rich-challenge-root is hidden; sections
+   switch to a plain white/navy sheet and never break across a page mid-card. */
+@media print {
+    body, main {
+        background: #FFFFFF !important;
+        color: #00336A !important;
+    }
+    header, footer, .ticker-wrap, .no-print {
+        display: none !important;
+    }
+    main {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    .rich-challenge-root .btn-coral,
+    .rich-challenge-root .btn-outline,
+    .rich-challenge-root button {
+        display: none !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+    .rich-print-logo {
+        display: block !important;
+        margin-bottom: 20px;
+    }
+    .rich-sec {
+        background: #FFFFFF !important;
+        border: 1px solid #CCCCCC !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    .rich-sec, .rich-sec * {
+        color: #00336A !important;
+    }
+    .print-check-row {
+        font-size: 13px;
+        margin: 4px 0;
+        color: #00336A;
+    }
+}

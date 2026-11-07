@@ -29,6 +29,9 @@
             showAdminLogin: false,
             adminSignInError: null,
             adminSigningIn: false,
+            richChecklist: {},
+            showSubmitConfirm: false,
+            pendingWarnings: [],
             challengeClosed: false,
             timeLeft: {
                 days: 0,
@@ -684,16 +687,23 @@
                 </div>` : '';
 
             return `
-                <div class="space-y-7 animate-in fade-in">
-                    <div class="flex flex-col gap-2">
+                <div class="space-y-7 animate-in fade-in rich-challenge-root">
+                    <div class="print-only rich-print-logo" style="display:none;height:36px">${Shell.LOGO_SVG_COLOR.replace(/class="[^"]*"/, 'style="height:36px;display:block"')}</div>
+                    <div class="no-print flex flex-col gap-2">
                         <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Challenge archive · ${selected.year || new Date().getFullYear()}</span>
                         <h1 class="m-0 font-poppins font-bold text-4xl leading-[1.1] tracking-[-0.8px] text-text-strong shell-sentence-case">Every challenge</h1>
                         <p class="m-0 max-w-[640px] font-inter text-base leading-[1.6] text-text-muted">Pick a month to see the brief, the winner and the entries. Past rounds are read-only; only the open round accepts submissions.</p>
                     </div>
 
                     <div class="flex flex-wrap gap-6 items-start">
-                        <nav aria-label="Challenge months" class="flex-[1_1_280px] flex flex-col gap-2">${monthListHtml}</nav>
+                        <nav aria-label="Challenge months" class="no-print flex-[1_1_280px] flex flex-col gap-2">${monthListHtml}</nav>
 
+                        ${selected.page ? renderRichChallengeContent(selected, {
+                            ctaHtml, note, noteColorClass, statusLabel,
+                            statusClasses: statusClasses.replace('shell-sentence-case', ''),
+                            statusDot: isOpen ? '<span class="w-2 h-2 rounded-full bg-green"></span>' : '',
+                            entriesDisplay
+                        }) : `
                         <section aria-live="polite" class="flex-[999_1_560px] min-w-0 rounded-[24px] bg-surface border border-border overflow-hidden">
                             <div class="p-8 flex flex-col gap-3.5" style="${bannerBg}">
                                 <div class="flex gap-2.5 flex-wrap">
@@ -724,12 +734,382 @@
                                     <span class="font-inter font-medium text-[13px] shell-sentence-case ${noteColorClass}">${note}</span>
                                 </div>
                             </div>
-                        </section>
+                        </section>`}
                     </div>
                 </div>
             `;
         }
 
+        // --- Rich challenge page (Step 8) - only rendered when the round has a `page`
+        // object (currently just Round 9). Mirrors redesign/mockups/Challenges.dc.html's
+        // November view section-for-section. ctaHtml/note/noteColorClass/entriesDisplay
+        // are passed in from renderChallenge() so the CTA/status logic is identical to
+        // the simple panel's (same "closed" behaviour, same disabled-while-upcoming state).
+        function renderRichChallengeContent(round, ctx) {
+            const page = round.page;
+            const status = Challenges.statusOf(round);
+            const isOpen = status === 'open';
+            const isUpcoming = status === 'upcoming';
+
+            const sampleBtn = `<a href="${page.sampleUrl}" target="_blank" rel="noopener" class="btn-outline inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm no-underline">See a sample ↗</a>`;
+            const packBtn = `<a href="${page.designPack.url}" target="_blank" rel="noopener" class="btn-outline inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted text-text-strong font-inter font-semibold text-sm no-underline">Design pack ↗</a>`;
+            const pdfBtn = `<button type="button" onclick="triggerChallengePdf('${round.month}', '${round.title.replace(/'/g, "\\'")}')" class="btn-outline no-print inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>Download as PDF</button>`;
+
+            const topCard = `
+            <section class="rich-sec rounded-[24px] bg-surface border border-border overflow-hidden">
+                <div class="relative overflow-hidden p-8 flex flex-wrap gap-6 items-center" style="background:radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%)">
+                    <div class="flex-[999_1_380px] min-w-0 flex flex-col gap-3.5">
+                        <div class="flex gap-2.5 flex-wrap">
+                            <span class="inline-flex items-center gap-2 h-7 px-3 rounded-full font-inter font-semibold text-xs ${ctx.statusClasses}">${ctx.statusDot || ''}${ctx.statusLabel}</span>
+                            <span class="inline-flex items-center h-7 px-3 rounded-full bg-[rgba(5,14,28,0.5)] text-text-2 font-inter font-semibold text-xs">Round ${round.round} · ${round.month} ${round.year}</span>
+                        </div>
+                        <h2 class="m-0 font-poppins font-bold text-[34px] leading-[1.12] text-text-strong">${round.month} AI Challenge: ${round.title}</h2>
+                        <p class="m-0 font-inter text-base leading-[1.6] text-text-2 max-w-[620px]">${page.intro}</p>
+                    </div>
+                    <div class="flex-[1_1_150px] flex justify-center">
+                        <div class="relative" style="width:150px;height:150px">
+                            <div class="absolute inset-0 rounded-full border-[4px] border-coral" style="box-shadow:0 0 30px rgba(230,83,60,0.35)"></div>
+                            <div class="absolute rounded-full overflow-hidden" style="inset:8px;background:#0B1F38">
+                                <img src="${HUB_AVATAR}" alt="Mesca, the AI Innovation Hub mascot" class="w-full h-full object-contain">
+                            </div>
+                            <svg aria-hidden="true" viewBox="0 0 24 24" class="absolute pointer-events-none" style="left:50%;top:-10px;width:18px;height:18px;transform:translateX(-50%)"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="#F2B544"></path></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(160px,100%),1fr))">
+                    <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted">Winner</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${round.winnerName || 'To be announced'}</div></div>
+                    <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted">Entries</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${ctx.entriesDisplay}</div></div>
+                    <div class="px-4 py-3.5 rounded-2xl bg-surface-2"><div class="font-inter font-medium text-xs text-text-muted">Window</div><div class="font-inter font-semibold text-[15px] text-text-strong mt-1">${formatWindow(round)}</div></div>
+                </div>
+                <div class="px-6 pb-6 flex gap-3 flex-wrap items-center">
+                    ${ctx.ctaHtml}
+                    ${sampleBtn}
+                    ${packBtn}
+                    ${pdfBtn}
+                    <span class="font-inter font-medium text-[13px] ${ctx.noteColorClass} no-print">${ctx.note}</span>
+                </div>
+            </section>`;
+
+            const jumpLinks = [
+                ['#why', 'Why this challenge'], ['#brief', 'The brief'], ['#call', 'Your call'],
+                ['#pack', 'Design pack'], ['#yours', 'Make it yours'], ['#rules', 'Rules'],
+                ['#how', 'How to submit'], ['#scoring', 'Scoring']
+            ];
+            const jumpNav = `
+            <nav aria-label="On this page" class="no-print jump-nav sticky top-0 z-[2] p-2.5 rounded-2xl flex gap-2 overflow-x-auto" style="background:rgba(8,21,39,0.92);border:1px solid var(--border);backdrop-filter:blur(6px)">
+                ${jumpLinks.map(([href, label]) => `<a href="${href}" class="jump-link px-3.5 py-2 rounded-full border border-border-strong font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap no-underline">${label}</a>`).join('')}
+            </nav>`;
+
+            // 01 Why this challenge
+            const whyPointIcons = [
+                '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle>',
+                '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"></path>',
+                '<path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"></path><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"></path>'
+            ];
+            const whySection = `
+            <section id="why" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">01</span>
+                <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Why this challenge</h3>
+                <p class="m-0 font-inter text-[17px] leading-[1.65] text-text-strong max-w-[720px]">${page.why.lead}</p>
+                <div class="grid gap-3.5" style="grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr))">
+                    ${page.why.points.map((pt, i) => `
+                    <div class="p-5 rounded-[18px] bg-surface-2 flex flex-col gap-2.5" style="border-top:3px solid ${pt.accent}">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="${pt.accent}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${whyPointIcons[i % 3]}</svg>
+                        <span class="font-poppins font-semibold text-base text-text-strong">${pt.title}</span>
+                        <span class="font-inter text-sm leading-[1.65] text-text-2">${pt.text}</span>
+                    </div>`).join('')}
+                </div>
+            </section>`;
+
+            // 02 The brief
+            const briefSection = `
+            <section id="brief" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">02</span>
+                <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">The brief</h3>
+                <div class="px-5.5 py-4.5 rounded-2xl" style="background:linear-gradient(135deg, #003366, #0B2A4D);border-left:4px solid var(--coral)">
+                    <p class="m-0 font-inter font-medium text-[17px] leading-[1.6] text-text-strong">${page.brief.statement}</p>
+                </div>
+                <span class="font-poppins font-semibold text-[17px] text-text-strong mt-1">Your card must include</span>
+                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))">
+                    ${page.brief.mustHaves.map((mh, i) => `
+                    <div class="flex gap-3.5 p-4 rounded-2xl bg-surface-2 border border-border">
+                        <span class="w-8 h-8 shrink-0 rounded-full bg-coral text-text-strong flex items-center justify-center font-poppins font-bold text-sm">${i + 1}</span>
+                        <span class="font-inter text-[14.5px] leading-[1.65] text-text-2"><strong class="text-text-strong">${mh.lead}</strong> ${mh.text}</span>
+                    </div>`).join('')}
+                </div>
+            </section>`;
+
+            // 03 Your call
+            const callSection = `
+            <section id="call" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">03</span>
+                <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Your call</h3>
+                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))">
+                    ${page.yourCall.map(c => `
+                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                        <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-link" style="text-transform:uppercase">${c.label}</span>
+                        <span class="font-inter text-[14.5px] leading-[1.65] text-text-2">${c.text}</span>
+                    </div>`).join('')}
+                </div>
+                <div class="flex flex-wrap gap-4 items-center justify-between p-4.5 rounded-2xl border-[1.5px] border-dashed border-border-muted">
+                    <span class="font-inter text-[15px] text-text-2">Not sure where to start? Open a finished example card.</span>
+                    ${sampleBtn}
+                </div>
+            </section>`;
+
+            // 04 Design pack
+            const assetTile = (a) => {
+                if (a.kind === 'mesca') {
+                    return `
+                    <div class="p-4.5 rounded-2xl bg-surface-2 border flex gap-4 items-center" style="border-color:rgba(230,83,60,0.5)">
+                        <img src="${a.imageUrl}" alt="Official Mesca image" class="w-16 h-16 rounded-[14px] object-cover shrink-0" style="background:#0B1F38">
+                        <div class="flex flex-col gap-1">
+                            <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label} ${a.compulsory ? '<span class="font-inter font-semibold text-[11px] uppercase tracking-[1px]" style="color:#F08A78">compulsory</span>' : ''}</span>
+                            <span class="font-inter text-sm text-text-2">${a.text} <a href="${a.linkUrl}" target="_blank" rel="noopener" class="link-text font-inter font-semibold">${a.linkLabel}</a></span>
+                        </div>
+                    </div>`;
+                }
+                if (a.kind === 'logo-light' || a.kind === 'logo-dark') {
+                    const isDark = a.kind === 'logo-dark';
+                    const logo = isDark ? Shell.LOGO_SVG_WHITE : Shell.LOGO_SVG_COLOR;
+                    return `
+                    <div class="p-4.5 rounded-2xl bg-surface-2 flex gap-4 items-center">
+                        <div class="w-[110px] h-16 shrink-0 rounded-xl flex items-center justify-center" style="background:${isDark ? '#003366' : '#F5F7FA'}">
+                            <span style="width:88px;height:22px;display:inline-block;overflow:hidden">${logo.replace(/class="[^"]*"/, 'style="width:88px;height:22px;display:block"')}</span>
+                        </div>
+                        <div class="flex flex-col gap-1"><span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span><span class="font-inter text-sm text-text-2">${a.text}</span></div>
+                    </div>`;
+                }
+                if (a.kind === 'brand-swatches' || a.kind === 'seasonal-swatches') {
+                    const round_ = a.kind === 'seasonal-swatches';
+                    return `
+                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-3">
+                        <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
+                        <div class="flex gap-2.5 flex-wrap">
+                            ${a.swatches.map(s => round_
+                                ? `<span title="${s.name}" class="w-6.5 h-6.5 rounded-full" style="width:26px;height:26px;background:${s.hex};${s.hex === '#FFFFFF' ? 'border:1px solid var(--border-muted)' : ''}"></span>`
+                                : `<span class="flex items-center gap-2 font-inter font-medium text-[13px] text-text-2"><span style="width:26px;height:26px;border-radius:8px;background:${s.hex};border:1px solid var(--border-muted)"></span>${s.name} ${s.hex}</span>`
+                            ).join('')}
+                        </div>
+                        ${a.text ? `<span class="font-inter text-sm text-text-2">${a.text}</span>` : ''}
+                    </div>`;
+                }
+                if (a.kind === 'fonts') {
+                    return `
+                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                        <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
+                        <span class="font-poppins font-bold text-[22px] text-text-strong">Aa Poppins <span class="font-inter text-base text-text-2">· Aa Inter</span></span>
+                        <span class="font-inter text-sm text-text-2">${a.text}</span>
+                    </div>`;
+                }
+                if (a.kind === 'tagline') {
+                    return `
+                    <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                        <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
+                        <span class="font-poppins italic font-semibold text-lg leading-[1.4]" style="color:#F08A78">"${a.text}"</span>
+                    </div>`;
+                }
+                return `
+                <div class="p-4.5 rounded-2xl bg-surface-2 flex flex-col gap-2">
+                    <span class="font-poppins font-semibold text-[15px] text-text-strong">${a.label}</span>
+                    <span class="font-inter text-sm text-text-2">${a.text}</span>
+                </div>`;
+            };
+            const packSection = `
+            <section id="pack" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">04</span>
+                <div class="flex justify-between items-center gap-4 flex-wrap">
+                    <div class="flex flex-col gap-1.5">
+                        <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Design pack</h3>
+                        <span class="font-inter text-[15px] leading-[1.65] text-text-2">Use these official assets. Download them from the design pack folder.</span>
+                    </div>
+                    ${packBtn}
+                </div>
+                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
+                    ${page.designPack.assets.map(assetTile).join('')}
+                </div>
+            </section>`;
+
+            // 05 Make it yours
+            const ideaDotColors = ['#E6533C', '#00AEEF', '#F2B544', '#3FA66B', '#B54FB8', '#3CC1D9', '#F2667A'];
+            const yoursSection = `
+            <section id="yours" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">05</span>
+                <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Make it yours</h3>
+                <p class="m-0 font-inter text-[15px] leading-[1.65] text-text-2">${page.makeItYours.intro}</p>
+                <div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))">
+                    ${page.makeItYours.ideas.map((idea, i) => `
+                    <div class="px-4.5 py-4 rounded-2xl flex flex-col gap-1.5" style="background:linear-gradient(160deg, var(--surface-2), var(--surface));border:1px solid var(--border)">
+                        <span class="flex items-center gap-2 font-poppins font-semibold text-[15px] text-text-strong"><span class="w-2 h-2 rounded-full" style="background:${ideaDotColors[i % ideaDotColors.length]}"></span>${idea.title}</span>
+                        <span class="font-inter text-sm leading-[1.65] text-text-2">${idea.text}</span>
+                    </div>`).join('')}
+                </div>
+                <div class="flex gap-3.5 items-center p-4.5 rounded-2xl" style="background:rgba(242,181,68,0.1);border:1px solid rgba(242,181,68,0.45)">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--gold-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M9 2h6"></path></svg>
+                    <span class="font-inter font-semibold text-[15px] text-text-strong">${page.makeItYours.note}</span>
+                </div>
+            </section>`;
+
+            // 06 Rules
+            const rulesSection = `
+            <section id="rules" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">06</span>
+                <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Rules</h3>
+                <div class="grid gap-2.5" style="grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr))">
+                    ${page.rules.map(r => `
+                    <div class="flex gap-3 p-3.5 rounded-[14px] bg-surface-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green-text)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0 mt-0.5"><path d="M20 6 9 17l-5-5"></path></svg>
+                        <span class="font-inter text-[14.5px] leading-[1.65] text-text-2"><strong class="text-text-strong">${r.lead}</strong> ${r.text}</span>
+                    </div>`).join('')}
+                </div>
+            </section>`;
+
+            // 07 How to submit
+            const checklistState = state.richChecklist || {};
+            const checkedCount = page.checklist.filter((_, i) => checklistState[i]).length;
+            const doneText = checkedCount === page.checklist.length ? 'All set — ready to submit' : `${checkedCount} of ${page.checklist.length} checked`;
+            const doneColorStyle = checkedCount === page.checklist.length ? 'color:var(--green-text)' : 'color:var(--text-muted)';
+            const stepsHtml = page.howToSubmit.steps.map((step, i) => {
+                const isLast = i === page.howToSubmit.steps.length - 1;
+                const linkHtml = step.linkHref ? `<a href="${step.linkHref}" class="link-text font-inter font-semibold text-sm">${step.linkLabel}</a>` : '';
+                const prefixHtml = step.showPrefixCheck ? `
+                    <div class="grid gap-2.5 mt-2.5" style="grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr))">
+                        <div class="p-3.5 rounded-[14px] flex flex-col gap-1.5" style="background:rgba(63,166,107,0.1);border:1px solid rgba(63,166,107,0.5)">
+                            <span class="font-inter font-semibold text-[12px] uppercase tracking-[1px]" style="color:var(--green-text);text-transform:uppercase">✓ It must start with</span>
+                            ${page.howToSubmit.validPrefixes.map(p => `<code class="font-mono text-[13px] text-text-strong" style="word-break:break-all">${p}</code>`).join('')}
+                        </div>
+                        <div class="p-3.5 rounded-[14px] flex flex-col gap-1.5" style="background:rgba(242,102,122,0.1);border:1px solid rgba(242,102,122,0.5)">
+                            <span class="font-inter font-semibold text-[12px] uppercase tracking-[1px]" style="color:#F7A1AE;text-transform:uppercase">✕ Not this</span>
+                            <code class="font-mono text-[13px] text-text-strong" style="word-break:break-all">${page.howToSubmit.invalidPrefix}</code>
+                            <span class="font-inter text-[13px] leading-[1.5] text-text-2">${page.howToSubmit.invalidNote}</span>
+                        </div>
+                    </div>` : '';
+                return `
+                <li class="flex gap-4">
+                    <div class="flex flex-col items-center">
+                        <span class="w-[34px] h-[34px] shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-sm" style="background:var(--brand-blue);color:#050E1C">${i + 1}</span>
+                        ${!isLast ? `<span class="flex-1 my-1" style="width:2px;background:var(--border)"></span>` : ''}
+                    </div>
+                    <div class="${isLast ? '' : 'pb-5'} flex flex-col gap-2 min-w-0">
+                        <span class="font-inter font-medium text-text-strong">${step.text}</span>
+                        ${linkHtml}
+                        ${prefixHtml}
+                    </div>
+                </li>`;
+            }).join('');
+            const checklistHtml = page.checklist.map((label, i) => {
+                const on = !!checklistState[i];
+                return `
+                <button type="button" onclick="toggleRichChecklistItem(${i})" aria-pressed="${on}" class="chk flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-surface text-left cursor-pointer w-full">
+                    <span class="w-[22px] h-[22px] shrink-0 rounded-md flex items-center justify-center font-inter font-bold text-sm" style="${on ? 'background:var(--green);color:#050E1C;border:1.5px solid var(--green)' : 'background:transparent;color:transparent;border:1.5px solid var(--border-muted)'}">${on ? '✓' : ''}</span>
+                    <span class="font-inter text-[14.5px] leading-[1.5]" style="color:${on ? 'var(--green-text)' : 'var(--text-2)'}">${label}</span>
+                </button>`;
+            }).join('');
+            const howSection = `
+            <section id="how" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">07</span>
+                <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">How to submit</h3>
+                <ol class="list-none m-0 p-0 flex flex-col gap-0">${stepsHtml}</ol>
+                <div class="p-5.5 rounded-2xl bg-surface-2 flex flex-col gap-3">
+                    <div class="flex justify-between items-baseline gap-3 flex-wrap">
+                        <span class="font-poppins font-semibold text-[17px] text-text-strong">Before you submit, check:</span>
+                        <span class="no-print font-inter font-semibold text-[13px]" style="${doneColorStyle}">${doneText}</span>
+                        <span class="print-only font-inter font-semibold text-[13px]"></span>
+                    </div>
+                    <div class="no-print flex flex-col gap-2">${checklistHtml}</div>
+                    <div class="print-only" style="display:none">
+                        ${page.checklist.map(label => `<div class="print-check-row">☐ ${label}</div>`).join('')}
+                    </div>
+                </div>
+                <div class="flex gap-3 items-start p-3.5 rounded-[14px]" style="background:rgba(242,181,68,0.1);border:1px solid rgba(242,181,68,0.45)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+                    <span class="font-inter text-sm leading-[1.5]" style="color:#F6E2B8">${page.afterDeadlineNote}</span>
+                </div>
+            </section>`;
+
+            // 08 Scoring
+            const scoringColors = ['#E6533C', '#F2B544', '#00AEEF', '#B54FB8', '#3FA66B'];
+            const scoringSection = `
+            <section id="scoring" class="rich-sec sec p-8 rounded-[24px] bg-surface border border-border flex flex-col gap-4.5">
+                <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text" style="text-transform:uppercase">08</span>
+                <div class="flex justify-between items-center gap-4 flex-wrap">
+                    <h3 class="rich-h2 m-0 font-poppins font-semibold text-2xl text-text-strong flex items-center gap-3">Scoring criteria</h3>
+                    <span class="px-4 py-2 rounded-full font-poppins font-bold text-[15px]" style="background:rgba(242,181,68,0.16);border:1px solid rgba(242,181,68,0.45);color:var(--gold-text)">${page.scoring.total} points</span>
+                </div>
+                <p class="m-0 font-inter text-[15px] leading-[1.65] text-text-2">${page.scoring.intro}</p>
+                <div class="p-3.5 rounded-[14px] font-inter text-sm leading-[1.6] text-text-2" style="background:rgba(0,174,239,0.08);border:1px solid rgba(0,174,239,0.4)"><strong class="text-link">An entry is valid when</strong> ${page.scoring.validity}</div>
+                <div class="flex flex-col gap-2.5">
+                    ${page.scoring.criteria.map((c, i) => {
+                        const col = scoringColors[i % scoringColors.length];
+                        return `
+                        <div class="flex flex-wrap gap-3.5 items-center p-4 rounded-2xl bg-surface-2" style="border-left:4px solid ${col}">
+                            <div class="flex-[1_1_200px] flex flex-col gap-2">
+                                <span class="font-poppins font-semibold text-base text-text-strong">${c.name}</span>
+                                <span class="flex gap-1 items-center">
+                                    ${Array.from({ length: c.points }).map(() => `<span class="w-5.5 rounded" style="width:22px;height:6px;background:${col}"></span>`).join('')}
+                                    <span class="font-poppins font-bold text-[13px] text-text-strong ml-1.5">${c.points} pts</span>
+                                </span>
+                            </div>
+                            <span class="flex-[2_1_320px] font-inter text-sm leading-[1.65] text-text-2"><span class="text-text-muted font-semibold">What earns full marks: </span>${c.full}</span>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </section>`;
+
+            // Closing CTA
+            const closingSection = `
+            <section class="rich-sec relative overflow-hidden p-8 rounded-[24px] border border-border flex flex-wrap gap-5 items-center justify-between" style="background:radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 50%, #061A33 100%)">
+                <div class="flex flex-col gap-1.5">
+                    <span class="font-poppins font-bold text-2xl text-text-strong">Ready to send some season's greetings?</span>
+                    <span class="font-inter font-medium text-sm text-text-2">Closes ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
+                </div>
+                <div class="flex gap-3 flex-wrap">
+                    ${ctx.ctaHtml}
+                    ${packBtn}
+                    ${pdfBtn}
+                </div>
+            </section>`;
+
+            const printLinksBlock = `
+            <div class="print-only" style="display:none">
+                <p>See a sample: ${page.sampleUrl}</p>
+                <p>Design pack: ${page.designPack.url}</p>
+            </div>`;
+
+            return `
+            <div class="flex flex-col gap-5">
+                ${topCard}
+                ${printLinksBlock}
+                ${jumpNav}
+                ${whySection}
+                ${briefSection}
+                ${callSection}
+                ${packSection}
+                ${yoursSection}
+                ${rulesSection}
+                ${howSection}
+                ${scoringSection}
+                ${closingSection}
+            </div>`;
+        }
+
+        function toggleRichChecklistItem(i) {
+            const next = Object.assign({}, state.richChecklist || {});
+            next[i] = !next[i];
+            state.richChecklist = next;
+            updateUI();
+        }
+
+        function triggerChallengePdf(month, title) {
+            const prevTitle = document.title;
+            document.title = `Descasio ${month} AI Challenge – ${title}`;
+            const restore = () => {
+                document.title = prevTitle;
+                window.removeEventListener('afterprint', restore);
+            };
+            window.addEventListener('afterprint', restore);
+            window.print();
+        }
         function renderTabContent() {
             if (state.activeTab === 'dashboard') {
                 return renderDashboard();
@@ -887,19 +1267,6 @@
             return out;
         }
 
-        function renderDuplicateNotice(round) {
-            const rawEmail = state.submissionType === 'group' ? state.formData.member1Email : state.formData.email;
-            const email = (rawEmail || '').toLowerCase().trim();
-            if (!email) return '';
-            const hasExisting = state.submissions.some(s => {
-                if (s.hiddenReason) return false;
-                const effRound = (s.round === undefined || s.round === null) ? 1 : s.round;
-                return effRound === round.round && (s.email || '').toLowerCase().trim() === email;
-            });
-            if (!hasExisting) return '';
-            return `<div class="p-4 rounded-2xl font-inter text-sm shell-sentence-case" style="background:rgba(242,181,68,0.12);border:1px solid rgba(242,181,68,0.4);color:var(--gold-text)">You've already submitted for Round ${round.round}. Submitting again adds a new version; the organisers will keep your latest one.</div>`;
-        }
-
         function renderRequirementField(req, disabled) {
             const value = state.formData[req.id] || '';
             if (req.type === 'multiselect') {
@@ -1039,7 +1406,6 @@
                 <div class="flex-[999_1_560px] min-w-0 p-8 rounded-[24px] bg-surface border border-border">
                     <form id="submission-form" onsubmit="handleFormSubmit(event)" class="space-y-5">
                         ${upcomingNotice}
-                        ${renderDuplicateNotice(round)}
                         <div class="space-y-2">
                             <span class="lbl">Entry type</span>
                             <div role="group" aria-label="Entry type" class="inline-flex self-start p-1 rounded-[14px] bg-bg border border-border-strong">
@@ -1055,9 +1421,10 @@
                         </div>
                         ${(round.requirements || []).map(req => renderRequirementField(req, disabled)).join('')}
                         <div id="formStatus" class="hidden rounded-xl px-4 py-3 text-red-300 text-xs font-semibold" style="background:rgba(230,83,60,0.12);border:1px solid rgba(230,83,60,0.4)"></div>
+                        ${state.showSubmitConfirm ? renderSubmitConfirmPanel() : `
                         <button type="submit" ${disabled || state.submitting ? 'disabled' : ''} class="w-full rounded-full border-0 font-inter font-semibold text-[15px] cursor-pointer mt-1 ${disabled ? 'bg-border-strong text-text-faint cursor-not-allowed' : 'btn-coral bg-coral-btn text-text-strong'}" style="height:52px">
                             ${disabled ? formatOpenShort(round.opensAt) : (state.submitting ? 'Submitting…' : 'Submit entry')}
-                        </button>
+                        </button>`}
                     </form>
                 </div>`;
             }
@@ -1705,6 +2072,70 @@
             }
         }
 
+        function isDescasioEmail(v) {
+            return !!v && v.toLowerCase().trim().endsWith('@descasio.io');
+        }
+
+        // Step 8D: soft checks the mockup calls "Quick check before you submit" - neither
+        // ever blocks a submission, they just ask for confirmation. Empty array = submit
+        // straight away.
+        function buildSubmitWarnings(round, data) {
+            const warnings = [];
+            const email = (data.email || '').toLowerCase().trim();
+            if (email) {
+                const existingCount = state.submissions.filter(s => {
+                    if (s.hiddenReason) return false;
+                    const effRound = (s.round === undefined || s.round === null) ? 1 : s.round;
+                    return effRound === round.round && (s.email || '').toLowerCase().trim() === email;
+                }).length;
+                if (existingCount > 0) {
+                    const plural = existingCount === 1 ? 'entry' : 'entries';
+                    warnings.push({
+                        icon: String(existingCount),
+                        iconStyle: 'background:rgba(0,174,239,0.16);color:var(--link)',
+                        html: `<strong class="text-text-strong">You've already submitted ${existingCount} ${plural} for Round ${round.round}.</strong> Sending another is fine; every entry you send is scored.`
+                    });
+                }
+            }
+
+            const validPrefixes = round.page && round.page.howToSubmit && round.page.howToSubmit.validPrefixes;
+            if (validPrefixes && validPrefixes.length) {
+                for (const req of (round.requirements || [])) {
+                    if (req.type !== 'url') continue;
+                    const val = data[req.id];
+                    if (val && !validPrefixes.some(p => val.startsWith(p))) {
+                        const note = round.page.howToSubmit.invalidNote || `This doesn't look like a valid ${req.label}.`;
+                        const prefixList = validPrefixes.map(p => `<code class="text-text-strong">${p}</code>`).join(' or ');
+                        warnings.push({
+                            icon: '!',
+                            iconStyle: 'background:rgba(242,181,68,0.16);color:var(--gold-text)',
+                            html: `<strong class="text-text-strong">This doesn't look like a ${req.label}.</strong> ${note} Links start with ${prefixList}.`
+                        });
+                    }
+                }
+            }
+
+            return warnings;
+        }
+
+        function renderSubmitConfirmPanel() {
+            const warnings = state.pendingWarnings || [];
+            return `
+            <div role="alertdialog" aria-label="Check before submitting" class="p-5 rounded-2xl bg-surface-2 flex flex-col gap-3.5" style="border:1px solid rgba(242,181,68,0.5)">
+                <span class="font-poppins font-semibold text-[17px] text-text-strong">Quick check before you submit</span>
+                ${warnings.map(w => `
+                <div class="flex gap-3 items-start">
+                    <span class="w-7 h-7 shrink-0 rounded-full flex items-center justify-center font-poppins font-bold text-[13px]" style="${w.iconStyle}">${w.icon}</span>
+                    <span class="font-inter text-sm leading-[1.55] text-text-2">${w.html}</span>
+                </div>`).join('')}
+                <div class="flex gap-2.5 flex-wrap">
+                    <button type="button" onclick="cancelSubmitConfirm()" class="btn-outline flex-1 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer" style="min-width:180px;height:46px">Go back and edit</button>
+                    <button type="button" onclick="confirmSubmitAnyway()" class="btn-coral flex-1 rounded-full border-0 bg-coral-btn text-text-strong font-inter font-semibold text-sm cursor-pointer" style="min-width:180px;height:46px">Yes, submit anyway</button>
+                </div>
+                <span class="font-inter text-xs leading-[1.5] text-text-faint">Each check only appears when it applies.</span>
+            </div>`;
+        }
+
         async function handleFormSubmit(e) {
             e.preventDefault();
             const round = Challenges.currentRound();
@@ -1714,10 +2145,6 @@
             }
             const data = state.formData;
             const isGroup = state.submissionType === 'group';
-
-            function isDescasioEmail(v) {
-                return !!v && v.toLowerCase().trim().endsWith('@descasio.io');
-            }
 
             if (isGroup) {
                 if (!data.teamName) { showFormError('Team name is required.'); return; }
@@ -1761,6 +2188,29 @@
             const errEl = document.getElementById('formStatus');
             if (errEl) errEl.classList.add('hidden');
 
+            const warnings = buildSubmitWarnings(round, data);
+            if (warnings.length) {
+                state.pendingWarnings = warnings;
+                state.showSubmitConfirm = true;
+                updateUI();
+                return;
+            }
+
+            await performSubmit(round, data);
+        }
+
+        function cancelSubmitConfirm() {
+            state.showSubmitConfirm = false;
+            state.pendingWarnings = [];
+            updateUI();
+        }
+
+        async function confirmSubmitAnyway() {
+            const round = Challenges.currentRound();
+            await performSubmit(round, state.formData);
+        }
+
+        async function performSubmit(round, data) {
             const payload = {
                 ...data,
                 type: state.submissionType,
@@ -1773,12 +2223,14 @@
             }
 
             state.submitting = true;
+            state.showSubmitConfirm = false;
             updateUI();
             try {
                 await db.collection('artifacts').doc(STABLE_APP_ID).collection('public').doc('data').collection('submissions').add(payload);
                 state.formData = {};
                 state.formToolsSelected = [];
                 state.submitting = false;
+                state.pendingWarnings = [];
                 state.submissionSent = true;
                 updateUI();
             } catch (err) {
@@ -1863,6 +2315,8 @@
         Router.onRouteChange((route) => {
             if (route.tab !== 'gallery' && state.activeTab === 'gallery') {
                 state.submissionSent = false; // don't leave a stale "Entry received" screen behind
+                state.showSubmitConfirm = false;
+                state.pendingWarnings = [];
             }
             state.activeTab = route.tab;
             state.routeSub = route.sub;

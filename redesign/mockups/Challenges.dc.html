@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Challenges archive</title>
+<title>Challenges</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,14 +12,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <style>
 body{margin:0;background:#050E1C;font-family:Inter,system-ui,sans-serif}
-a{color:#7FD6F7}a:hover{color:#FFFFFF}
+.lt{color:#7FD6F7;text-decoration:underline;text-underline-offset:3px}.lt:hover{color:#FFFFFF;text-decoration-thickness:2px}
 .nav a{color:#9FB3C8;text-decoration:none}.nav a:hover{color:#FFFFFF}
-.mrow{cursor:pointer;text-align:left}
-.mrow:hover{border-color:#4A6488 !important}
-button:focus-visible,a:focus-visible{outline:3px solid #00AEEF;outline-offset:2px}
+.jump{color:#C9D8E8;text-decoration:none;white-space:nowrap}.jump:hover{border-color:#7FD6F7 !important;color:#FFFFFF}
+.btnc{background:#C8432D}.btnc:hover{background:#D9502F}
+.btno:hover{border-color:#7FD6F7 !important;background:rgba(127,214,247,0.08)}
+.chk{cursor:pointer;text-align:left}
+.mrow{cursor:pointer;text-align:left;font:inherit;color:inherit;width:100%;box-sizing:border-box}.mrow:hover{border-color:#4A6488 !important}
+a:focus-visible,button:focus-visible{outline:3px solid #00AEEF;outline-offset:2px}
+.sec{scroll-margin-top:90px}
+.h2{margin:0;font:600 24px/1.25 Poppins,sans-serif;color:#FFFFFF;display:flex;align-items:center;gap:12px}
+.eyebrow{font:600 12px Inter,sans-serif;letter-spacing:1.4px;text-transform:uppercase}
+.p{margin:0;font:400 15px/1.65 Inter,sans-serif;color:#C9D8E8}
 </style>
 </helmet>
-<div style="min-height: 100%; background: #050E1C; color: #EAF1F8; font-family: Inter, system-ui, sans-serif">
+<div style="min-height: 100%; background: #050E1C; color: #EAF1F8">
 
   <header style="border-bottom: 1px solid #1C3150; background: rgba(5,14,28,0.92)">
     <div style="max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap">
@@ -36,116 +43,460 @@ button:focus-visible,a:focus-visible{outline:3px solid #00AEEF;outline-offset:2p
         <a href="Winners.dc.html" style="padding: 10px 14px; border-radius: 10px">Winners</a>
         <a href="Leaderboard.dc.html" style="padding: 10px 14px; border-radius: 10px">Leaderboard</a>
       </nav>
-      <button style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A4466; background: transparent; color: #EAF1F8; font: 600 13px Inter, sans-serif; cursor: pointer">Admin</button>
+      <button style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A4466; background: transparent; color: #EAF1F8; font: 600 13px Inter, sans-serif">Admin</button>
     </div>
   </header>
 
   <main style="max-width: 1240px; margin: 0 auto; padding: 36px 24px 56px; display: flex; flex-direction: column; gap: 28px">
     <div style="display: flex; flex-direction: column; gap: 8px">
-      <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: #F6CD7F">Challenge archive · 2026</span>
-      <h1 style="margin: 0; font: 700 40px/1.1 Poppins, sans-serif; letter-spacing: -0.8px; color: #FFFFFF">Every challenge, newest first</h1>
-      <p style="margin: 0; max-width: 640px; font: 400 16px/1.6 Inter, sans-serif; color: #9FB3C8">Pick a month to see the brief, the winner and the entries. Past rounds are read-only; only the open round accepts submissions.</p>
+      <span class="eyebrow" style="color: #F6CD7F">Challenge archive · 2026</span>
+      <h1 style="margin: 0; font: 700 40px/1.1 Poppins, sans-serif; letter-spacing: -0.8px; color: #FFFFFF">Every challenge</h1>
     </div>
 
     <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
-      <nav aria-label="Challenge months" style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 8px">
+      <nav aria-label="Challenge months" style="flex: 1 1 240px; max-width: 280px; display: flex; flex-direction: column; gap: 8px; position: sticky; top: 16px">
         <sc-for list="{{months}}" as="m" hint-placeholder-count="9">
           <button class="mrow" onClick="{{m.pick}}" aria-pressed="{{m.pressed}}" style="{{m.style}}">
             <span style="{{m.dot}}"></span>
-            <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+            <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
               <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">{{m.month}} challenge</span>
-              <span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">{{m.label}} · {{m.title}}</span>
+              <span style="font: 400 13px Inter, sans-serif; color: #9FB3C8">{{m.sub}}</span>
             </span>
           </button>
         </sc-for>
       </nav>
 
-      <section aria-live="polite" style="flex: 999 1 560px; min-width: 0; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; overflow: hidden">
-        <div style="{{c.bannerStyle}}">
-          <div style="display: flex; gap: 10px; flex-wrap: wrap">
-            <span style="{{c.statusStyle}}">{{c.status}}</span>
-            <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(5,14,28,0.5); color: #C9D8E8; font: 600 12px Inter, sans-serif">{{c.label}} · {{c.month}} 2026</span>
-          </div>
-          <h2 style="margin: 0; font: 700 32px/1.15 Poppins, sans-serif; color: #FFFFFF">{{c.title}}</h2>
-        </div>
-        <div style="padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
-            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Winner</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.winner}}</div></div>
-            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Entries</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.entries}}</div></div>
-            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Window</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.window}}</div></div>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px">
-            <h3 style="margin: 0; font: 600 17px Poppins, sans-serif; color: #FFFFFF">The brief</h3>
-            <p style="margin: 0; font: 400 15px/1.65 Inter, sans-serif; color: #C9D8E8">{{c.brief}}</p>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px">
-            <h3 style="margin: 0; font: 600 17px Poppins, sans-serif; color: #FFFFFF">What entrants submitted</h3>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap">
-              <sc-for list="{{c.fields}}" as="k" hint-placeholder-count="3">
-                <span style="padding: 6px 12px; border-radius: 12px; background: #10223A; border: 1px solid #1C3150; font: 500 13px Inter, sans-serif; color: #C9D8E8">{{k}}</span>
-              </sc-for>
+      <div style="flex: 999 1 600px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+      <sc-if value="{{isNov}}" hint-placeholder-val="{{ true }}">
+      <div style="display: flex; flex-direction: column; gap: 20px">
+
+        <!-- Top card (kept) -->
+        <section style="border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; overflow: hidden">
+          <div style="position: relative; overflow: hidden; padding: 32px; display: flex; flex-wrap: wrap; gap: 24px; align-items: center; background: radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%)">
+            <div style="flex: 999 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+              <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                <span style="display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(63,166,107,0.18); color: #8FE0B0; border: 1px solid rgba(63,166,107,0.5); font: 600 12px Inter, sans-serif"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3FA66B"></span>Open for submissions</span>
+                <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(5,14,28,0.5); color: #C9D8E8; font: 600 12px Inter, sans-serif">Round 9 · November 2026</span>
+              </div>
+              <h2 style="margin: 0; font: 700 34px/1.12 Poppins, sans-serif; color: #FFFFFF">November AI Challenge: Descasio Season's Greetings E-card</h2>
+              <p style="margin: 0; font: 400 16px/1.6 Inter, sans-serif; color: #D6E4F2; max-width: 620px">Design Descasio's official season's greetings e-card: an interactive card, built in Gemini Canvas, that thanks our clients and partners for being part of our 2026. The winning card goes out to clients and partners from 1 December to mid-January.</p>
+            </div>
+            <div style="flex: 1 1 150px; display: flex; justify-content: center">
+              <div style="position: relative; width: 150px; height: 150px">
+                <div style="position: absolute; inset: 0; border-radius: 50%; border: 4px solid #E6533C; box-shadow: 0 0 30px rgba(230,83,60,0.35)"></div>
+                <img src="/_blob/5b9229be2dc8d2f837b86385d086f86a" alt="Mesca, the AI Innovation Hub mascot" style="position: absolute; inset: 8px; width: 134px; height: 134px; border-radius: 50%; object-fit: contain; background: #0B1F38">
+                <svg aria-hidden="true" viewBox="0 0 24 24" style="position: absolute; left: 50%; top: -10px; width: 18px; height: 18px; transform: translateX(-50%)"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z" fill="#F2B544"></path></svg>
+              </div>
             </div>
           </div>
-          <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-top: 16px; border-top: 1px solid #1C3150">
-            <a href="{{c.ctaHref}}" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; background: #C8432D; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">{{c.cta}}</a>
-            <a href="Submissions.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; border: 1.5px solid #4A6488; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">View entries</a>
-            <span style="font: 500 13px Inter, sans-serif; color: {{c.noteColor}}">{{c.note}}</span>
+          <div style="padding: 24px 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px">
+            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Winner</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">To be announced</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Entries</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">0</div></div>
+            <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Window</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">9 Nov – 25 Nov</div></div>
           </div>
-        </div>
-      </section>
+          <div style="padding: 0 32px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+            <a class="btnc" href="Submissions.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">Submit your entry</a>
+            <a class="btno" href="https://gemini.google.com/share/be6fe571a19b?social_preview=false&amp;skid=3f46d5a1-9558-42de-8a58-559461784f2d" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 22px; border: 1.5px solid #4A6488; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">See a sample ↗</a>
+            <a class="btno" href="https://drive.google.com/drive/folders/1zf2u-sIS-Z31nDoptpO05ikYGLcMHufM?usp=sharing" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 22px; border: 1.5px solid #4A6488; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">Design pack ↗</a>
+            <a class="btno" href="#download" style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 22px; border: 1.5px solid #4A6488; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>Download as PDF</a>
+            <span style="font: 500 13px Inter, sans-serif; color: #8FE0B0">Closes 11:59 PM WAT, 25 Nov</span>
+          </div>
+        </section>
+
+        <!-- Jump links -->
+        <nav aria-label="On this page" style="position: sticky; top: 0; z-index: 2; padding: 10px; border-radius: 16px; background: rgba(8,21,39,0.92); border: 1px solid #1C3150; backdrop-filter: blur(6px); display: flex; gap: 8px; overflow-x: auto">
+          <a class="jump" href="#why" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">Why this challenge</a>
+          <a class="jump" href="#brief" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">The brief</a>
+          <a class="jump" href="#call" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">Your call</a>
+          <a class="jump" href="#pack" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">Design pack</a>
+          <a class="jump" href="#yours" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">Make it yours</a>
+          <a class="jump" href="#rules" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">Rules</a>
+          <a class="jump" href="#how" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">How to submit</a>
+          <a class="jump" href="#scoring" style="padding: 8px 14px; border-radius: 18px; border: 1px solid #2A4466; font: 600 13px Inter, sans-serif">Scoring</a>
+        </nav>
+
+        <!-- Why this challenge -->
+        <section id="why" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">01</span>
+          <h3 class="h2">Why this challenge</h3>
+          <p class="p" style="font-size: 17px; color: #EAF1F8; max-width: 720px">This is our last challenge of 2026, and it ends the year on something real: your design could become the card every Descasio client and partner receives this season.</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px">
+            <div style="padding: 20px; border-radius: 18px; background: #10223A; border-top: 3px solid #00AEEF; display: flex; flex-direction: column; gap: 10px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7FD6F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span style="font: 600 16px Poppins, sans-serif; color: #FFFFFF">Seen by everyone who works with us.</span>
+              <span class="p" style="font-size: 14px">The winning card is sent to clients and partners and shared on our channels from 1 December to mid-January.</span>
+            </div>
+            <div style="padding: 20px; border-radius: 18px; background: #10223A; border-top: 3px solid #E6533C; display: flex; flex-direction: column; gap: 10px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F08A78" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
+              <span style="font: 600 16px Poppins, sans-serif; color: #FFFFFF">A thank-you, not a sales pitch.</span>
+              <span class="p" style="font-size: 14px">The card's job is to show appreciation for being part of our 2026.</span>
+            </div>
+            <div style="padding: 20px; border-radius: 18px; background: #10223A; border-top: 3px solid #F2B544; display: flex; flex-direction: column; gap: 10px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F6CD7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"></path><path d="M19 17l.8 2.2L22 20l-2.2.8L19 23l-.8-2.2L16 20l2.2-.8z"></path></svg>
+              <span style="font: 600 16px Poppins, sans-serif; color: #FFFFFF">A showcase of what we do.</span>
+              <span class="p" style="font-size: 14px">An interactive card built with AI is itself a small proof of Descasio's AI-first year.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- The brief -->
+        <section id="brief" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">02</span>
+          <h3 class="h2">The brief</h3>
+          <div style="padding: 18px 22px; border-radius: 16px; background: linear-gradient(135deg, #003366, #0B2A4D); border-left: 4px solid #E6533C">
+            <p class="p" style="font: 500 17px/1.6 Inter, sans-serif; color: #FFFFFF">Create an interactive season's greetings e-card from Descasio to its clients and partners, finished in Gemini Canvas.</p>
+          </div>
+          <span style="font: 600 17px Poppins, sans-serif; color: #FFFFFF; margin-top: 4px">Your card must include</span>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px">
+            <sc-for list="{{musts}}" as="mh" hint-placeholder-count="7">
+              <div style="display: flex; gap: 14px; padding: 16px; border-radius: 16px; background: #10223A; border: 1px solid #1C3150">
+                <span style="width: 32px; height: 32px; flex-shrink: 0; border-radius: 50%; background: #E6533C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font: 700 14px Poppins, sans-serif">{{mh.n}}</span>
+                <span class="p" style="font-size: 14.5px"><strong style="color: #FFFFFF">{{mh.lead}}</strong> {{mh.rest}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- Your call -->
+        <section id="call" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">03</span>
+          <h3 class="h2">Your call</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px">
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px"><span class="eyebrow" style="color: #7FD6F7">Layout</span><span class="p" style="font-size: 14.5px">A traditional fold-out card (cover, inside, back), a single page, a scroll story, a flip card, an animated reveal: any format that feels like a card.</span></div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px"><span class="eyebrow" style="color: #7FD6F7">Images</span><span class="p" style="font-size: 14.5px">Beyond Mesca, you may use other Descasio images, such as team photos from our official social media pages.</span></div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px"><span class="eyebrow" style="color: #7FD6F7">Words</span><span class="p" style="font-size: 14.5px">Write your own message. Keep it warm, clear and professional enough for clients.</span></div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px"><span class="eyebrow" style="color: #7FD6F7">Extras</span><span class="p" style="font-size: 14.5px">Music or sound (off by default), animation, personalisation, a GIF version: anything that makes it memorable.</span></div>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 18px 22px; border-radius: 16px; border: 1.5px dashed #4A6488">
+            <span style="font: 500 15px Inter, sans-serif; color: #C9D8E8">Not sure where to start? Open a finished example card.</span>
+            <a class="btnc" href="https://gemini.google.com/share/be6fe571a19b?social_preview=false&amp;skid=3f46d5a1-9558-42de-8a58-559461784f2d" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 22px; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">See a sample ↗</a>
+          </div>
+        </section>
+
+        <!-- Design pack -->
+        <section id="pack" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">04</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <h3 class="h2">Design pack</h3>
+              <span class="p">Use these official assets. Download them from the design pack folder.</span>
+            </div>
+            <a class="btnc" href="https://drive.google.com/drive/folders/1zf2u-sIS-Z31nDoptpO05ikYGLcMHufM?usp=sharing" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 22px; border-radius: 23px; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+              Open design pack ↗
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 12px">
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; border: 1px solid rgba(230,83,60,0.5); display: flex; gap: 16px; align-items: center">
+              <img src="/_blob/5b9229be2dc8d2f837b86385d086f86a" alt="Official Mesca image" style="width: 64px; height: 64px; border-radius: 14px; object-fit: cover; background: #0B1F38; flex-shrink: 0">
+              <div style="display: flex; flex-direction: column; gap: 4px"><span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Mesca <span style="font: 600 11px Inter, sans-serif; color: #F08A78; text-transform: uppercase; letter-spacing: 1px">compulsory</span></span><span class="p" style="font-size: 14px">Official Mesca image: <a class="lt" href="https://ik.imagekit.io/orxg6xgry/Innovation%20Hub/Mesca_png.jpeg" target="_blank" rel="noopener">Mesca image</a></span></div>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; gap: 16px; align-items: center">
+              <div style="width: 110px; height: 64px; flex-shrink: 0; border-radius: 12px; background: #F5F7FA; display: flex; align-items: center; justify-content: center"><img src="/_blob/a7b1553899efbe263e2ae83f3119d468" alt="Full-colour Descasio logo" style="width: 88px; height: 22px"></div>
+              <div style="display: flex; flex-direction: column; gap: 4px"><span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Logo, light backgrounds</span><span class="p" style="font-size: 14px">Full-colour "descasio" wordmark: navy letters, coral swirl "o" (SVG and PNG)</span></div>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; gap: 16px; align-items: center">
+              <div style="width: 110px; height: 64px; flex-shrink: 0; border-radius: 12px; background: #003366; display: flex; align-items: center; justify-content: center"><img src="/_blob/fdaa4ecbb669b824c51e87da1dbd5077" alt="White Descasio logo" style="width: 88px; height: 22px"></div>
+              <div style="display: flex; flex-direction: column; gap: 4px"><span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Logo, dark backgrounds</span><span class="p" style="font-size: 14px">White "descasio" wordmark with coral swirl "o" (SVG and PNG)</span></div>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 12px">
+              <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Brand colours</span>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                <span style="display: flex; align-items: center; gap: 8px; font: 500 13px Inter, sans-serif; color: #C9D8E8"><span style="width: 26px; height: 26px; border-radius: 8px; background: #003366; border: 1px solid #4A6488"></span>Navy #003366</span>
+                <span style="display: flex; align-items: center; gap: 8px; font: 500 13px Inter, sans-serif; color: #C9D8E8"><span style="width: 26px; height: 26px; border-radius: 8px; background: #E6533C"></span>Coral #E6533C</span>
+                <span style="display: flex; align-items: center; gap: 8px; font: 500 13px Inter, sans-serif; color: #C9D8E8"><span style="width: 26px; height: 26px; border-radius: 8px; background: #F5F7FA"></span>Light grey #F5F7FA</span>
+                <span style="display: flex; align-items: center; gap: 8px; font: 500 13px Inter, sans-serif; color: #C9D8E8"><span style="width: 26px; height: 26px; border-radius: 8px; background: #00AEEF"></span>Blue accent #00AEEF</span>
+              </div>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 12px">
+              <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Seasonal colours</span>
+              <div style="display: flex; gap: 8px">
+                <span title="Holly green" style="width: 26px; height: 26px; border-radius: 50%; background: #2E7D32"></span>
+                <span title="Warm gold" style="width: 26px; height: 26px; border-radius: 50%; background: #F2B544"></span>
+                <span title="Snow white" style="width: 26px; height: 26px; border-radius: 50%; background: #FFFFFF"></span>
+              </div>
+              <span class="p" style="font-size: 14px">Optional accents, for example holly green, warm gold or snow white. Keep Descasio navy and coral as the main colours.</span>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px">
+              <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Fonts</span>
+              <span style="font: 700 22px Poppins, sans-serif; color: #FFFFFF">Aa Poppins <span style="font: 400 16px Inter, sans-serif; color: #C9D8E8">· Aa Inter</span></span>
+              <span class="p" style="font-size: 14px">Poppins for headings, Inter for body text (both free on Google Fonts)</span>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px">
+              <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Tagline</span>
+              <span style="font: italic 600 18px/1.4 Poppins, sans-serif; color: #F08A78">"Empowering Your Digital Future"</span>
+            </div>
+            <div style="padding: 18px; border-radius: 16px; background: #10223A; display: flex; flex-direction: column; gap: 8px">
+              <span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Other images</span>
+              <span class="p" style="font-size: 14px">Descasio photos from our official social media pages, such as team photos</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Make it yours -->
+        <section id="yours" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">05</span>
+          <h3 class="h2">Make it yours</h3>
+          <p class="p">Everything beyond the must-haves is up to you. Ideas to spark you:</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px">
+            <sc-for list="{{ideas}}" as="i" hint-placeholder-count="7">
+              <div style="padding: 16px 18px; border-radius: 16px; background: linear-gradient(160deg, #10223A, #0B1A2E); border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 6px">
+                <span style="display: flex; align-items: center; gap: 8px; font: 600 15px Poppins, sans-serif; color: #FFFFFF"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{i.c}}"></span>{{i.t}}</span>
+                <span class="p" style="font-size: 14px">{{i.d}}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 14px; align-items: center; padding: 16px 20px; border-radius: 16px; background: rgba(242,181,68,0.1); border: 1px solid rgba(242,181,68,0.45)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F6CD7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M9 2h6"></path></svg>
+            <span style="font: 600 15px Inter, sans-serif; color: #FFFFFF">Keep it light and quick: a client should enjoy the whole card in under a minute.</span>
+          </div>
+        </section>
+
+        <!-- Rules -->
+        <section id="rules" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">06</span>
+          <h3 class="h2">Rules</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 10px">
+            <sc-for list="{{rules}}" as="r" hint-placeholder-count="9">
+              <div style="display: flex; gap: 12px; padding: 14px 16px; border-radius: 14px; background: #10223A">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8FE0B0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 2px"><path d="M20 6 9 17l-5-5"></path></svg>
+                <span class="p" style="font-size: 14.5px"><strong style="color: #FFFFFF">{{r.lead}}</strong> {{r.rest}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- How to submit -->
+        <section id="how" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 20px">
+          <span class="eyebrow" style="color: #F6CD7F">07</span>
+          <h3 class="h2">How to submit</h3>
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0">
+            <li style="display: flex; gap: 16px">
+              <div style="display: flex; flex-direction: column; align-items: center"><span style="width: 34px; height: 34px; border-radius: 50%; background: #00AEEF; color: #050E1C; display: flex; align-items: center; justify-content: center; font: 700 14px Poppins, sans-serif">1</span><span style="flex: 1; width: 2px; background: #1C3150; margin: 4px 0"></span></div>
+              <div style="padding-bottom: 20px; display: flex; flex-direction: column; gap: 8px"><span class="p" style="color: #FFFFFF; font-weight: 500">Go to the AI Innovation Hub and open the Round 9 submission form.</span><a class="lt" href="Submissions.dc.html" style="font: 600 14px Inter, sans-serif">Go to the submission form →</a></div>
+            </li>
+            <li style="display: flex; gap: 16px">
+              <div style="display: flex; flex-direction: column; align-items: center"><span style="width: 34px; height: 34px; border-radius: 50%; background: #00AEEF; color: #050E1C; display: flex; align-items: center; justify-content: center; font: 700 14px Poppins, sans-serif">2</span><span style="flex: 1; width: 2px; background: #1C3150; margin: 4px 0"></span></div>
+              <div style="padding-bottom: 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0">
+                <span class="p" style="color: #FFFFFF; font-weight: 500">In the Round 9 submission form, paste your Gemini share link.</span>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 10px">
+                  <div style="padding: 14px; border-radius: 14px; background: rgba(63,166,107,0.1); border: 1px solid rgba(63,166,107,0.5); display: flex; flex-direction: column; gap: 6px">
+                    <span style="font: 600 12px Inter, sans-serif; color: #8FE0B0; text-transform: uppercase; letter-spacing: 1px">✓ It must start with</span>
+                    <code style="font: 500 13px ui-monospace, Consolas, monospace; color: #FFFFFF; word-break: break-all">https://gemini.google.com/share/</code>
+                    <code style="font: 500 13px ui-monospace, Consolas, monospace; color: #FFFFFF; word-break: break-all">https://share.gemini.google/</code>
+                  </div>
+                  <div style="padding: 14px; border-radius: 14px; background: rgba(242,102,122,0.1); border: 1px solid rgba(242,102,122,0.5); display: flex; flex-direction: column; gap: 6px">
+                    <span style="font: 600 12px Inter, sans-serif; color: #F7A1AE; text-transform: uppercase; letter-spacing: 1px">✕ Not this</span>
+                    <code style="font: 500 13px ui-monospace, Consolas, monospace; color: #FFFFFF; word-break: break-all">gemini.google.com/app/…</code>
+                    <span style="font: 400 13px/1.5 Inter, sans-serif; color: #C9D8E8">A link that starts with gemini.google.com/app/ is your private chat and cannot be opened by the judges.</span>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li style="display: flex; gap: 16px">
+              <div style="display: flex; flex-direction: column; align-items: center"><span style="width: 34px; height: 34px; border-radius: 50%; background: #00AEEF; color: #050E1C; display: flex; align-items: center; justify-content: center; font: 700 14px Poppins, sans-serif">3</span><span style="flex: 1; width: 2px; background: #1C3150; margin: 4px 0"></span></div>
+              <div style="padding-bottom: 20px"><span class="p" style="color: #FFFFFF; font-weight: 500">List every tool you used, for example "Gemini Canvas, Canva for image edits".</span></div>
+            </li>
+            <li style="display: flex; gap: 16px">
+              <div><span style="width: 34px; height: 34px; border-radius: 50%; background: #00AEEF; color: #050E1C; display: flex; align-items: center; justify-content: center; font: 700 14px Poppins, sans-serif">4</span></div>
+              <div><span class="p" style="color: #FFFFFF; font-weight: 500">Submit before the deadline.</span></div>
+            </li>
+          </ol>
+
+          <div style="padding: 22px; border-radius: 18px; background: #10223A; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+              <span style="font: 600 17px Poppins, sans-serif; color: #FFFFFF">Before you submit, check:</span>
+              <span style="font: 600 13px Inter, sans-serif; color: {{doneColor}}">{{doneText}}</span>
+            </div>
+            <sc-for list="{{checks}}" as="k" hint-placeholder-count="5">
+              <button class="chk" onClick="{{k.toggle}}" aria-pressed="{{k.pressed}}" style="display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid #1C3150; background: #0B1A2E; color: inherit; font: inherit">
+                <span style="{{k.box}}">{{k.mark}}</span>
+                <span style="{{k.text}}">{{k.label}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: flex-start; padding: 14px 18px; border-radius: 14px; background: rgba(242,181,68,0.1); border: 1px solid rgba(242,181,68,0.45)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6CD7F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+            <span style="font: 500 14px/1.5 Inter, sans-serif; color: #F6E2B8">Only the sharing setting of a link may be fixed after the deadline, not the card itself.</span>
+          </div>
+        </section>
+
+        <!-- Scoring -->
+        <section id="scoring" class="sec" style="padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+          <span class="eyebrow" style="color: #F6CD7F">08</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+            <h3 class="h2">Scoring criteria</h3>
+            <span style="padding: 8px 16px; border-radius: 18px; background: rgba(242,181,68,0.16); border: 1px solid rgba(242,181,68,0.45); font: 700 15px Poppins, sans-serif; color: #F6CD7F">20 points</span>
+          </div>
+          <p class="p">Five judges score every valid entry on five criteria, 4 points each.</p>
+          <div style="padding: 14px 18px; border-radius: 14px; background: rgba(0,174,239,0.08); border: 1px solid rgba(0,174,239,0.4); font: 400 14px/1.6 Inter, sans-serif; color: #C9D8E8"><strong style="color: #7FD6F7">An entry is valid when</strong> the link opens without signing in, it is a season's greetings card from Descasio, and it was submitted on time.</div>
+          <div style="display: flex; flex-direction: column; gap: 10px">
+            <sc-for list="{{criteria}}" as="c" hint-placeholder-count="5">
+              <div style="display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding: 16px 18px; border-radius: 16px; background: #10223A; border-left: 4px solid {{c.col}}">
+                <div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 8px">
+                  <span style="font: 600 16px Poppins, sans-serif; color: #FFFFFF">{{c.name}}</span>
+                  <span style="display: flex; gap: 4px; align-items: center">
+                    <span style="width: 22px; height: 6px; border-radius: 3px; background: {{c.col}}"></span><span style="width: 22px; height: 6px; border-radius: 3px; background: {{c.col}}"></span><span style="width: 22px; height: 6px; border-radius: 3px; background: {{c.col}}"></span><span style="width: 22px; height: 6px; border-radius: 3px; background: {{c.col}}"></span>
+                    <span style="font: 700 13px Poppins, sans-serif; color: #FFFFFF; margin-left: 6px">4 pts</span>
+                  </span>
+                </div>
+                <span class="p" style="flex: 2 1 320px; font-size: 14px"><span style="color: #9FB3C8; font-weight: 600">What earns full marks: </span>{{c.full}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <!-- Closing CTA -->
+        <section style="position: relative; overflow: hidden; padding: 32px; border-radius: 24px; background: radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 50%, #061A33 100%); border: 1px solid #1C3150; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font: 700 24px Poppins, sans-serif; color: #FFFFFF">Ready to send some season's greetings?</span>
+            <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Submissions close 11:59 PM WAT, Wednesday 25 November.</span>
+          </div>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap">
+            <a class="btnc" href="Submissions.dc.html" style="display: inline-flex; align-items: center; height: 48px; padding: 0 24px; border-radius: 24px; color: #FFFFFF; font: 600 15px Inter, sans-serif; text-decoration: none">Submit your entry</a>
+            <a class="btno" href="https://drive.google.com/drive/folders/1zf2u-sIS-Z31nDoptpO05ikYGLcMHufM?usp=sharing" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; height: 48px; padding: 0 24px; border-radius: 24px; border: 1.5px solid #7FA9D6; color: #FFFFFF; font: 600 15px Inter, sans-serif; text-decoration: none">Design pack ↗</a>
+            <a class="btno" href="#download" style="display: inline-flex; align-items: center; height: 48px; padding: 0 24px; border-radius: 24px; border: 1.5px solid #7FA9D6; color: #FFFFFF; font: 600 15px Inter, sans-serif; text-decoration: none">Download as PDF</a>
+          </div>
+        </section>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{notNov}}" hint-placeholder-val="{{ false }}">
+        <section aria-live="polite" style="border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150; overflow: hidden">
+          <div style="padding: 32px; display: flex; flex-direction: column; gap: 14px; background: linear-gradient(135deg, #10223A 0%, #0B1A2E 100%)">
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+              <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(159,179,200,0.12); color: #C9D8E8; border: 1px solid #2A4466; font: 600 12px Inter, sans-serif">Closed</span>
+              <span style="display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; background: rgba(5,14,28,0.5); color: #C9D8E8; font: 600 12px Inter, sans-serif">{{c.label}} · {{c.month}} 2026</span>
+            </div>
+            <h2 style="margin: 0; font: 700 32px/1.15 Poppins, sans-serif; color: #FFFFFF">{{c.title}}</h2>
+            <sc-if value="{{c.hasArchive}}" hint-placeholder-val="{{ false }}"><span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Previously listed as "{{c.archiveName}}"</span></sc-if>
+          </div>
+          <div style="padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px">
+              <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Winner</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.winner}}</div></div>
+              <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Entries</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.entries}}</div></div>
+              <div style="padding: 14px 16px; border-radius: 14px; background: #10223A"><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">Window</div><div style="font: 600 15px Inter, sans-serif; color: #FFFFFF; margin-top: 4px">{{c.window}}</div></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <h3 style="margin: 0; font: 600 17px Poppins, sans-serif; color: #FFFFFF">The brief</h3>
+              <sc-if value="{{c.isSummary}}" hint-placeholder-val="{{ false }}"><span style="font: 600 12px Inter, sans-serif; color: #F6CD7F">Summary — original brief not archived</span></sc-if>
+              <p class="p">{{c.brief}}</p>
+              <span style="font: 400 12px Inter, sans-serif; color: #8197AE">Mockup shows an excerpt; the live page shows the full brief from the challenge record.</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <h3 style="margin: 0; font: 600 17px Poppins, sans-serif; color: #FFFFFF">What entrants submitted</h3>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <sc-for list="{{c.fields}}" as="k" hint-placeholder-count="3">
+                  <span style="padding: 6px 12px; border-radius: 12px; background: #10223A; border: 1px solid #1C3150; font: 500 13px Inter, sans-serif; color: #C9D8E8">{{k}}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-top: 16px; border-top: 1px solid #1C3150">
+              <a class="btnc" href="Winners.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">See the winner</a>
+              <a class="btno" href="Submissions.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 22px; border: 1.5px solid #4A6488; color: #FFFFFF; font: 600 14px Inter, sans-serif; text-decoration: none">View entries</a>
+              <span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Submissions closed. This round is read-only.</span>
+            </div>
+          </div>
+        </section>
+      </sc-if>
+      </div>
     </div>
   </main>
 
   <footer style="border-top: 1px solid #1C3150; padding: 28px 24px; text-align: center; display: flex; flex-direction: column; gap: 6px">
-    <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
+    <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Support and feedback: <a class="lt" href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
     <span style="font: 400 12px Inter, sans-serif; color: #8197AE">© 2026 Descasio AI Innovation Hub · Empowering Your Digital Future</span>
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":5200}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { sel: 0 };
+    this.state = { done: {}, sel: 0 };
   }
   renderVals() {
-    const ph = '[Brief text to be loaded from the challenges collection]';
-    const std = ['Solution link', 'Description and impact'];
-    const C = [
-      { live: true, month: 'November', label: 'Round 9', title: "Season's Greetings E-card", winner: 'To be announced', entries: '[7] so far', window: '[1–24 Nov]', brief: "Design Descasio's official season's greetings e-card for clients and partners. Mesca must appear, the card must work on phone and tablet, use brand and season colours with the official logo, and be finished in Gemini Canvas.", fields: ['Gemini Canvas share link', 'Tools used'] },
-      { month: 'October', label: 'Round 8', title: 'DIP: Build the Front Door', winner: 'MaryBlessing Umeh', entries: '12', window: '[dates]', brief: 'Build the front door for DIP: the page people land on first, built with AI tools. [Full brief from the Round 8 record]', fields: ['Solution link', 'Submission doc', 'Tools used'] },
-      { month: 'September', label: 'Round 7', title: 'Descasio Security Trainer', winner: 'Adedayo Oluyemi', entries: '12', window: '[dates]', brief: 'Build an AI-assisted security awareness trainer for Descasio staff. [Full brief from the Round 7 record]', fields: std },
-      { month: 'August', label: 'Round 6', title: 'Rogue AI Case Study & Recovery Plan', winner: 'Michael Oredunni', entries: '1', window: '[dates]', brief: ph, fields: std },
-      { month: 'July', label: 'Round 5', title: 'The Optimizer 2.0', winner: 'Team DataFlow TS', entries: '1', window: '[dates]', brief: ph, fields: std },
-      { month: 'June', label: 'Round 4', title: 'The Optimizer 1.0', winner: 'Tomi Adejorooluwa', entries: '4', window: '[dates]', brief: ph, fields: std },
-      { month: 'May', label: 'Round 3', title: 'Build a Website with AI', winner: 'Ifeloluwa Ajibola', entries: '7', window: '[dates]', brief: ph, fields: ['Gemini Canvas link', 'Description'] },
-      { month: 'April', label: 'Round 2', title: 'Efficiency at Descasio', winner: 'Ifeloluwa Ajibola', entries: '7', window: '[dates]', brief: ph, fields: ['Case study', 'Description and impact'] },
-      { month: 'March', label: 'Round 1', title: 'Descasio Avatar Challenge', winner: 'Michael Oredunni', entries: '26', window: '[dates]', brief: ph, fields: ['Avatar name', 'Avatar image', 'Description'] }
+    const R = [
+      { month: 'November', label: 'Round 9', title: "Season's Greetings E-card" },
+      { month: 'October', label: 'Round 8', title: 'DIP: Build the Front Door', winner: 'MaryBlessing Umeh', entries: '12', window: '6 Oct – 28 Oct', brief: '"Design the Future": create a landing page for the Descasio Decision Intelligence Platform (DIP), as a live Gemini Canvas link…', fields: ['Submission document link', 'Tools used'] },
+      { month: 'September', label: 'Round 7', title: 'Descasio Security Trainer', winner: 'Adedayo Oluyemi', entries: '12', window: '1 Sep – 23 Sep', brief: "The Mission: Build a fully interactive 'Spot the Phish' training quiz…", fields: ['Submission document link', 'Tools used'] },
+      { month: 'August', label: 'Round 6', title: 'Rogue AI Case Study & Recovery Plan', winner: 'Michael Oredunni', entries: '1', window: '1 Aug – 26 Aug', brief: 'The Event: An autonomous AI agent went rogue…', fields: ['Root cause analysis', 'Client recovery email draft', 'Guardrail system rules', 'Tools used'] },
+      { month: 'July', label: 'Round 5', title: 'The Optimizer 2.0', winner: 'Team Dataflow TS', entries: '1', window: '1 Jul – 22 Jul (approx.)', brief: 'Every department has that one task that takes too long, creates friction, or slows down delivery…', fields: ['Problem definition', 'Tools used', 'Operational impact', 'Solution link'] },
+      { month: 'June', label: 'Round 4', title: 'The Optimizer', archiveName: 'The Optimizer 1.0', winner: 'Tomi Adejorooluwa', entries: '4', window: '1 Jun – 17 Jun', brief: 'Every department has that one manual task that takes a bit too long, creates a bottleneck, or slows down daily delivery. This month, we are shifting our focus from design and aesthetics straight into core business operations and problem-solving!…', fields: ['Problem definition', 'Tools used', 'Operational impact', 'Solution link'] },
+      { month: 'May', label: 'Round 3', title: 'The AI Web-Design Architect', archiveName: 'Build a Website with AI', winner: 'Ifeloluwa Ajibola', entries: '6', window: '1 May – 20 May', brief: 'Your task is to step into the role of a Digital Brand Consultant for "Curve & Confidence", a premium, plus-size fashion house. Using Gemini Canvas, you will design a high-fidelity, luxury-grade landing page…', fields: ['Canvas / website link'] },
+      { month: 'April', label: 'Round 2', title: 'The PlugiQ Architect', archiveName: 'Efficiency at Descasio', winner: 'Ifeloluwa Ajibola', entries: '6', window: '1 Apr – 22 Apr', brief: 'We have identified three real-world operational bottlenecks within Descasio that cost us significant time and manual effort. Your mission is to use the PlugiQ AI Designer to build an end-to-end automated workflow…', fields: ['Solution name', 'Bugs identified', 'Product recommendations'] },
+      { month: 'March', label: 'Round 1', title: 'Descasio Avatar Challenge', winner: 'Michael Oredunni', entries: '25', window: 'March (approx.)', isSummary: true, brief: 'Staff were invited to design and name an AI avatar to represent Descasio. The round drew more than 20 avatar concepts from across the business, and the winning design, Mesca by Michael Oredunni, became the AI Innovation Hub\'s mascot.', fields: ['Avatar image/link', 'Avatar name', 'Description'] }
     ];
     const sel = this.state.sel;
-    const months = C.map((c, i) => {
+    const months = R.map((r, i) => {
       const on = i === sel;
+      const live = i === 0;
       return {
-        month: c.month, label: c.label, title: c.title,
+        month: r.month, sub: r.label + ' · ' + r.title,
         pressed: on ? 'true' : 'false',
         pick: () => this.setState({ sel: i }),
-        dot: 'width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: ' + (c.live ? '#3FA66B; box-shadow: 0 0 0 4px rgba(63,166,107,0.22)' : '#4A6488'),
-        style: 'display: flex; align-items: center; gap: 14px; width: 100%; box-sizing: border-box; padding: 14px 16px; border-radius: 14px; font: inherit; color: inherit; ' +
-          (on ? 'background: #12345C; border: 1.5px solid #00AEEF;' : 'background: #0B1A2E; border: 1px solid #1C3150;')
+        dot: 'width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: ' + (live ? '#3FA66B; box-shadow: 0 0 0 4px rgba(63,166,107,0.22)' : '#4A6488'),
+        style: 'display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 14px; ' + (on ? 'background: #12345C; border: 1.5px solid #00AEEF;' : 'background: #0B1A2E; border: 1px solid #1C3150;')
       };
     });
-    const c = Object.assign({}, C[sel]);
-    const live = !!c.live;
-    c.status = live ? 'Open for submissions' : 'Closed';
-    c.statusStyle = 'display: inline-flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 14px; font: 600 12px Inter, sans-serif; ' +
-      (live ? 'background: rgba(63,166,107,0.18); color: #8FE0B0; border: 1px solid rgba(63,166,107,0.5);' : 'background: rgba(159,179,200,0.12); color: #C9D8E8; border: 1px solid #2A4466;');
-    c.bannerStyle = 'padding: 32px; display: flex; flex-direction: column; gap: 14px; ' +
-      (live ? 'background: radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%);' : 'background: linear-gradient(135deg, #10223A 0%, #0B1A2E 100%);');
-    c.cta = live ? 'Submit your entry' : 'See the winner';
-    c.ctaHref = live ? 'Submissions.dc.html' : 'Winners.dc.html';
-    c.note = live ? 'Closes [24 Nov, 11:59 PM WAT]' : 'Submissions closed. This round is read-only.';
-    c.noteColor = live ? '#8FE0B0' : '#9FB3C8';
-    return { months, c };
+    const c = Object.assign({ fields: [] }, R[sel]);
+    c.hasArchive = !!c.archiveName;
+    c.isSummary = !!c.isSummary;
+    const musts = [
+      ['Mesca.', 'Our Hub mascot must appear on the card, in a festive way (Santa Mesca, Mesca with a gift, Mesca in the snow: your call).'],
+      ['The Descasio logo,', 'used correctly (official file, not redrawn or AI-generated).'],
+      ['Descasio brand colours,', 'with tasteful seasonal colours alongside them.'],
+      ["A season's greeting", '(for example "Season\'s Greetings" or "Happy Holidays").'],
+      ['A message of appreciation', 'thanking clients and partners for being part of our 2026.'],
+      ['At least one interactive element:', 'something the reader clicks, taps, opens, types or plays with.'],
+      ['Works on phone, tablet and desktop,', 'and opens without signing in.']
+    ].map(([lead, rest], i) => ({ n: String(i + 1), lead, rest }));
+    const cols = ['#E6533C', '#00AEEF', '#F2B544', '#3FA66B', '#B54FB8', '#3CC1D9', '#F2667A'];
+    const ideas = [
+      ['An opening moment', 'A card that unfolds, an envelope that opens, a gift box that unwraps.'],
+      ['Personalisation', 'A "To" field that puts the client\'s name into the greeting.'],
+      ['Mesca in action', 'Mesca waving, delivering a gift, or revealing the message.'],
+      ['A 2026 look-back', 'A few highlights of our AI-first year, told warmly.'],
+      ['A small surprise', 'A tap-to-reveal wish, falling snow, confetti, a New Year countdown.'],
+      ['Local touch', 'A nod to celebrating the season in Lagos and across our markets.'],
+      ['A shareable version', 'A GIF or image of your card that works inside an email.']
+    ].map(([t, d], i) => ({ t, d, c: cols[i] }));
+    const rules = [
+      ['Finished in Gemini Canvas,', 'through your descasio.io account. Drafting in other tools is fine.'],
+      ['Mesca must appear', 'on the card.'],
+      ['Official logo files only:', 'no AI-drawn or altered logos.'],
+      ['Approved images only:', "the design pack, Descasio's official social media, or images you create. No client logos, real client data or copyrighted characters."],
+      ["People's faces:", "use a colleague's photo only with their permission, and only from Descasio's official pages."],
+      ['Inclusive greeting:', 'our clients celebrate in different ways, so keep the main greeting season-wide ("Season\'s Greetings", "Happy Holidays").'],
+      ['No data collection:', 'any form or name field is for display only and must not send or store anything.'],
+      ['Sound off by default:', 'if your card plays music, the reader turns it on.'],
+      ['Submit before the deadline.', 'You can submit more than once; every entry you send is scored.']
+    ].map(([lead, rest]) => ({ lead, rest }));
+    const C = ['The link opens in a private/incognito window without signing in', 'Mesca and the official Descasio logo appear on the card', 'The card works on a phone as well as a computer', 'Every button and interaction works', 'The message has no spelling mistakes'];
+    const done = this.state.done;
+    const checks = C.map((label, i) => {
+      const on = !!done[i];
+      return {
+        label, pressed: on ? 'true' : 'false', mark: on ? '✓' : '',
+        toggle: () => { const d = Object.assign({}, this.state.done); d[i] = !d[i]; this.setState({ done: d }); },
+        box: 'width: 22px; height: 22px; flex-shrink: 0; border-radius: 6px; display: flex; align-items: center; justify-content: center; font: 700 14px Inter, sans-serif; ' + (on ? 'background: #3FA66B; color: #050E1C; border: 1.5px solid #3FA66B;' : 'background: transparent; color: transparent; border: 1.5px solid #4A6488;'),
+        text: 'font: 400 14.5px/1.5 Inter, sans-serif; ' + (on ? 'color: #8FE0B0;' : 'color: #C9D8E8;')
+      };
+    });
+    const n = C.filter((_, i) => done[i]).length;
+    const criteria = [
+      ['Brand and festive identity', 'Descasio colours and the official logo used correctly; seasonal colours that complement the brand; Mesca featured with festive charm.', '#E6533C'],
+      ['Message of appreciation', 'A warm, specific thank-you for being part of our 2026; clear, client-appropriate and error-free.', '#F2B544'],
+      ['Design and UI/UX', 'Polished and easy to read, and works smoothly on phone, tablet and desktop, with no overlapping or cut-off content.', '#00AEEF'],
+      ['Interactivity and innovation', 'Interactions that work and delight, plus at least one original idea that makes the card memorable.', '#B54FB8'],
+      ['Essentials', 'All seven must-haves from the brief are present.', '#3FA66B']
+    ].map(([name, full, col]) => ({ name, full, col }));
+    return {
+      months, musts, ideas, rules, checks, criteria, c,
+      isNov: sel === 0, notNov: sel !== 0,
+      doneText: n === C.length ? 'All set — ready to submit' : n + ' of ' + C.length + ' checked',
+      doneColor: n === C.length ? '#8FE0B0' : '#9FB3C8'
+    };
   }
 }
 </script>

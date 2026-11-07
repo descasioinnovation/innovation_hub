@@ -22,6 +22,7 @@
 //   - Round 9: taken verbatim from redesign/DESIGN_SPEC.md's "Round 9 (November) values".
 
 const WAT = '+01:00';
+const { page: ROUND9_PAGE } = require('./round9-page-content');
 
 const CHALLENGES = [
     // ---------------- ROUND 1 ----------------
@@ -359,6 +360,7 @@ const CHALLENGES = [
             'Share link opens without a sign-in.'
         ],
         entryCount: 0,
+        page: ROUND9_PAGE,
         _source: "redesign/DESIGN_SPEC.md, \"Round 9 (November) values\" section, captured verbatim. Spec also notes: before opensAt, the hero and form should show \"Opens Monday 9 Nov, 8:00 AM\" instead of a countdown, and the form should be disabled — that's app-code behavior, not seed data, flagging it here so it isn't lost."
     }
 ];

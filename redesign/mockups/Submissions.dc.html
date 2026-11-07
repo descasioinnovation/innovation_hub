@@ -104,7 +104,27 @@ button:focus-visible,a:focus-visible{outline:3px solid #00AEEF;outline-offset:2p
                 </sc-for>
               </div>
             </div>
-            <button onClick="{{send}}" style="height: 52px; border-radius: 26px; border: none; background: #C8432D; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer; margin-top: 4px">Submit entry</button>
+            <sc-if value="{{notConfirming}}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ask}}" style="width: 100%; height: 52px; border-radius: 26px; border: none; background: #C8432D; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer; margin-top: 4px">Submit entry</button>
+            </sc-if>
+            <sc-if value="{{confirming}}" hint-placeholder-val="{{ false }}">
+              <div role="alertdialog" aria-label="Check before submitting" style="padding: 20px; border-radius: 18px; background: #10223A; border: 1px solid rgba(242,181,68,0.5); display: flex; flex-direction: column; gap: 14px">
+                <span style="font: 600 17px Poppins, sans-serif; color: #FFFFFF">Quick check before you submit</span>
+                <div style="display: flex; gap: 12px; align-items: flex-start">
+                  <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: rgba(0,174,239,0.16); color: #7FD6F7; display: flex; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif">1</span>
+                  <span style="font: 400 14px/1.55 Inter, sans-serif; color: #C9D8E8"><strong style="color: #FFFFFF">You've already submitted 1 entry for Round 9.</strong> Sending another is fine; every entry you send is scored.</span>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: flex-start">
+                  <span style="width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: rgba(242,181,68,0.16); color: #F6CD7F; display: flex; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif">!</span>
+                  <span style="font: 400 14px/1.55 Inter, sans-serif; color: #C9D8E8"><strong style="color: #FFFFFF">This doesn't look like a Gemini share link.</strong> Judges may not be able to open it, and this round asks for a card finished in Gemini Canvas, which affects your score. Share links start with <code style="color: #FFFFFF">https://gemini.google.com/share/</code> or <code style="color: #FFFFFF">https://share.gemini.google/</code>.</span>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                  <button onClick="{{cancel}}" style="flex: 1 1 180px; height: 46px; border-radius: 23px; border: 1.5px solid #4A6488; background: transparent; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Go back and edit</button>
+                  <button onClick="{{send}}" style="flex: 1 1 180px; height: 46px; border-radius: 23px; border: none; background: #C8432D; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Yes, submit anyway</button>
+                </div>
+                <span style="font: 400 12px/1.5 Inter, sans-serif; color: #8197AE">Each check only appears when it applies: the first if this email already has an entry this round, the second if the link isn't a Gemini share link.</span>
+              </div>
+            </sc-if>
             <span style="font: 400 12px/1.5 Inter, sans-serif; color: #8197AE">Admin note: the fields under "Round 9 requirements" come from this round's record in the challenges collection, so each month can ask for something different. Entry type, name, email and department stay the same every month.</span>
           </div>
         </sc-if>
@@ -297,7 +317,10 @@ class Component extends DCLogic {
       soloStyle: segStyle(!st.group), groupStyle: segStyle(st.group),
       pickSolo: () => this.setState({ group: false }), pickGroup: () => this.setState({ group: true }),
       notSent: !st.sent, sent: st.sent,
-      send: () => this.setState({ sent: true }), reset: () => this.setState({ sent: false })
+      confirming: !!st.confirming, notConfirming: !st.confirming,
+      ask: () => this.setState({ confirming: true }),
+      cancel: () => this.setState({ confirming: false }),
+      send: () => this.setState({ sent: true, confirming: false }), reset: () => this.setState({ sent: false })
     };
   }
 }
