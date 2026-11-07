@@ -111,10 +111,14 @@ select:focus-visible,
 }
 
 /* No horizontal page scroll at any width; only the leaderboard table scrolls sideways
-   inside its own card (existing .overflow-x-auto wrapper there already handles that). */
+   inside its own card (existing .overflow-x-auto wrapper there already handles that).
+   overflow-x:clip (not hidden) - setting overflow-x alone with hidden forces
+   overflow-y to auto too (CSS spec), which turns html/body into their own scroll
+   container and can break position:sticky on descendants (Step 10 fix 3). clip avoids
+   that side effect while still preventing horizontal scroll. */
 html, body {
     max-width: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 
@@ -559,130 +563,99 @@ button:disabled {
     font: inherit;
     color: inherit;
 }
-/* Month navigator: a 3-per-row chip grid below 1024px, the sticky row-list at/above it
-   (Step 9 fix 1). Both are always rendered; only one is ever visible at a given width. */
-.month-chips-mobile {
-    display: grid;
+/* Month navigator (Step 10 fix 1): ONE list, always - no separate chip grid. Below
+   1024px it sits full-width above the content (flex-basis:100% forces its own row)
+   with each row's label swapped to a single compact line; at/above 1024px it becomes
+   the sticky 280px column beside the content. */
+.challenge-month-nav {
+    flex: 1 1 100%;
 }
-.month-list-desktop {
+.month-row-desktop {
     display: none;
+}
+.month-row-compact {
+    display: block;
 }
 @media (min-width: 1024px) {
-    .month-chips-mobile {
-        display: none;
-    }
-    .month-list-desktop {
-        display: flex;
-        flex: 1 1 280px;
-        max-width: 280px;
+    .challenge-month-nav {
+        flex: 0 0 280px;
         position: sticky;
-        top: 90px;
+        top: var(--header-height, 72px);
+    }
+    .month-row-desktop {
+        display: flex;
+    }
+    .month-row-compact {
+        display: none;
     }
 }
 
-/* jump-nav's sticky top and each .sec's scroll-margin-top are sized to clear the
-   header (which gets taller as nav wraps to more rows) plus the jump-nav itself, so a
-   scrolled-to heading never hides underneath either sticky bar. Approximate - the
-   header's real height isn't measurable without a browser; verify in DevTools. */
+/* Jump bar (Step 10 fixes 2/3): wraps onto multiple lines instead of scrolling
+   sideways - no horizontal overflow at any width. Its sticky top and each .sec's
+   scroll-margin-top are driven by --header-height/--jump-nav-height, which
+   observeChallengeStickyBars() in js/app.js measures live via ResizeObserver instead
+   of guessing per breakpoint. */
 .jump-nav {
-    top: 72px;
+    flex-wrap: wrap;
+    overflow-x: visible;
+    top: var(--header-height, 72px);
 }
 .sec {
-    scroll-margin-top: 140px;
+    scroll-margin-top: calc(var(--header-height, 72px) + var(--jump-nav-height, 56px) + 12px);
 }
-@media (max-width: 1279px) {
-    .jump-nav { top: 120px; }
-    .sec { scroll-margin-top: 190px; }
+.jump-link--active {
+    border-color: var(--link) !important;
+    color: var(--text-strong) !important;
+    background: rgba(127, 214, 247, 0.12) !important;
 }
-@media (max-width: 640px) {
-    .jump-nav { top: 180px; }
-    .sec { scroll-margin-top: 250px; }
+
+/* Floating "Back to top" button (Step 10 fix 3) - shown once the top card scrolls out
+   of view, via observeBackToTop() in js/app.js. */
+.back-to-top-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-active);
+    border: 1px solid var(--border-strong);
+    color: var(--text-strong);
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
-.print-only, .print-footer {
+.back-to-top-btn.hidden {
     display: none;
 }
 
-/* Print stylesheet for the rich challenge page only (Step 9C) - "Download as PDF"
-   calls window.print(). Everything outside .rich-challenge-root is hidden; sections
-   flow across pages naturally (break-inside: avoid only on small items, never on a
-   whole section, so one tall section doesn't force a half-empty page before it). */
+/* Print (Step 10 fix 5): a completely separate, pre-rendered light document
+   (#print-brief, js/app.js renderPrintBrief()) - never the dark on-screen layout.
+   Everything else is hidden; #print-brief carries its own inline styles throughout,
+   since it's meant to look like a plain document, not a themed page. */
 @page {
     size: A4;
-    margin: 0;
+    margin: 14mm;
 }
 @media print {
     body {
         background: #FFFFFF !important;
-        color: #00336A !important;
-        padding: 14mm !important;
-        margin: 0 !important;
+    }
+    header, footer, .ticker-wrap, .no-print, .rich-challenge-root {
+        display: none !important;
     }
     main {
         max-width: 100% !important;
         padding: 0 !important;
     }
-    header, footer, .ticker-wrap, .no-print {
-        display: none !important;
-    }
-    .rich-challenge-root .btn-coral,
-    .rich-challenge-root .btn-outline,
-    .rich-challenge-root button {
-        display: none !important;
-    }
-    .print-only {
+    #print-brief {
         display: block !important;
     }
-    .rich-print-logo {
-        display: block !important;
-        margin-bottom: 20px;
-    }
-
-    /* Whole sections flow across pages; only small items stay intact, and a heading
-       never ends up alone at the bottom of a page. */
-    .rich-sec {
-        background: #FFFFFF !important;
-        border: 1px solid #CCCCCC !important;
-        box-shadow: none !important;
-    }
-    .musthave-tile, .idea-tile, .yourcall-tile, .rule-row, .scoring-row,
-    .asset-tile, .step-item {
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
-    .rich-h2 {
-        break-after: avoid;
-    }
-    /* Explicit re-assertion: these two tiles' text was found touching the card border
-       in print without this (Step 9 fix 5). */
-    .yourcall-tile, .idea-tile {
-        padding: 16px !important;
-    }
-
-    .rich-sec, .rich-sec * {
-        color: #00336A !important;
-    }
-    .print-check-row {
-        font-size: 13px;
-        margin: 4px 0;
-        color: #00336A;
-    }
-
-    /* Swatches, logo tiles, number badges, accent borders and the Mesca ring all rely
-       on a background-color or border-color to mean something - without this, some
-       print engines strip "unnecessary" colours/backgrounds entirely. */
-    .rich-challenge-root,
-    .rich-challenge-root * {
+    #print-brief * {
         print-color-adjust: exact;
         -webkit-print-color-adjust: exact;
-    }
-
-    .print-footer {
-        display: block !important;
-        margin-top: 24px;
-        padding-top: 12px;
-        border-top: 1px solid #CCCCCC;
-        font-size: 11px;
-        color: #00336A;
-        text-align: center;
     }
 }

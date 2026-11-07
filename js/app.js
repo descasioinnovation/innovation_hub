@@ -304,6 +304,9 @@
             lucide.createIcons();
             updateCountdown();
             logOverflowingElements();
+            observeChallengeStickyBars();
+            observeChallengeActiveSection();
+            observeBackToTop();
         }
 
         function renderLoginGateway() {
@@ -610,6 +613,9 @@
             const selectedSlug = state.routeSub || (current ? (current.slug || `round-${current.round}`) : allRounds[0].slug);
             const selected = allRounds.find(r => (r.slug || `round-${r.round}`) === selectedSlug) || current || allRounds[0];
 
+            // Step 10 fix 1: ONE list, not a separate chip grid - below 1024px its inner
+            // label just switches (via CSS, .month-row-compact/.month-row-desktop) to a
+            // single compact line instead of stacking onto two lines.
             const monthListHtml = allRounds.map(r => {
                 const slug = r.slug || `round-${r.round}`;
                 const on = slug === (selected.slug || `round-${selected.round}`);
@@ -622,24 +628,11 @@
                 return `
                 <button type="button" onclick="navigate('challenge', '${slug}')" aria-pressed="${on}" class="card-hover flex items-center gap-3.5 w-full box-border px-4 py-3.5 rounded-2xl text-left cursor-pointer ${rowClasses}">
                     <span class="w-2.5 h-2.5 shrink-0 rounded-full" style="${dotStyle}"></span>
-                    <span class="flex-1 min-w-0 flex flex-col gap-0.5">
+                    <span class="month-row-desktop flex-1 min-w-0 flex flex-col gap-0.5">
                         <span class="font-poppins font-semibold text-[15px] text-text-strong shell-sentence-case">${r.month} challenge</span>
                         <span class="font-inter text-[13px] text-text-muted">Round ${r.round} · ${r.title}</span>
                     </span>
-                </button>`;
-            }).join('');
-
-            // Compact chip grid shown instead of the row list below 1024px (Step 9 fix 1).
-            const monthChipsHtml = allRounds.map(r => {
-                const slug = r.slug || `round-${r.round}`;
-                const on = slug === (selected.slug || `round-${selected.round}`);
-                const st = Challenges.statusOf(r);
-                const isLive = st === 'open' || st === 'upcoming';
-                const chipClasses = on ? 'bg-surface-active border-[1.5px] border-[#00AEEF]' : 'bg-surface border border-border';
-                return `
-                <button type="button" onclick="navigate('challenge', '${slug}')" aria-pressed="${on}" class="card-hover flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-center ${chipClasses}">
-                    ${isLive ? '<span class="w-1.5 h-1.5 shrink-0 rounded-full bg-green"></span>' : ''}
-                    <span class="font-inter font-semibold text-[12px] text-text-strong whitespace-nowrap">${r.month.slice(0, 3)} · R${r.round}</span>
+                    <span class="month-row-compact flex-1 min-w-0 font-inter font-semibold text-[14px] text-text-strong truncate">${r.month} · Round ${r.round} · ${r.title}</span>
                 </button>`;
             }).join('');
 
@@ -702,7 +695,6 @@
 
             return `
                 <div class="space-y-7 animate-in fade-in rich-challenge-root">
-                    <div class="print-only rich-print-logo" style="display:none;height:36px">${Shell.LOGO_SVG_COLOR.replace(/class="[^"]*"/, 'style="height:36px;display:block"')}</div>
                     <div class="no-print flex flex-col gap-2">
                         <span class="font-inter font-semibold text-xs tracking-[1.4px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Challenge archive · ${selected.year || new Date().getFullYear()}</span>
                         <h1 class="m-0 font-poppins font-bold text-4xl leading-[1.1] tracking-[-0.8px] text-text-strong shell-sentence-case">Every challenge</h1>
@@ -710,8 +702,7 @@
                     </div>
 
                     <div class="challenge-layout flex flex-wrap gap-6 items-start">
-                        <div class="no-print month-chips-mobile grid gap-2" style="grid-template-columns:repeat(3,1fr)">${monthChipsHtml}</div>
-                        <nav aria-label="Challenge months" class="no-print month-list-desktop flex-col gap-2">${monthListHtml}</nav>
+                        <nav aria-label="Challenge months" class="no-print challenge-month-nav flex flex-col gap-2">${monthListHtml}</nav>
 
                         <div class="flex-[999_1_560px] min-w-0">
                         ${selected.page ? renderRichChallengeContent(selected, {
@@ -754,7 +745,126 @@
                         </div>
                     </div>
                 </div>
+                ${selected.page ? renderPrintBrief(selected) : ''}
             `;
+        }
+        // Step 10 fix 5: a completely separate, pre-rendered light document, always
+        // hidden on screen (#print-brief, display:none) and shown ONLY in @media print
+        // (css/hub.css), which also hides .rich-challenge-root entirely - so printing
+        // never touches the dark on-screen layout. Built straight from round.page, so
+        // it always matches; plain inline styles throughout since it's meant to read
+        // like a document, not a themed page.
+        function renderPrintBrief(round) {
+            if (!round || !round.page) return '';
+            const page = round.page;
+            const navy = '#003366', ink = '#1F2D3D', coral = '#E6533C', tint = '#F5F7FA', rule = '#D9DEE3';
+            const bodyFont = 'font:400 10.5pt/1.5 Inter,sans-serif;color:' + ink;
+            const h2 = (num, title) => `<h2 style="font:700 15pt Poppins,sans-serif;color:${navy};margin:20pt 0 8pt;break-after:avoid">${num} ${title}</h2>`;
+            const p = (html) => `<p style="${bodyFont};margin:0 0 8pt">${html}</p>`;
+            const closes = formatWATDateTime(round.closesAt);
+
+            const whyBullets = `<ul style="margin:0 0 4pt;padding-left:16pt;${bodyFont}">
+                ${page.why.points.map(pt => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${pt.title}</strong> ${pt.text}</li>`).join('')}
+            </ul>`;
+
+            const mustHavesHtml = `<ol style="margin:0;padding-left:16pt;${bodyFont}">
+                ${page.brief.mustHaves.map(m => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${m.lead}</strong> ${m.text}</li>`).join('')}
+            </ol>`;
+
+            const yourCallTable = `<table style="width:100%;border-collapse:collapse;${bodyFont};margin-bottom:8pt">
+                ${page.yourCall.map(c => `<tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};font-weight:700;color:${navy};width:90pt;vertical-align:top">${c.label}</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${c.text}</td></tr>`).join('')}
+            </table>`;
+
+            const swatchHtml = (swatches) => swatches.map(s =>
+                `<span style="display:inline-flex;align-items:center;gap:4pt;margin-right:10pt"><span style="display:inline-block;width:10pt;height:10pt;border:0.5pt solid ${rule};background:${s.hex}"></span>${s.name} ${s.hex}</span>`
+            ).join('');
+            const assetRows = page.designPack.assets.map(a => {
+                let details;
+                if (a.kind === 'mesca') details = `${a.text} ${a.linkUrl}`;
+                else if (a.kind === 'brand-swatches' || a.kind === 'seasonal-swatches') details = (a.text ? a.text + ' ' : '') + swatchHtml(a.swatches);
+                else details = a.text;
+                return `<tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};font-weight:700;color:${navy};width:130pt;vertical-align:top">${a.label}</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${details}</td></tr>`;
+            }).join('');
+
+            const ideasList = `<ol style="margin:0 0 4pt;padding-left:16pt;${bodyFont}">
+                ${page.makeItYours.ideas.map(i => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${i.title}.</strong> ${i.text}</li>`).join('')}
+            </ol>`;
+
+            const rulesList = `<ol style="margin:0;padding-left:16pt;${bodyFont}">
+                ${page.rules.map(r => `<li style="break-inside:avoid;margin-bottom:6pt"><strong style="color:${navy}">${r.lead}</strong> ${r.text}</li>`).join('')}
+            </ol>`;
+
+            const stepsList = `<ol style="margin:0;padding-left:16pt;${bodyFont}">
+                ${page.howToSubmit.steps.map(s => `<li style="break-inside:avoid;margin-bottom:6pt">${s.text}</li>`).join('')}
+            </ol>`;
+
+            const prefixBox = `<table style="width:100%;border-collapse:collapse;font:400 10pt/1.5 Inter,sans-serif;color:${ink};margin:8pt 0"><tr style="break-inside:avoid">
+                <td style="padding:8pt 10pt;border:1px solid ${rule};background:${tint};vertical-align:top;width:50%"><strong style="color:${navy}">Valid link prefixes</strong><br>${page.howToSubmit.validPrefixes.join('<br>')}</td>
+                <td style="padding:8pt 10pt;border:1px solid ${rule};vertical-align:top"><strong style="color:${coral}">Not this</strong><br>${page.howToSubmit.invalidPrefix}<br>${page.howToSubmit.invalidNote}</td>
+            </tr></table>`;
+
+            const checklistBoxes = page.checklist.map(c => `<div style="${bodyFont};break-inside:avoid">☐ ${c}</div>`).join('');
+
+            const scoringTable = `<table style="width:100%;border-collapse:collapse;font:400 10pt/1.5 Inter,sans-serif;color:${ink}">
+                <tr style="break-inside:avoid;background:${tint}"><th style="padding:6pt 10pt;border:1px solid ${rule};text-align:left;color:${navy}">Criterion</th><th style="padding:6pt 10pt;border:1px solid ${rule};text-align:left;color:${navy};width:45pt">Points</th><th style="padding:6pt 10pt;border:1px solid ${rule};text-align:left;color:${navy}">What earns full marks</th></tr>
+                ${page.scoring.criteria.map(c => `<tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};font-weight:700">${c.name}</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${c.points}</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${c.full}</td></tr>`).join('')}
+                <tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};font-weight:700" colspan="2">Total</td><td style="padding:6pt 10pt;border:1px solid ${rule};font-weight:700">${page.scoring.total} points</td></tr>
+            </table>`;
+
+            return `
+            <div id="print-brief">
+                <div style="margin-bottom:14pt">${Shell.LOGO_SVG_COLOR.replace(/class="[^"]*"/, 'style="height:26pt;display:block"')}</div>
+                <h1 style="font:700 19pt Poppins,sans-serif;color:${navy};margin:0 0 6pt;break-after:avoid">${round.month} AI Challenge: ${round.title}</h1>
+                ${p(page.intro)}
+
+                <table style="width:100%;border-collapse:collapse;font:400 10pt/1.5 Inter,sans-serif;color:${ink};margin:10pt 0 16pt;break-inside:avoid">
+                    <tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};background:${tint};font-weight:700;color:${navy};width:130pt">Round</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${round.round} · ${round.month} ${round.year}</td></tr>
+                    <tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};background:${tint};font-weight:700;color:${navy}">Window</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${formatWindow(round)}</td></tr>
+                    <tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};background:${tint};font-weight:700;color:${navy}">Closes</td><td style="padding:6pt 10pt;border:1px solid ${rule}">${closes.time} WAT, ${closes.weekday} ${formatShortDateWAT(round.closesAt)}</td></tr>
+                    <tr style="break-inside:avoid"><td style="padding:6pt 10pt;border:1px solid ${rule};background:${tint};font-weight:700;color:${navy}">Winning card goes out</td><td style="padding:6pt 10pt;border:1px solid ${rule}">1 December – mid-January</td></tr>
+                </table>
+
+                ${h2('01', 'Why this challenge')}
+                ${p(page.why.lead)}
+                ${whyBullets}
+
+                ${h2('02', 'The brief')}
+                ${p(`<strong style="color:${navy}">${page.brief.statement}</strong>`)}
+                ${mustHavesHtml}
+
+                ${h2('03', 'Your call')}
+                ${yourCallTable}
+                ${p(`See a sample: ${page.sampleUrl}`)}
+
+                ${h2('04', 'Design pack')}
+                ${p(`Download: ${page.designPack.url}`)}
+                <table style="width:100%;border-collapse:collapse;font:400 10pt/1.5 Inter,sans-serif;color:${ink};margin-bottom:8pt">
+                    <tr style="break-inside:avoid;background:${tint}"><th style="padding:6pt 10pt;border:1px solid ${rule};text-align:left;color:${navy}">Asset</th><th style="padding:6pt 10pt;border:1px solid ${rule};text-align:left;color:${navy}">Details</th></tr>
+                    ${assetRows}
+                </table>
+
+                ${h2('05', 'Make it yours')}
+                ${ideasList}
+                ${p(page.makeItYours.note)}
+
+                ${h2('06', 'Rules')}
+                ${rulesList}
+
+                ${h2('07', 'How to submit')}
+                ${stepsList}
+                ${prefixBox}
+                ${p(`<strong style="color:${navy}">Before you submit, check:</strong>`)}
+                ${checklistBoxes}
+                ${p(page.afterDeadlineNote)}
+
+                ${h2('08', 'Scoring criteria')}
+                ${p(`<strong style="color:${navy}">An entry is valid when</strong> ${page.scoring.validity}`)}
+                ${scoringTable}
+
+                <p style="font:700 11pt Inter,sans-serif;color:${navy};margin:18pt 0 0;break-inside:avoid">Submit at ai.innovation-hub.com.ng before ${closes.time} WAT, ${closes.weekday} ${formatShortDateWAT(round.closesAt)}.</p>
+
+                <div style="margin-top:18pt;padding-top:10pt;border-top:0.75pt solid ${rule};font:400 9pt Inter,sans-serif;color:${ink};text-align:center">Descasio AI Innovation Hub · ai.innovation-hub.com.ng · Empowering Your Digital Future</div>
+            </div>`;
         }
 
         // --- Rich challenge page (Step 8/9) - only rendered when the round has a `page`
@@ -778,7 +888,7 @@
             const pdfBtn = `<button type="button" onclick="triggerChallengePdf('${round.month}', '${round.title.replace(/'/g, "\\'")}')" class="btn-outline no-print inline-flex items-center gap-2 h-11 px-5 rounded-full border-[1.5px] border-border-muted bg-transparent text-text-strong font-inter font-semibold text-sm cursor-pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>Download as PDF</button>`;
 
             const topCard = `
-            <section class="rich-sec rounded-[24px] bg-surface border border-border overflow-hidden">
+            <section class="rich-sec top-card-sentinel rounded-[24px] bg-surface border border-border overflow-hidden">
                 <div class="relative overflow-hidden p-8 flex flex-wrap gap-6 items-center" style="background:radial-gradient(circle at 90% 10%, #0F4A85 0%, #003366 55%, #0B1A2E 100%)">
                     <div class="flex-[999_1_380px] min-w-0 flex flex-col gap-3.5">
                         <div class="flex gap-2.5 flex-wrap">
@@ -809,7 +919,7 @@
                     ${sampleBtn}
                     ${packBtn}
                     ${pdfBtn}
-                    <span class="font-inter font-medium text-[13px] ${ctx.noteColorClass} no-print">${ctx.note}</span>
+                    ${isUpcoming ? '' : `<span class="font-inter font-medium text-[13px] ${ctx.noteColorClass} no-print">${ctx.note}</span>`}
                 </div>
             </section>`;
 
@@ -823,9 +933,10 @@
                 ['how', 'How to submit'], ['scoring', 'Scoring']
             ];
             const jumpNav = `
-            <nav aria-label="On this page" class="no-print jump-nav sticky top-0 z-[2] p-2.5 rounded-2xl flex gap-2 overflow-x-auto" style="background:rgba(8,21,39,0.92);border:1px solid var(--border);backdrop-filter:blur(6px)">
-                ${jumpLinks.map(([id, label]) => `<button type="button" onclick="scrollToChallengeSection('${id}')" class="jump-link px-3.5 py-2 rounded-full border border-border-strong bg-transparent font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap cursor-pointer">${label}</button>`).join('')}
+            <nav aria-label="On this page" class="no-print jump-nav sticky z-[2] p-2.5 rounded-2xl flex gap-2" style="background:rgba(8,21,39,0.92);border:1px solid var(--border);backdrop-filter:blur(6px)">
+                ${jumpLinks.map(([id, label]) => `<button type="button" onclick="scrollToChallengeSection('${id}')" data-target="${id}" class="jump-link px-3.5 py-2 rounded-full border border-border-strong bg-transparent font-inter font-semibold text-[13px] text-text-2 whitespace-nowrap cursor-pointer">${label}</button>`).join('')}
             </nav>`;
+            const backToTopBtn = `<button type="button" id="back-to-top-btn" onclick="scrollChallengeToTop()" aria-label="Back to top" class="no-print back-to-top-btn hidden"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"></path><path d="M5 12l7-7 7 7"></path></svg></button>`;
 
             // 01 Why this challenge
             const whyPointIcons = [
@@ -1040,13 +1151,9 @@
                 <div class="p-5.5 rounded-2xl bg-surface-2 flex flex-col gap-3">
                     <div class="flex justify-between items-baseline gap-3 flex-wrap">
                         <span class="font-poppins font-semibold text-[17px] text-text-strong">Before you submit, check:</span>
-                        <span class="no-print font-inter font-semibold text-[13px]" style="${doneColorStyle}">${doneText}</span>
-                        <span class="print-only font-inter font-semibold text-[13px]"></span>
+                        <span class="font-inter font-semibold text-[13px]" style="${doneColorStyle}">${doneText}</span>
                     </div>
                     <div class="no-print flex flex-col gap-2">${checklistHtml}</div>
-                    <div class="print-only" style="display:none">
-                        ${page.checklist.map(label => `<div class="print-check-row">☐ ${label}</div>`).join('')}
-                    </div>
                 </div>
                 <div class="flex gap-3 items-start p-3.5 rounded-[14px]" style="background:rgba(242,181,68,0.1);border:1px solid rgba(242,181,68,0.45)">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--gold-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
@@ -1088,26 +1195,18 @@
             <section class="rich-sec relative overflow-hidden p-8 rounded-[24px] border border-border flex flex-wrap gap-5 items-center justify-between" style="background:radial-gradient(circle at 85% 20%, #0F4A85 0%, #003366 50%, #061A33 100%)">
                 <div class="flex flex-col gap-1.5">
                     <span class="font-poppins font-bold text-2xl text-text-strong">Ready to send some season's greetings?</span>
-                    <span class="no-print font-inter font-medium text-sm text-text-2">Closes ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
-                    <span class="print-only" style="display:none">Submit at ai.innovation-hub.com.ng before ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
+                    <span class="font-inter font-medium text-sm text-text-2">Closes ${formatWATDateTime(round.closesAt).time} WAT, ${formatWATDateTime(round.closesAt).weekday} ${formatShortDateWAT(round.closesAt)}.</span>
                 </div>
-                <div class="no-print flex gap-3 flex-wrap">
+                <div class="flex gap-3 flex-wrap">
                     ${submitBtn}
                     ${packBtn}
                     ${pdfBtn}
                 </div>
             </section>`;
 
-            const printLinksBlock = `
-            <div class="print-only" style="display:none">
-                <p>See a sample: ${page.sampleUrl}</p>
-                <p>Design pack: ${page.designPack.url}</p>
-            </div>`;
-
             return `
             <div class="flex flex-col gap-5">
                 ${topCard}
-                ${printLinksBlock}
                 ${jumpNav}
                 ${whySection}
                 ${briefSection}
@@ -1118,7 +1217,7 @@
                 ${howSection}
                 ${scoringSection}
                 ${closingSection}
-                <div class="print-footer">Descasio AI Innovation Hub · ai.innovation-hub.com.ng · Empowering Your Digital Future</div>
+                ${backToTopBtn}
             </div>`;
         }
 
@@ -1130,6 +1229,80 @@
             let reduceMotion = false;
             try { reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
             el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        }
+
+        // Step 10 fix 3: measures the real header and jump-nav heights (instead of
+        // guessing per breakpoint) and writes them as CSS vars the .jump-nav/.sec rules
+        // read for their sticky top / scroll-margin-top. Re-run after every updateUI()
+        // render since the header/jump-nav are recreated (innerHTML) each time.
+        let headerResizeObserver = null;
+        let jumpNavResizeObserver = null;
+        function observeChallengeStickyBars() {
+            const header = document.querySelector('header');
+            if (header) {
+                if (headerResizeObserver) headerResizeObserver.disconnect();
+                const updateHeader = () => document.documentElement.style.setProperty('--header-height', header.getBoundingClientRect().height + 'px');
+                updateHeader();
+                if (window.ResizeObserver) {
+                    headerResizeObserver = new ResizeObserver(updateHeader);
+                    headerResizeObserver.observe(header);
+                }
+            }
+            const jumpNavEl = document.querySelector('.jump-nav');
+            if (jumpNavEl) {
+                if (jumpNavResizeObserver) jumpNavResizeObserver.disconnect();
+                const updateJumpNav = () => document.documentElement.style.setProperty('--jump-nav-height', jumpNavEl.getBoundingClientRect().height + 'px');
+                updateJumpNav();
+                if (window.ResizeObserver) {
+                    jumpNavResizeObserver = new ResizeObserver(updateJumpNav);
+                    jumpNavResizeObserver.observe(jumpNavEl);
+                }
+            } else {
+                document.documentElement.style.setProperty('--jump-nav-height', '0px');
+            }
+        }
+
+        // Step 10 fix 3: highlights whichever jump-bar pill matches the section
+        // currently nearest the top of the viewport, as you scroll.
+        let challengeSectionObserver = null;
+        function observeChallengeActiveSection() {
+            if (challengeSectionObserver) { challengeSectionObserver.disconnect(); challengeSectionObserver = null; }
+            const sections = document.querySelectorAll('.rich-challenge-root .sec[id]');
+            if (!sections.length || !window.IntersectionObserver) return;
+            challengeSectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    const link = document.querySelector(`.jump-link[data-target="${entry.target.id}"]`);
+                    if (!link) return;
+                    document.querySelectorAll('.jump-link--active').forEach(l => l.classList.remove('jump-link--active'));
+                    link.classList.add('jump-link--active');
+                });
+            }, { rootMargin: '-45% 0px -45% 0px' });
+            sections.forEach(s => challengeSectionObserver.observe(s));
+        }
+
+        // Step 10 fix 3: shows the floating "Back to top" button once the top card has
+        // scrolled out of view, hides it again once it's back in view.
+        let topCardObserver = null;
+        function observeBackToTop() {
+            if (topCardObserver) { topCardObserver.disconnect(); topCardObserver = null; }
+            const topCardEl = document.querySelector('.rich-challenge-root .top-card-sentinel');
+            const btn = document.getElementById('back-to-top-btn');
+            if (!btn) return;
+            if (!topCardEl || !window.IntersectionObserver) {
+                btn.classList.add('hidden');
+                return;
+            }
+            topCardObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => btn.classList.toggle('hidden', entry.isIntersecting));
+            });
+            topCardObserver.observe(topCardEl);
+        }
+
+        function scrollChallengeToTop() {
+            let reduceMotion = false;
+            try { reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+            window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
         }
 
         function toggleRichChecklistItem(i) {
