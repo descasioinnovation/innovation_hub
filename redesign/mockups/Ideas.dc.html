@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Idea Hub</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#050E1C;font-family:Inter,system-ui,sans-serif}
+a{color:#7FD6F7}a:hover{color:#FFFFFF}
+.nav a{color:#9FB3C8;text-decoration:none}.nav a:hover{color:#FFFFFF}
+.fld{width:100%;box-sizing:border-box;height:48px;padding:0 14px;border-radius:12px;border:1px solid #2A4466;background:#050E1C;color:#EAF1F8;font:500 14px Inter,sans-serif}
+.fld::placeholder{color:#7F93A8}
+.fld:focus{outline:none;border-color:#00AEEF;box-shadow:0 0 0 3px rgba(0,174,239,0.25)}
+.lbl{font:600 13px Inter,sans-serif;color:#C9D8E8}
+.idea{cursor:pointer;text-align:left;transition:transform .15s ease,border-color .15s ease}
+.idea:hover{transform:translateY(-3px);border-color:#4A6488 !important}
+button:focus-visible,a:focus-visible{outline:3px solid #00AEEF;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.idea{transition:none}.idea:hover{transform:none}}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #050E1C; color: #EAF1F8; font-family: Inter, system-ui, sans-serif">
+
+  <header style="border-bottom: 1px solid #1C3150; background: rgba(5,14,28,0.92)">
+    <div style="max-width: 1240px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap">
+      <a href="Main.dc.html" style="display: flex; align-items: center; gap: 14px; text-decoration: none">
+        <img src="/_blob/fdaa4ecbb669b824c51e87da1dbd5077" alt="Descasio" style="width: 130px; height: 32px; display: block">
+        <span aria-hidden="true" style="width: 1px; height: 26px; background: #2A4466"></span>
+        <span style="font: 600 14px Poppins, sans-serif; color: #EAF1F8">AI Innovation Hub</span>
+      </a>
+      <nav class="nav" aria-label="Main" style="display: flex; gap: 6px; flex-wrap: wrap; font: 500 14px Inter, sans-serif">
+        <a href="Main.dc.html" style="padding: 10px 14px; border-radius: 10px">Dashboard</a>
+        <a href="Challenges.dc.html" style="padding: 10px 14px; border-radius: 10px">Challenges</a>
+        <a href="Submissions.dc.html" style="padding: 10px 14px; border-radius: 10px">Submissions</a>
+        <a href="Ideas.dc.html" aria-current="page" style="padding: 10px 14px; border-radius: 10px; background: #10223A; color: #FFFFFF">Idea Hub</a>
+        <a href="Winners.dc.html" style="padding: 10px 14px; border-radius: 10px">Winners</a>
+        <a href="Leaderboard.dc.html" style="padding: 10px 14px; border-radius: 10px">Leaderboard</a>
+      </nav>
+      <button style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2A4466; background: transparent; color: #EAF1F8; font: 600 13px Inter, sans-serif; cursor: pointer">Admin</button>
+    </div>
+  </header>
+
+  <main style="max-width: 1240px; margin: 0 auto; padding: 40px 24px 56px; display: flex; flex-direction: column; gap: 32px">
+    <div style="display: flex; flex-direction: column; gap: 8px; align-items: center; text-align: center">
+      <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.4px; text-transform: uppercase; color: #F6CD7F">Idea Hub</span>
+      <h1 style="margin: 0; font: 700 40px/1.1 Poppins, sans-serif; letter-spacing: -0.8px; color: #FFFFFF">Idea crowdsourcing</h1>
+      <p style="margin: 0; font: 400 17px/1.6 Inter, sans-serif; color: #9FB3C8">What solutions should we build next?</p>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: stretch">
+      <section style="flex: 999 1 560px; min-width: 0; padding: 32px; border-radius: 24px; background: #0B1A2E; border: 1px solid #1C3150">
+        <sc-if value="{{notSent}}" hint-placeholder-val="{{ true }}">
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 10px; font: 600 22px Poppins, sans-serif; color: #FFFFFF">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F2B544" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.1 14c.2-1 .7-1.7 1.4-2.5A6 6 0 1 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path></svg>
+              Pitch a concept
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px">
+              <div style="display: flex; flex-direction: column; gap: 8px"><label class="lbl" for="in-name">Full name</label><input id="in-name" class="fld" placeholder="Your full name"></div>
+              <div style="display: flex; flex-direction: column; gap: 8px"><label class="lbl" for="in-email">Work email</label><input id="in-email" class="fld" placeholder="name@descasio.io"></div>
+              <div style="display: flex; flex-direction: column; gap: 8px"><label class="lbl" for="in-dept">Department</label>
+                <select id="in-dept" class="fld"><option>Select department</option><option>Technology Services</option><option>Software Engineering</option><option>Marketing</option><option>Sales</option><option>Finance</option><option>Strategy</option><option>Product</option><option>Customer Success</option></select>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px"><label class="lbl" for="in-title">Idea title</label><input id="in-title" class="fld" placeholder="Give it a short name"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px"><label class="lbl" for="in-desc">Description</label>
+              <textarea id="in-desc" class="fld" placeholder="What problem does it solve, who is it for, and how could AI help?" style="height: 130px; padding: 12px 14px; resize: vertical"></textarea>
+            </div>
+            <button onClick="{{send}}" style="height: 52px; border-radius: 26px; border: none; background: #C8432D; color: #FFFFFF; font: 600 15px Inter, sans-serif; cursor: pointer">Share concept</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{sent}}" hint-placeholder-val="{{ false }}">
+          <div style="min-height: 380px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center">
+            <span style="font: 600 24px Poppins, sans-serif; color: #FFFFFF">Thanks, your idea is in</span>
+            <span style="font: 400 15px/1.6 Inter, sans-serif; color: #9FB3C8; max-width: 380px">It now appears in the concept wall below for everyone to read.</span>
+            <button onClick="{{reset}}" style="margin-top: 8px; height: 42px; padding: 0 20px; border-radius: 21px; border: 1.5px solid #4A6488; background: transparent; color: #FFFFFF; font: 600 14px Inter, sans-serif; cursor: pointer">Pitch another</button>
+          </div>
+        </sc-if>
+      </section>
+
+      <aside style="flex: 1 1 280px; padding: 28px; border-radius: 24px; background: linear-gradient(160deg, #003366 0%, #0B1A2E 100%); border: 1px solid #1C3150; display: flex; flex-direction: column; gap: 18px">
+        <span style="font: 600 12px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: #7FD6F7">How ideas travel</span>
+        <div style="display: flex; gap: 14px"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: #E6533C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif">1</span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">Pitch it</span><span style="font: 400 13px/1.5 Inter, sans-serif; color: #C9D8E8">Share a problem worth solving with AI.</span></div></div>
+        <div style="display: flex; gap: 14px"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: #E6533C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif">2</span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">The Hub team reviews</span><span style="font: 400 13px/1.5 Inter, sans-serif; color: #C9D8E8">Strong concepts are shortlisted.</span></div></div>
+        <div style="display: flex; gap: 14px"><span style="width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: #E6533C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font: 700 13px Poppins, sans-serif">3</span><div style="display: flex; flex-direction: column; gap: 2px"><span style="font: 600 15px Poppins, sans-serif; color: #FFFFFF">It may become a challenge</span><span style="font: 400 13px/1.5 Inter, sans-serif; color: #C9D8E8">Your idea could be next month's round.</span></div></div>
+        <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid #2A4466; display: flex; gap: 20px">
+          <div><div style="font: 700 28px Poppins, sans-serif; color: #FFFFFF">{{ideaCount}}</div><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">concepts shared</div></div>
+          <div><div style="font: 700 28px Poppins, sans-serif; color: #FFFFFF">[n]</div><div style="font: 500 12px Inter, sans-serif; color: #9FB3C8">contributors</div></div>
+        </div>
+      </aside>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap">
+        <h2 style="margin: 0; font: 600 24px Poppins, sans-serif; color: #FFFFFF">Concept wall</h2>
+        <span style="font: 500 13px Inter, sans-serif; color: #9FB3C8">Click a card to read the full pitch</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+        <sc-for list="{{ideas}}" as="d" hint-placeholder-count="6">
+          <button class="idea" onClick="{{d.open}}" aria-expanded="{{d.expanded}}" style="{{d.style}}">
+            <span style="display: flex; align-items: center; gap: 8px; font: 600 11px Inter, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; color: #7FD6F7">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7FD6F7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.1 14c.2-1 .7-1.7 1.4-2.5A6 6 0 1 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path></svg>
+              Concept
+            </span>
+            <span style="font: 600 19px/1.3 Poppins, sans-serif; color: #FFFFFF">{{d.title}}</span>
+            <span style="{{d.textStyle}}">{{d.text}}</span>
+            <span style="margin-top: auto; padding-top: 14px; border-top: 1px solid #1C3150; display: flex; justify-content: space-between; align-items: center; gap: 10px">
+              <span style="font: 600 12px Inter, sans-serif; color: #9FB3C8">By {{d.by}}</span>
+              <span style="font: 600 13px Inter, sans-serif; color: #7FD6F7">{{d.more}}</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top: 1px solid #1C3150; padding: 28px 24px; text-align: center; display: flex; flex-direction: column; gap: 6px">
+    <span style="font: 500 14px Inter, sans-serif; color: #C9D8E8">Support and feedback: <a href="mailto:ai-innovation-hub@descasio.io">ai-innovation-hub@descasio.io</a></span>
+    <span style="font: 400 12px Inter, sans-serif; color: #8197AE">© 2026 Descasio AI Innovation Hub · Empowering Your Digital Future</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { open: -1, sent: false };
+  }
+  renderVals() {
+    const full = ' [Full pitch text loads from the ideas collection.]';
+    const D = [
+      ['ProrateFX', "It's a calculator that can help both finance and CSS team easily prorate invoices. I already created the calculator some months ago, but wit…", 'Aishat Lawal'],
+      ['VitaScan', 'A privacy-first, AI-powered biometric emergency access system designed to help first responders instantly retrieve critical patient information during…', 'Kehinde Ridwan Onifade'],
+      ['Lagos HouseHunt Intelligence (HHI)', 'A data-driven advisory platform designed to standardize the chaotic rental experience in Lagos. By integrating AI with localized market…', 'Nkemakolam Eloagu'],
+      ['Vigilant-AI for Personal Safety', 'An emergency response solution for high-stress security situations. The application should feature a centralized "SOS" interface that, upo…', 'Nkemakolam Eloagu'],
+      ['Competitor Intelligence Monitor', 'I suggest we launch a Competitor Intelligence Monitor to stay ahead of market shifts. The system would provide a weekly "Strategy Alert"…', 'Nkemakolam Eloagu'],
+      ['Daily Customer Update', 'I propose implementing an automated Client Intelligence System that integrates with our customer database to monitor real-time external…', 'Nkemakolam Eloagu']
+    ];
+    const ideas = D.map(([title, text, by], i) => {
+      const on = this.state.open === i;
+      return {
+        title, by, expanded: on ? 'true' : 'false',
+        text: on ? text + full : text,
+        more: on ? 'Show less' : 'Read more →',
+        open: () => this.setState({ open: on ? -1 : i }),
+        textStyle: 'font: italic 400 14px/1.6 Inter, sans-serif; color: #9FB3C8; ' + (on ? '' : 'display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;'),
+        style: 'display: flex; flex-direction: column; gap: 12px; padding: 24px; border-radius: 20px; font: inherit; color: inherit; min-height: 260px; box-sizing: border-box; ' +
+          (on ? 'background: #10223A; border: 1.5px solid #00AEEF;' : 'background: #0B1A2E; border: 1px solid #1C3150;')
+      };
+    });
+    return {
+      ideas, ideaCount: '[n]',
+      notSent: !this.state.sent, sent: this.state.sent,
+      send: () => this.setState({ sent: true }), reset: () => this.setState({ sent: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

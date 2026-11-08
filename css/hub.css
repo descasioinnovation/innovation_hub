@@ -1,0 +1,675 @@
+/* ===== Design tokens (redesign/DESIGN_SPEC.md) ===== */
+:root {
+    --bg: #050E1C;
+    --surface: #0B1A2E;
+    --surface-2: #10223A;
+    --surface-active: #12345C;
+    --border: #1C3150;
+    --border-strong: #2A4466;
+    --border-muted: #4A6488;
+    --text: #EAF1F8;
+    --text-strong: #FFFFFF;
+    --text-2: #C9D8E8;
+    --text-muted: #9FB3C8;
+    --text-faint: #8197AE;
+    --navy: #003366;
+    --coral: #E6533C;
+    --coral-btn: #C8432D;
+    --brand-blue: #00AEEF;
+    --link: #7FD6F7;
+    --gold: #F2B544;
+    --gold-text: #F6CD7F;
+    --green: #3FA66B;
+    --green-text: #8FE0B0;
+    --medal-gold: #F2B544;
+    --medal-silver: #C9D3DF;
+    --medal-bronze: #E08A5A;
+    --round-1: #C9D3DF;
+    --round-2: #5AA9F0;
+    --round-3: #8E8CF2;
+    --round-4: #C084F5;
+    --round-5: #4FB4F0;
+    --round-6: #3ECF8E;
+    --round-7: #F2B544;
+    --round-8: #F2667A;
+    --round-9: #8197AE;
+}
+
+/* ===== Fonts & focus / motion (DESIGN_SPEC.md "Design system") ===== */
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.font-poppins {
+    font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+}
+
+/* New shell elements use sentence case per the spec; existing tab-content headings
+   (still italic/uppercase in their own markup) are untouched for now. */
+.shell-sentence-case {
+    text-transform: none;
+    font-style: normal;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+    outline: 3px solid var(--brand-blue);
+    outline-offset: 2px;
+}
+
+/* Submissions tab form fields (js/app.js renderSubmissionFormSection/renderRequirementField). */
+.lbl {
+    display: block;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-2);
+}
+
+.fld {
+    width: 100%;
+    height: 48px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-strong);
+    background: var(--bg);
+    color: var(--text-strong);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.fld::placeholder {
+    color: var(--text-faint);
+}
+
+.fld:focus {
+    border-color: var(--brand-blue);
+}
+
+.fld:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* No horizontal page scroll at any width; only the leaderboard table scrolls sideways
+   inside its own card (existing .overflow-x-auto wrapper there already handles that).
+   overflow-x:clip (not hidden) - setting overflow-x alone with hidden forces
+   overflow-y to auto too (CSS spec), which turns html/body into their own scroll
+   container and can break position:sticky on descendants (Step 10 fix 3). clip avoids
+   that side effect while still preventing horizontal scroll. */
+html, body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+
+/* ===== Legacy rules, unchanged - still used throughout the existing (untouched) tab
+   content bodies. Do not remove without first rebuilding that content. ===== */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: #e2e8f0;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-4 {
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .custom-card {
+            background: linear-gradient(145deg, #0f172a, #020617);
+            border: 1px solid #1e293b;
+        }
+
+        .hero-gradient {
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 50%, #020617 100%);
+        }
+
+        .btn-shiny {
+            background: linear-gradient(-45deg, #4f46e5, #7c3aed, #2563eb, #4f46e5);
+            background-size: 400% 400%;
+            animation: gradient-flow 3s ease infinite, pulse-glow 2s infinite;
+        }
+
+        @keyframes gradient-flow {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 15px rgba(124, 58, 237, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+            }
+        }
+
+        .highlight-text {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .rank-badge-1 {
+            background: linear-gradient(to bottom, #fde047, #ca8a04);
+            color: #422006;
+        }
+
+        .rank-badge-2 {
+            background: linear-gradient(to bottom, #e2e8f0, #94a3b8);
+            color: #0f172a;
+        }
+
+        .rank-badge-3 {
+            background: linear-gradient(to bottom, #fb923c, #c2410c);
+            color: #431407;
+        }
+
+        .floating-avatar {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+/* ===== New shell (header / nav / footer / announcement bar) ===== */
+a {
+    color: var(--link);
+}
+a:hover {
+    color: var(--text-strong);
+}
+
+.shell-nav-link {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+.shell-nav-link:hover {
+    color: var(--text-strong);
+}
+.shell-nav-link--active {
+    background: var(--surface-2);
+    color: var(--text-strong);
+}
+
+/* Header layout, three tiers:
+   <=640px:   logo row (logo + Admin) then a 3x2 grid of equal-width nav pills below -
+              no horizontal scroll, nothing hidden, 44px minimum tap height.
+   641-1279px: logo row (logo left, Admin right) then all 6 tabs on one centred row.
+   >=1280px:  everything on a single row (logo, nav, Admin). */
+.shell-header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+.shell-logo-group {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.shell-admin-btn {
+    order: 2;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+.shell-nav {
+    order: 3;
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.shell-nav .shell-nav-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    text-align: center;
+}
+.shell-logo-svg {
+    width: 130px;
+    height: 32px;
+}
+@media (max-width: 640px) {
+    .shell-logo-svg {
+        width: 104px;
+        height: 26px;
+    }
+}
+@media (max-width: 360px) {
+    .shell-divider {
+        display: none;
+    }
+    .shell-title-text {
+        font-size: 13px;
+    }
+}
+@media (min-width: 641px) {
+    .shell-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        justify-content: center;
+        gap: 6px;
+    }
+    .shell-nav .shell-nav-link {
+        min-height: auto;
+    }
+}
+@media (min-width: 1280px) {
+    .shell-header-inner {
+        flex-wrap: nowrap;
+    }
+    .shell-logo-group {
+        flex: 0 0 auto;
+    }
+    .shell-nav {
+        order: 2;
+        flex: 1 1 auto;
+        margin: 0 20px;
+    }
+    .shell-admin-btn {
+        order: 3;
+    }
+}
+
+/* Final override: new design-token background/text wins over the legacy body rule
+   above (same selector specificity - last rule in the cascade applies). */
+body {
+    background-color: var(--bg);
+    color: var(--text);
+}
+
+/* ===== Interactive-state system (polish pass) =====
+   Inline text links keep the base `a` rule's colour/hover above; .link-text/.link-gold
+   only add the underline treatment. Pill/button-shaped anchors use .btn-coral/
+   .btn-outline instead and must never carry .link-text/.link-gold too. */
+.link-text {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+}
+.link-text:hover {
+    text-decoration-thickness: 2px;
+}
+
+.link-gold {
+    color: var(--gold-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    transition: color 0.15s ease, text-decoration-thickness 0.15s ease;
+}
+.link-gold:hover {
+    color: var(--text-strong);
+    text-decoration-thickness: 2px;
+}
+
+.btn-coral {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.btn-coral:hover {
+    background-color: #D9502F;
+}
+.btn-coral:disabled {
+    cursor: not-allowed;
+}
+.btn-coral:disabled:hover {
+    background-color: inherit;
+}
+
+.btn-outline {
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.btn-outline:hover {
+    border-color: var(--link);
+    background-color: rgba(127, 214, 247, 0.08);
+}
+
+.btn-neutral {
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+.btn-neutral:hover {
+    filter: brightness(1.18);
+}
+
+/* Clickable cards/tiles (journey tiles, challenge month list, concept/submission
+   cards, round chips): lighter border + slight lift on hover. Reduced-motion safe via
+   the @media rule above, which zeroes every transition-duration. The !important only
+   overrides an inline border-color some of these set for their own selected state. */
+.card-hover {
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.card-hover:hover {
+    border-color: var(--border-muted) !important;
+    transform: translateY(-3px);
+}
+
+button:disabled {
+    cursor: not-allowed;
+}
+
+/* Announcement bar ticker (js/shell.js renderAnnouncementBar) - two copies of the
+   same content scroll left as one strip; at -50% translateX the first copy has
+   scrolled fully off and the second is in exactly its start position, so the loop
+   is seamless. Paused on hover/focus so "Read the brief" can be read and clicked. */
+.ticker-track {
+    display: flex;
+    width: max-content;
+    animation: ticker-scroll 35s linear infinite;
+}
+.ticker-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 48px;
+    white-space: nowrap;
+}
+.ticker-wrap:hover .ticker-track,
+.ticker-wrap:focus-within .ticker-track {
+    animation-play-state: paused;
+}
+@keyframes ticker-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ticker-wrap {
+        display: flex;
+        justify-content: center;
+    }
+    .ticker-track {
+        animation: none;
+        transform: none;
+        width: 100%;
+        justify-content: center;
+    }
+    .ticker-item[aria-hidden="true"] {
+        display: none;
+    }
+}
+
+/* Dashboard hero at small widths (js/app.js renderDashboard). */
+.hero-section {
+    padding: 48px;
+}
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 32px;
+    }
+}
+@media (max-width: 480px) {
+    .hero-section {
+        padding: 20px;
+    }
+}
+
+.hero-title {
+    font-size: clamp(28px, 7.5vw, 52px);
+    line-height: 1.1;
+}
+
+.hero-mesca-col {
+    padding-bottom: 16px;
+}
+.hero-mesca-circle {
+    width: min(300px, calc(100% - 32px));
+    aspect-ratio: 1;
+}
+
+/* Small-screen audit (Step 8): reduce oversized card padding, never below 16px.
+   "main .p-7" etc. beats Tailwind's own bare ".p-7" on specificity regardless of
+   stylesheet load order, since every tab's content renders inside <main>. Each
+   group only touches the sides its own Tailwind utility actually sets. */
+@media (max-width: 480px) {
+    main .p-7, main .p-8, main .p-9, main .p-10, main .p-11, main .p-12 {
+        padding: 16px;
+    }
+    main .px-7, main .px-8, main .px-9, main .px-10, main .px-11, main .px-12 {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    main .py-7, main .py-8, main .py-9, main .py-10, main .py-11, main .py-12 {
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
+    main .pt-7, main .pt-8, main .pt-9, main .pt-10, main .pt-11, main .pt-12 {
+        padding-top: 16px;
+    }
+    main .pb-7, main .pb-8, main .pb-9, main .pb-10, main .pb-11, main .pb-12 {
+        padding-bottom: 16px;
+    }
+
+    .modal-card {
+        padding: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-cta-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .hero-cta-row > a,
+    .hero-cta-row > span {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hero-countdown-row {
+        flex-direction: column;
+    }
+    .hero-countdown-boxes {
+        width: 100%;
+    }
+    .hero-countdown-boxes > div {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+    .hero-countdown-num {
+        font-size: 22px;
+    }
+}
+
+/* Dashboard hero gentle falling snow (redesign/mockups/Main.dc.html) - reduced-motion
+   safe via the @media rule near the top of this file, which freezes all animations. */
+@keyframes fall {
+    0% { transform: translateY(-10px); opacity: 0; }
+    15% { opacity: .8; }
+    100% { transform: translateY(420px); opacity: 0; }
+}
+.flake {
+    position: absolute;
+    top: 0;
+    border-radius: 50%;
+    background: #FFFFFF;
+    animation-name: fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    pointer-events: none;
+}
+
+/* ===== Rich challenge page (Step 8/9, js/app.js renderRichChallengeContent) ===== */
+.jump-link:hover {
+    border-color: var(--link) !important;
+    color: var(--text-strong) !important;
+}
+.chk {
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+}
+/* Month navigator (Step 10 fix 1): ONE list, always - no separate chip grid. Below
+   1024px it sits full-width above the content (flex-basis:100% forces its own row)
+   with each row's label swapped to a single compact line; at/above 1024px it becomes
+   the sticky 280px column beside the content. */
+.challenge-month-nav {
+    flex: 1 1 100%;
+}
+.month-row-desktop {
+    display: none;
+}
+.month-row-compact {
+    display: block;
+}
+@media (min-width: 1024px) {
+    .challenge-month-nav {
+        flex: 0 0 280px;
+        position: sticky;
+        top: var(--header-height, 72px);
+    }
+    .month-row-desktop {
+        display: flex;
+    }
+    .month-row-compact {
+        display: none;
+    }
+}
+
+/* Jump bar (Step 10 fixes 2/3): wraps onto multiple lines instead of scrolling
+   sideways - no horizontal overflow at any width. Its sticky top and each .sec's
+   scroll-margin-top are driven by --header-height/--jump-nav-height, which
+   observeChallengeStickyBars() in js/app.js measures live via ResizeObserver instead
+   of guessing per breakpoint. */
+.jump-nav {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    top: var(--header-height, 72px);
+}
+.sec {
+    scroll-margin-top: calc(var(--header-height, 72px) + var(--jump-nav-height, 56px) + 12px);
+}
+.jump-link--active {
+    border-color: var(--link) !important;
+    color: var(--text-strong) !important;
+    background: rgba(127, 214, 247, 0.12) !important;
+}
+
+/* Floating "Back to top" button (Step 10 fix 3) - shown once the top card scrolls out
+   of view, via observeBackToTop() in js/app.js. */
+.back-to-top-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 50;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-active);
+    border: 1px solid var(--border-strong);
+    color: var(--text-strong);
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.back-to-top-btn.hidden {
+    display: none;
+}
+
+/* Print (Step 10 fix 5): a completely separate, pre-rendered light document
+   (#print-brief, js/app.js renderPrintBrief()) - never the dark on-screen layout.
+   Everything else is hidden; #print-brief carries its own inline styles throughout,
+   since it's meant to look like a plain document, not a themed page.
+   It must stay hidden on screen (it's a sibling of .rich-challenge-root, always
+   rendered, only meant to be shown by the print media query below). */
+@media screen {
+    #print-brief {
+        display: none !important;
+    }
+}
+
+/* @page margin:0 (Step 10 fix 4) removes the space Chrome reserves for its own
+   date/URL header and page-number footer, so they don't render; #print-brief
+   supplies its own 14mm padding instead (box-sizing:border-box keeps the content
+   width - and so the ~4 page length - the same as the old @page margin:14mm). */
+@page {
+    size: A4;
+    margin: 0;
+}
+@media print {
+    body {
+        background: #FFFFFF !important;
+    }
+    header, footer, .ticker-wrap, .no-print, .rich-challenge-root {
+        display: none !important;
+    }
+    main {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    #print-brief {
+        display: block !important;
+        padding: 14mm;
+        box-sizing: border-box;
+    }
+    #print-brief * {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}

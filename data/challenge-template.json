@@ -1,0 +1,101 @@
+{
+  "_comment": "Template for a new challenges/round-N doc. Copy this file, fill in every field, delete this _comment, then run: node scripts/new-challenge.js your-file.json (dry-run) or add --apply to actually create it. Name, work email, department and entry type (individual/group) are ALWAYS collected by the submission form itself - never list them under requirements.",
+  "round": 10,
+  "month": "December",
+  "year": 2026,
+  "slug": "round-10",
+  "title": "Challenge title shown everywhere (cards, hero, brief)",
+  "archiveName": "Optional short label for the archive feed header; omit to reuse title",
+  "summary": "One or two sentences shown on the dashboard hero and challenge list.",
+  "brief": [
+    { "type": "p", "text": "First paragraph of the brief." },
+    { "type": "p", "text": "Second paragraph, if needed." },
+    { "type": "list", "items": ["Step one", "Step two", "Step three"] }
+  ],
+  "criteria": [
+    "Judging criterion one (5 pts)",
+    "Judging criterion two (5 pts)"
+  ],
+  "opensAt": "2026-12-01T08:00:00+01:00",
+  "closesAt": "2026-12-20T23:59:00+01:00",
+  "winnerName": null,
+  "winnerLabel": null,
+  "winnerImage": null,
+  "winningSubmissionId": null,
+  "requirements": [
+    { "id": "exampleLink", "label": "Example link requirement", "type": "url", "required": true, "placeholder": "https://..." },
+    { "id": "exampleShortAnswer", "label": "Example short-text requirement", "type": "text", "required": true, "placeholder": "Short answer" },
+    { "id": "exampleLongAnswer", "label": "Example long-text requirement", "type": "textarea", "required": false, "placeholder": "Longer answer" },
+    { "id": "exampleChips", "label": "Example multiselect requirement", "type": "multiselect", "required": true, "options": ["Option A", "Option B", "Option C"] }
+  ],
+  "checklist": [
+    "Before-you-submit checklist item one.",
+    "Before-you-submit checklist item two."
+  ],
+  "entryCount": 0,
+  "_page_comment": "`page` is OPTIONAL. Omit it entirely for a simple round (the Challenges tab then shows the plain detail panel, same as every round without one). Only add it for a round that needs the full rich page (sections, design pack, interactive checklist, scoring) - see Round 9 (scripts/round9-page-content.js) for a complete real example and js/app.js's renderRichChallengePage() for how each field is used. Shape:",
+  "page": {
+    "intro": "Longer top-card description, replacing `summary` on the rich page only (summary is still used elsewhere - Dashboard hero, the simple panel).",
+    "why": {
+      "lead": "Lead paragraph for the 'Why this challenge' section.",
+      "points": [
+        { "title": "Short punchy title.", "text": "One sentence expanding on it.", "accent": "#00AEEF" }
+      ]
+    },
+    "brief": {
+      "statement": "The one-sentence brief, shown in a highlighted quote box.",
+      "mustHaves": [
+        { "lead": "Bold lead-in,", "text": "the rest of the must-have sentence." }
+      ]
+    },
+    "yourCall": [
+      { "label": "Short category name, e.g. Layout", "text": "What's left up to the entrant for this category." }
+    ],
+    "sampleUrl": "https://... a finished example entry to link from 'See a sample'",
+    "designPack": {
+      "url": "https://... folder of official assets",
+      "assets": [
+        { "kind": "mesca", "label": "Mesca", "compulsory": true, "imageUrl": "https://...", "linkUrl": "https://...", "linkLabel": "Mesca image", "text": "Official Mesca image:" },
+        { "kind": "logo-light", "label": "Logo, light backgrounds", "text": "description" },
+        { "kind": "logo-dark", "label": "Logo, dark backgrounds", "text": "description" },
+        { "kind": "brand-swatches", "label": "Brand colours", "swatches": [{ "name": "Navy", "hex": "#003366" }] },
+        { "kind": "seasonal-swatches", "label": "Seasonal colours", "text": "optional note", "swatches": [{ "name": "Holly green", "hex": "#2E7D32" }] },
+        { "kind": "fonts", "label": "Fonts", "text": "description" },
+        { "kind": "tagline", "label": "Tagline", "text": "the tagline text itself" },
+        { "kind": "text", "label": "Any other free-text asset tile", "text": "description" }
+      ]
+    },
+    "makeItYours": {
+      "intro": "Intro line for the 'Make it yours' section.",
+      "ideas": [
+        { "title": "Idea title", "text": "One sentence expanding on it." }
+      ],
+      "note": "Closing callout line for this section."
+    },
+    "rules": [
+      { "lead": "Bold lead-in,", "text": "the rest of the rule." }
+    ],
+    "howToSubmit": {
+      "steps": [
+        { "text": "Step text.", "linkLabel": "Optional link label →", "linkHref": "#submit" },
+        { "text": "A step that shows the valid/invalid link-prefix check below it.", "showPrefixCheck": true },
+        { "text": "A plain step with no link or prefix check." }
+      ],
+      "validPrefixes": ["https://example.com/valid-prefix/"],
+      "invalidPrefix": "example.com/not-this/…",
+      "invalidNote": "Why that prefix is wrong, shown both in the 'Not this' box and in the submission form's soft warning."
+    },
+    "checklist": [
+      "Interactive self-check item shown in 'How to submit', separate from the top-level `checklist` above (that one's shown on the Submissions form's info card instead)."
+    ],
+    "afterDeadlineNote": "What, if anything, can still be fixed after the deadline.",
+    "scoring": {
+      "total": 20,
+      "intro": "One sentence on how judging works.",
+      "validity": "The completion of 'An entry is valid when ...' - what makes an entry countable at all.",
+      "criteria": [
+        { "name": "Criterion name", "points": 4, "full": "What earns full marks on this criterion." }
+      ]
+    }
+  }
+}

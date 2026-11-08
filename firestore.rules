@@ -1,0 +1,106 @@
+// DRAFT - not deployed automatically. Paste this into Firebase Console -> Firestore ->
+// Rules -> Publish yourself (see Step 7's go-live checklist). The live rules this
+// replaces are the blanket "allow read, write: if request.auth != null" backed up at
+// backups/2026-11-06/firestore.rules.
+//
+// Paths match the app's actual structure: artifacts/{appId}/public/data/{collection}
+// for every public collection, and artifacts/{appId}/users/{uid}/... for the one
+// per-user doc verifyOtp() writes (js/app.js).
+//
+// NOTE on the submissions create rule: opensAt/closesAt are stored as ISO-8601
+// strings, which Firestore rules cannot parse into a Timestamp for comparison, so the
+// rule instead compares request.time.toMillis() against opensAtMs/closesAtMs - plain
+// epoch-millisecond numbers added to every challenges doc by
+// scripts/patch-add-epoch-fields.js (already applied live) and derived automatically
+// by scripts/new-challenge.js for every future round.
+//
+// NOTE on `otps`: the app's current OTP flow (js/app.js requestOtp/verifyOtp) is
+// entirely client-side in memory - it does not write to Firestore at all (see
+// SECURITY_NOTES.md). This collection's rules are prospective, for if/when that moves
+// server-side; they are inert today, and scripts/test-rules.js's "list otps = denied"
+// check will pass trivially against an empty, access-denied collection either way.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function challengeDoc(appId, round) {
+      return get(/databases/$(database)/documents/artifacts/$(appId)/public/data/challenges/$('round-' + string(round)));
+    }
+
+    match /artifacts/{appId}/public/data/challenges/{challengeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /artifacts/{appId}/public/data/submissions/{submissionId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        // Required fields: name, a @descasio.io email, dept, and a round number.
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.email is string && request.resource.data.email.lower().matches('.*@descasio[.]io$')
+        && request.resource.data.dept is string && request.resource.data.dept.size() > 0
+        && request.resource.data.round is number
+        // The round must match a real challenge doc, and must currently be open.
+        && challengeDoc(appId, request.resource.data.round).data.opensAtMs is number
+        && challengeDoc(appId, request.resource.data.round).data.closesAtMs is number
+        && request.time.toMillis() >= challengeDoc(appId, request.resource.data.round).data.opensAtMs
+        && request.time.toMillis() <= challengeDoc(appId, request.resource.data.round).data.closesAtMs
+        // The client may never set moderation/winner fields on its own submission.
+        && !('hidden' in request.resource.data)
+        && !('hiddenReason' in request.resource.data)
+        && !('winningSubmissionId' in request.resource.data)
+        && !('winnerName' in request.resource.data)
+        && (!('shortlisted' in request.resource.data) || request.resource.data.shortlisted == false);
+
+      allow update, delete: if isAdmin();
+    }
+
+    match /artifacts/{appId}/public/data/ideas/{ideaId} {
+      allow read: if true;
+
+      allow create: if isSignedIn()
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.email is string && request.resource.data.email.lower().matches('.*@descasio[.]io$')
+        && request.resource.data.dept is string && request.resource.data.dept.size() > 0
+        && request.resource.data.title is string && request.resource.data.title.size() > 0
+        && request.resource.data.description is string && request.resource.data.description.size() > 0;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // Prospective - see the top-of-file note. Not written by the app today.
+    match /artifacts/{appId}/public/data/otps/{otpId} {
+      allow create: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    match /artifacts/{appId}/public/data/leaderboard/{entryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Per-user docs (js/app.js verifyOtp's session-persistence write).
+    match /artifacts/{appId}/users/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      match /{document=**} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

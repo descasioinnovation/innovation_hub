@@ -1,0 +1,16 @@
+{
+  "name": "hub-redesign-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Read-only maintenance/export scripts for the AI Innovation Hub redesign. Not part of the deployed site.",
+  "type": "commonjs",
+  "scripts": {
+    "export": "node export.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.65.0"
+  }
+}
