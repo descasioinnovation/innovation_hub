@@ -583,7 +583,7 @@
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-gold-text shell-sentence-case" style="text-transform:uppercase">Alison LMS</span>
                             <span class="font-poppins font-semibold text-[19px] leading-[1.35] text-text-strong shell-sentence-case">Finish your assigned Alison courses</span>
                             <span class="font-inter text-sm leading-[1.5] text-text-muted">Incomplete courses mean your ${round.year} leaderboard position will not count.</span>
-                            <a href="https://alison.com" target="_blank" rel="noopener noreferrer" class="link-text font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
+                            <a href="https://alison.com/dashboard" target="_blank" rel="noopener noreferrer" class="link-text font-inter font-semibold text-sm shell-sentence-case">Go to Alison</a>
                         </section>
                         <section class="p-7 rounded-[24px] bg-surface border border-border flex flex-col gap-2.5">
                             <span class="font-inter font-semibold text-xs tracking-[1.2px] uppercase text-link shell-sentence-case" style="text-transform:uppercase">Idea Hub</span>
